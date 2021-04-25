@@ -5,7 +5,7 @@ from func_get import *
 from func_cal import *
 from func_order import *
 
-keys_path = '../_keys/binance_keys.json'
+keys_path = '_keys/binance_keys.json'
 config_params_path = 'config_params.json'
 transcations_df_path = 'transactions.csv'
 orders_df_path = 'orders.csv'
