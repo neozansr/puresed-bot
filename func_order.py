@@ -2,7 +2,7 @@ import datetime as dt
 
 
 def remove_close_orders(open_orders_list, orders_df, symbol):
-    orders_df_clean = orders_df[orders_df['order'].isin(open_orders_list)]
+    orders_df_clean = orders_df[orders_df['id'].isin(open_orders_list)]
     orders_df_clean = orders_df_clean.reset_index(drop = True)
 
     return orders_df_clean
