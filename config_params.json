@@ -1,4 +1,6 @@
-{"budget": 3000, 
+{"symbol": "ETH/USDT",
+ "budget": 3000, 
  "grid": 30,
  "value": 20,
- "symbol": "ETH/USDT"}
+ "min_price": 1000,
+ "max_price": 2000}

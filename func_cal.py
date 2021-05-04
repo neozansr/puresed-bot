@@ -1,42 +1,57 @@
 import numpy as np
 
 
-def cal_buying_power(budget, orders_df):
-    sell_orders_df = orders_df[orders_df['type'] == 'sell']
-    hold_value = sell_orders_df['value'].sum()
-    buying_power = budget - hold_value
+def cal_fee(amount):
+    # not provide on binance api
+    final_amount = amount * (0.1 / 100)
 
-    return buying_power
+    return final_amount
 
 
-def cal_buy_orders(latest_price, grid, value, buying_power):
-    buy_orders_price_list = []
-    n_order = int(np.floor(buying_power / value))
+def cal_sell_price(order, grid, latest_price):
+    buy_price = order['price']
+    sell_price = max(buy_price + grid, latest_price)
+
+    return sell_price
+
+
+def cal_n_order(open_orders_df, budget, value):
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+    n_sell_order = len(open_sell_orders_df)
+    max_n_order = int(budget / value)
+    n_order = max_n_order - n_sell_order
+
+    return n_order, n_sell_order
+
+
+def cal_new_orders(n_order, grid, latest_price):
+    buy_price_list = []
+    buy_price = latest_price - grid
     
     for _ in range(n_order):
-        latest_price -= grid
-        buy_orders_price_list.append(latest_price)
+        buy_price_list.append(buy_price)
+        buy_price -= grid
 
-    return buy_orders_price_list, n_order
+    return buy_price_list
 
 
-def organize_buy_orders(orders_df, buy_orders_price_list, n_order, latest_price, grid):
-    buy_oders_df = orders_df[orders_df['type'] == 'buy']
-    current_orders_price_list = buy_oders_df['price'].to_list()
+def cal_append_orders(n_order, n_sell_order, grid, open_buy_orders_df):
+    try:
+        min_open_buy_price = min(open_buy_orders_df['price'])
+    except ValueError: # for 0 open orders
+        min_open_buy_price = 0
 
-    if latest_price > (max(current_orders_price_list) - grid):
-        # when price rise, cancel all current orders and send new orders
-        cancel_orders_price_list = current_orders_price_list.copy()
-        new_orders_price_list = buy_orders_price_list.copy()
-    else:
-        # when price drop, continue from current orders
-        cancel_orders_price_list = [x for x in current_orders_price_list if x > latest_price]
-        len_current_orders = len([x for x in current_orders_price_list if x <= latest_price])
-        
-        new_orders_price_list = []
-        buy_price = current_orders_price_list[-1]
-        for _ in range(n_order - len_current_orders):
-            buy_price -= grid
-            new_orders_price_list.append(buy_price)
+    buy_price_list = []
+    buy_price = min_open_buy_price - grid
 
-    return cancel_orders_price_list, new_orders_price_list
+    for _ in range(n_order - n_sell_order):
+        buy_price_list.append(buy_price)
+        buy_price -= grid
+
+    return buy_price_list
+
+
+def price_range(buy_price_list, min_price, max_price):
+    buy_price_list = [x for x in buy_price_list if min_price <= x <= max_price]
+
+    return buy_price_list
