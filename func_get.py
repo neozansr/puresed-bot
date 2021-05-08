@@ -26,18 +26,19 @@ def get_config_params(config_params_path):
     value = config_params['value']
     min_price = config_params['min_price']
     max_price = config_params['max_price']
+    fee_percent = config_params['fee_percent']
 
-    return symbol, budget, grid, value, min_price, max_price
+    return symbol, budget, grid, value, min_price, max_price, fee_percent
 
 
 def get_exchange(keys_path):
     with open(keys_path) as keys_file:
         keys_dict = json.load(keys_file)
     
-    exchange = ccxt.binance({'apiKey': keys_dict['apiKey'],
-                             'secret': keys_dict['secret'],
-                             'enableRateLimit': True,
-                             'options': {'newOrderRespType': 'FULL'}})
+    exchange = ccxt.kucoin({'apiKey': keys_dict['apiKey'],
+                            'secret': keys_dict['secret'],
+                            'password': keys_dict['password'],
+                            'enableRateLimit': True})
 
     return exchange
 

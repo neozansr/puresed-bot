@@ -1,9 +1,10 @@
 import numpy as np
 
 
-def cal_fee(amount):
-    # not provide on binance api
-    final_amount = amount * (0.1 / 100)
+def cal_fee(amount, fee_percent):
+    fee_rate = (fee_percent / 100)
+    fee = amount * fee_rate
+    final_amount = amount - fee
 
     return final_amount
 
@@ -18,33 +19,30 @@ def cal_sell_price(order, grid, latest_price):
 def cal_n_order(open_orders_df, budget, value):
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     n_sell_order = len(open_sell_orders_df)
-    max_n_order = int(budget / value)
-    n_order = max_n_order - n_sell_order
+    n_open_order = len(open_orders_df)
+    n_order = int(budget / value)
+    
+    return n_order, n_sell_order, n_open_order
 
-    return n_order, n_sell_order
 
-
-def cal_new_orders(n_order, grid, latest_price):
+def cal_new_orders(n_order, n_sell_order, grid, latest_price):
     buy_price_list = []
     buy_price = latest_price - grid
     
-    for _ in range(n_order):
+    for _ in range(n_order - n_sell_order):
         buy_price_list.append(buy_price)
         buy_price -= grid
 
     return buy_price_list
 
 
-def cal_append_orders(n_order, n_sell_order, grid, open_buy_orders_df):
-    try:
-        min_open_buy_price = min(open_buy_orders_df['price'])
-    except ValueError: # for 0 open orders
-        min_open_buy_price = 0
-
+def cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df):
     buy_price_list = []
+    
+    min_open_buy_price = min(open_buy_orders_df['price'])
     buy_price = min_open_buy_price - grid
 
-    for _ in range(n_order - n_sell_order):
+    for _ in range(n_order - n_open_order):
         buy_price_list.append(buy_price)
         buy_price -= grid
 

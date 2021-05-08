@@ -24,21 +24,21 @@ def remove_df(df, order_id):
     return df
 
 
-def open_sell_order(exchange, order, symbol, sell_price):
+def open_sell_order(exchange, order, symbol, sell_price, fee_percent):
     amount = order['amount']
-    amount = cal_fee(amount)
-    sell_order = exchange.create_order(symbol, 'limit', 'sell', amount, sell_price)
-    print('Open sell {} {} at {} USDT'.format(amount, symbol.split('/')[0], sell_price))
+    final_amount = cal_fee(amount, fee_percent)
+    sell_order = exchange.create_order(symbol, 'limit', 'sell', final_amount, sell_price)
+    print('Open sell {} {} at {} USDT'.format(final_amount, symbol.split('/')[0], sell_price))
 
     return sell_order
 
 
-def check_orders_statue(exchange, side, symbol, grid, value, latest_price, open_orders_df, transcations_df):
+def check_orders_statue(exchange, side, symbol, grid, value, latest_price, fee_percent, open_orders_df, transcations_df):
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
     
     for order_id in open_orders_list:
         order = exchange.fetch_order(order_id, symbol)
-        if order['info']['status'] == 'FILLED':
+        if order['status'] == 'closed':
             order_id = order['id']
             open_orders_df = remove_df(open_orders_df, order_id)
             transcations_df = append_df(transcations_df, order, symbol, value)
@@ -46,7 +46,7 @@ def check_orders_statue(exchange, side, symbol, grid, value, latest_price, open_
             # open sell orders after buy orders filled
             if side == 'buy':
                 sell_price = cal_sell_price(order, grid, latest_price)
-                sell_order = open_sell_order(exchange, order, symbol, sell_price)
+                sell_order = open_sell_order(exchange, order, symbol, sell_price, fee_percent)
                 open_orders_df = append_df(open_orders_df, sell_order, symbol, value)
 
     return open_orders_df, transcations_df
@@ -58,15 +58,14 @@ def cancel_open_buy_orders(exchange, symbol, open_orders_df):
 
     for order_id in open_buy_orders_list:
         cancel_order = exchange.cancel_order(order_id, symbol)
-        amount = cancel_order['amount']
-        sell_price = cancel_order['price']
-        print('Cancel buy {} {} at {} USDT'.format(amount, symbol.split('/')[0], sell_price))
+        order_id = cancel_order['data']['cancelledOrderIds'][0]
+        print('Cancel order {}'.format(order_id))
         open_orders_df = remove_df(open_orders_df, order_id)
 
     return open_orders_df
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, symbol, grid, value, latest_price, min_price, max_price, open_orders_df, transcations_df):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, min_price, max_price, open_orders_df, transcations_df):
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     try:
         max_open_buy_price = max(open_buy_orders_df['price'])
@@ -75,9 +74,9 @@ def open_buy_orders(exchange, n_order, n_sell_order, symbol, grid, value, latest
 
     if latest_price - max_open_buy_price > grid:
         open_orders_df = cancel_open_buy_orders(exchange, symbol, open_orders_df)
-        buy_price_list = cal_new_orders(n_order, grid, latest_price)
+        buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price)
     else:
-        buy_price_list = cal_append_orders(n_order, n_sell_order, grid, open_buy_orders_df)
+        buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
 
     buy_price_list = price_range(buy_price_list, min_price, max_price)
 

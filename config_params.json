@@ -1,6 +1,7 @@
 {"symbol": "ETH/USDT",
- "budget": 3000, 
- "grid": 30,
+ "budget": 100, 
+ "grid": 10,
  "value": 20,
- "min_price": 1000,
- "max_price": 2000}
+ "min_price": 3400,
+ "max_price": 3800,
+ "fee_percent": 0}
