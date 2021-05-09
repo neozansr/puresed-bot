@@ -37,5 +37,5 @@ if __name__ == "__main__":
         open_orders_df, transactions_df = run_bot(idle_stage)
         open_orders_df.to_csv(open_orders_df_path, index = False)
         transactions_df.to_csv(transactions_df_path, index = False)
-        time.sleep(idle_loop)
         print('end loop')
+        time.sleep(idle_loop)
