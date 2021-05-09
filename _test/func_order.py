@@ -35,8 +35,8 @@ def open_sell_order(exchange, order, symbol, sell_price, fee_percent):
     return sell_order
 
 
-def noti_success_order(order):
-    message = '{} {} at {} USDT'.format(order['side'], order['amount'], order['price'])
+def noti_success_order(order, symbol):
+    message = '{} {} {} at {} USDT'.format(order['side'], order['amount'], symbol.split('/')[0], order['price'])
     line_send(message)
     print(message)
 
@@ -48,7 +48,7 @@ def check_orders_statue(exchange, side, symbol, grid, latest_price, fee_percent,
         order = exchange.fetch_order(order_id, symbol)
         if order['status'] == 'closed':
             order_id = order['id']
-            noti_success_order(order)
+            noti_success_order(order, symbol)
             open_orders_df = remove_df(open_orders_df, order_id)
             transactions_df = append_df(transactions_df, order, symbol)
 
