@@ -2,6 +2,7 @@ import datetime as dt
 import time
 
 from func_cal import *
+from noti import *
 
 
 def append_df(df, order, symbol):
@@ -34,6 +35,12 @@ def open_sell_order(exchange, order, symbol, sell_price, fee_percent):
     return sell_order
 
 
+def noti_success_order(order):
+    message = '{} {} at {} USDT'.format(order['side'], order['amount'], order['price'])
+    line_send(message)
+    print(message)
+
+
 def check_orders_statue(exchange, side, symbol, grid, latest_price, fee_percent, open_orders_df, transcations_df):
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
     
@@ -41,6 +48,7 @@ def check_orders_statue(exchange, side, symbol, grid, latest_price, fee_percent,
         order = exchange.fetch_order(order_id, symbol)
         if order['status'] == 'closed':
             order_id = order['id']
+            noti_success_order(order)
             open_orders_df = remove_df(open_orders_df, order_id)
             transcations_df = append_df(transcations_df, order, symbol)
 
