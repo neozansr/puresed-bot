@@ -78,7 +78,12 @@ def get_assets(open_orders_df, symbol, latest_price):
 
     amount = sum(amount_list)
     total_value = sum([i * j for i, j in zip(price_list, amount_list)])
-    avg_price = total_value / amount
+    
+    try:
+        avg_price = total_value / amount
+    except ZeroDivisionError:
+        avg_price = 0
+
     unrealised_loss = (latest_price - avg_price) * amount
 
     assets_dict = {'datetime': dt.datetime.now(),
