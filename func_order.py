@@ -41,7 +41,7 @@ def noti_success_order(order):
     print(message)
 
 
-def check_orders_statue(exchange, side, symbol, grid, latest_price, fee_percent, open_orders_df, transcations_df):
+def check_orders_statue(exchange, side, symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df):
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
     
     for order_id in open_orders_list:
@@ -50,7 +50,7 @@ def check_orders_statue(exchange, side, symbol, grid, latest_price, fee_percent,
             order_id = order['id']
             noti_success_order(order)
             open_orders_df = remove_df(open_orders_df, order_id)
-            transcations_df = append_df(transcations_df, order, symbol)
+            transactions_df = append_df(transactions_df, order, symbol)
 
             # open sell orders after buy orders filled
             if side == 'buy':
@@ -58,7 +58,7 @@ def check_orders_statue(exchange, side, symbol, grid, latest_price, fee_percent,
                 sell_order = open_sell_order(exchange, order, symbol, sell_price, fee_percent)
                 open_orders_df = append_df(open_orders_df, sell_order, symbol)
 
-    return open_orders_df, transcations_df
+    return open_orders_df, transactions_df
 
 
 def cancel_open_buy_orders(exchange, symbol, open_orders_df):
@@ -74,7 +74,7 @@ def cancel_open_buy_orders(exchange, symbol, open_orders_df):
     return open_orders_df
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, min_price, max_price, open_orders_df, transcations_df):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, min_price, max_price, open_orders_df, transactions_df):
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     try:
         max_open_buy_price = max(open_buy_orders_df['price'])
@@ -95,4 +95,4 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
         open_orders_df = append_df(open_orders_df, buy_order, symbol)
         print('Open buy {} {} at {} USDT'.format(amount, symbol.split('/')[0], price))
 
-    return open_orders_df, transcations_df
+    return open_orders_df, transactions_df

@@ -4,6 +4,8 @@ from dateutil import tz
 import json
 import ccxt
 
+from noti import *
+
 
 def get_config_system(config_system_path):
     with open(config_system_path) as config_file:
@@ -66,3 +68,28 @@ def get_time(datetime_raw):
     datetime_th = convert_tz(datetime_utc)
     
     return datetime_th + dt.timedelta(microseconds = us)
+
+
+def get_assets(open_orders_df, symbol, latest_price):
+    df_assets = open_orders_df[open_orders_df['side'] == 'sell']
+    
+    price_list = [x - 10 for x in df_assets['price']]
+    amount_list = df_assets['amount'].to_list()
+
+    amount = sum(amount_list)
+    total_value = sum([i * j for i, j in zip(price_list, amount_list)])
+    avg_price = total_value / amount
+    unrealised_loss = (latest_price - avg_price) * amount
+
+    assets_dict = {'datetime': dt.datetime.now(),
+                   'latest_price':latest_price, 
+                   'avg_price':avg_price, 
+                   'amount':amount, 
+                   'unrealised_loss':unrealised_loss}
+
+    df_assets = pd.DataFrame(assets_dict, index = [0])
+    df_assets.to_csv('assets', index = False)
+    message = 'hold {} {} at {} USDT: {} USDT unrealised_loss'.format(amount, symbol.split('/')[0], avg_price, unrealised_loss)
+
+    line_send(message)
+    print(message)
