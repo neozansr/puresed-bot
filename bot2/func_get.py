@@ -93,8 +93,7 @@ def get_assets(open_orders_df, symbol, latest_price):
                    'unrealised_loss':unrealised_loss}
 
     df_assets = pd.DataFrame(assets_dict, index = [0])
-    df_assets.to_csv('assets', index = False)
+    df_assets.to_csv('assets.csv', index = False)
     message = 'hold {} {} at {} USDT: {} USDT unrealised_loss'.format(amount, symbol.split('/')[0], avg_price, unrealised_loss)
 
-    line_send(message)
     print(message)
