@@ -72,10 +72,10 @@ def get_time(datetime_raw):
 
 
 def get_assets(open_orders_df, symbol, latest_price):
-    df_assets = open_orders_df[open_orders_df['side'] == 'sell']
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     
-    price_list = [x - 10 for x in df_assets['price']]
-    amount_list = df_assets['amount'].to_list()
+    price_list = [x - 10 for x in open_sell_orders_df['price']]
+    amount_list = open_sell_orders_df['amount'].to_list()
 
     amount = sum(amount_list)
     total_value = sum([i * j for i, j in zip(price_list, amount_list)])
@@ -88,13 +88,13 @@ def get_assets(open_orders_df, symbol, latest_price):
     unrealised_loss = (latest_price - avg_price) * amount
 
     assets_dict = {'datetime': dt.datetime.now(),
-                   'latest_price':latest_price, 
-                   'avg_price':avg_price, 
-                   'amount':amount, 
-                   'unrealised_loss':unrealised_loss}
+                   'latest_price': latest_price, 
+                   'avg_price': avg_price, 
+                   'amount': amount, 
+                   'unrealised_loss': unrealised_loss}
 
-    df_assets = pd.DataFrame(assets_dict, index = [0])
-    df_assets.to_csv('assets.csv', index = False)
-    message = 'hold {} {} with {} orders at {} USDT: {} USDT unrealised_loss'.format(amount, symbol.split('/')[0], len(df_assets), avg_price, unrealised_loss)
+    assets_df = pd.DataFrame(assets_dict, index = [0])
+    assets_df.to_csv('assets.csv', index = False)
+    message = 'hold {} {} with {} orders at {} USDT: {} USDT unrealised_loss'.format(amount, symbol.split('/')[0], len(open_sell_orders_df), avg_price, unrealised_loss)
 
     print(message)
