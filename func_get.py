@@ -29,8 +29,9 @@ def get_config_params(config_params_path):
     min_price = config_params['min_price']
     max_price = config_params['max_price']
     fee_percent = config_params['fee_percent']
+    start_grid_flag = config_params['start_grid_flag']
 
-    return symbol, budget, grid, value, min_price, max_price, fee_percent
+    return symbol, budget, grid, value, min_price, max_price, fee_percent, start_grid_flag
 
 
 def get_exchange(keys_path):
@@ -94,6 +95,6 @@ def get_assets(open_orders_df, symbol, latest_price):
 
     df_assets = pd.DataFrame(assets_dict, index = [0])
     df_assets.to_csv('assets.csv', index = False)
-    message = 'hold {} {} at {} USDT: {} USDT unrealised_loss'.format(amount, symbol.split('/')[0], avg_price, unrealised_loss)
+    message = 'hold {} {} with {} orders at {} USDT: {} USDT unrealised_loss'.format(amount, symbol.split('/')[0], len(df_assets), avg_price, unrealised_loss)
 
     print(message)
