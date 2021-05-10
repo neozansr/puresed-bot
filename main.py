@@ -19,12 +19,12 @@ def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_param
     transactions_df = pd.read_csv(transactions_df_path)
     symbol, budget, grid, value, min_price, max_price, fee_percent = get_config_params(config_params_path)
     latest_price = get_latest_price(exchange, symbol)
-    open_orders_df, transactions_df = check_orders_statue(exchange, 'buy', symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
+    open_orders_df, transactions_df = check_orders_status(exchange, 'buy', symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
     time.sleep(idle_stage)
-    open_orders_df, transactions_df = check_orders_statue(exchange, 'sell', symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
+    open_orders_df, transactions_df = check_orders_status(exchange, 'sell', symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
     time.sleep(idle_stage)
     n_order, n_sell_order, n_open_order = cal_n_order(open_orders_df, budget, value)
-    open_orders_df, transactions_df = open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, min_price, max_price, open_orders_df, transactions_df)
+    open_orders_df, transactions_df = open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, open_orders_df, transactions_df)
     get_assets(open_orders_df, symbol, latest_price)
 
     return open_orders_df, transactions_df
