@@ -84,16 +84,27 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
     return open_orders_df, transactions_df
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_grid_flag, open_orders_df, transactions_df):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_market, open_orders_df, transactions_df):
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+
     try:
         max_open_buy_price = max(open_buy_orders_df['price'])
     except ValueError: # for 0 open orders
         max_open_buy_price = 0
 
+    try:
+        min_open_sell_price = min(open_sell_orders_df['price'])
+    except ValueError: # for 0 open orders
+        min_open_sell_price = 0
+
     if latest_price - max_open_buy_price > grid:
         open_orders_df, transactions_df = cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
-        buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_grid_flag)
+        
+        if latest_price < min_open_sell_price:
+            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market = 0)
+        else:
+            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market)
     else:
         buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
 

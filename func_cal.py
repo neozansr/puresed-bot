@@ -25,10 +25,13 @@ def cal_n_order(open_orders_df, budget, value):
     return n_order, n_sell_order, n_open_order
 
 
-def cal_new_orders(n_order, n_sell_order, grid, latest_price, start_grid_flag):
-    buy_price_list = []
-    buy_price = latest_price - (grid * start_grid_flag)
-    
+def cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market):
+    if start_market == 1:
+        buy_price = latest_price
+    else:
+        buy_price = latest_price - grid
+
+    buy_price_list = []    
     for _ in range(n_order - n_sell_order):
         buy_price_list.append(buy_price)
         buy_price -= grid
