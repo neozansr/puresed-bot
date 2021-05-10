@@ -27,7 +27,7 @@ def cal_n_order(open_orders_df, budget, value):
 
 def cal_new_orders(n_order, n_sell_order, grid, latest_price):
     buy_price_list = []
-    buy_price = latest_price - grid
+    buy_price = latest_price
     
     for _ in range(n_order - n_sell_order):
         buy_price_list.append(buy_price)
