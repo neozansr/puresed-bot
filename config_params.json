@@ -4,4 +4,5 @@
  "value": 20,
  "min_price": 3400,
  "max_price": 3800,
- "fee_percent": 0}
+ "fee_percent": 0,
+ "start_grid_flag": 1}
