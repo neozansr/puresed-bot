@@ -50,6 +50,7 @@ def get_latest_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     latest_price = ticker['last']
 
+    print('latest_price: {}'.format(latest_price))
     return latest_price
 
 
