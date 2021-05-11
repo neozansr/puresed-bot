@@ -72,10 +72,10 @@ def get_time(datetime_raw):
     return datetime_th + dt.timedelta(microseconds = us)
 
 
-def get_assets(open_orders_df, symbol, latest_price):
+def get_assets(open_orders_df, symbol, grid, latest_price):
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     
-    price_list = [x - 10 for x in open_sell_orders_df['price']]
+    price_list = [x - grid for x in open_sell_orders_df['price']]
     amount_list = open_sell_orders_df['amount'].to_list()
 
     amount = sum(amount_list)
