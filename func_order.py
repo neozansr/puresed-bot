@@ -6,7 +6,7 @@ from noti import *
 
 
 def append_df(df, order, symbol):
-    timestamp = order['datetime']
+    timestamp = dt.datetime.now()
     order_id = order['id']
     order_type = order['type']
     order_side = order['side']
@@ -66,20 +66,23 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
 
     for order_id in open_buy_orders_list:
-        cancel_order = exchange.cancel_order(order_id, symbol)
-        order_id = cancel_order['data']['cancelledOrderIds'][0]
-        
-        order = exchange.fetch_order(order_id, symbol)
-        filled = order['filled']
-        
-        if filled > 0:
-            transactions_df = append_df(transactions_df, order, symbol)
-            sell_price = cal_sell_price(order, grid, latest_price)
-            sell_order = open_sell_order(exchange, order, symbol, sell_price, fee_percent)
-            open_orders_df = append_df(open_orders_df, sell_order, symbol)
-        
-        print('Cancel order {}'.format(order_id))
-        open_orders_df = remove_df(open_orders_df, order_id)
+        try:
+            cancel_order = exchange.cancel_order(order_id, symbol)
+            order_id = cancel_order['data']['cancelledOrderIds'][0]
+            print('Cancel order {}'.format(order_id))
+
+            order = exchange.fetch_order(order_id, symbol)
+            filled = order['filled']
+            
+            if filled > 0:
+                transactions_df = append_df(transactions_df, order, symbol)
+                sell_price = cal_sell_price(order, grid, latest_price)
+                sell_order = open_sell_order(exchange, order, symbol, sell_price, fee_percent)
+                open_orders_df = append_df(open_orders_df, sell_order, symbol)
+            
+            open_orders_df = remove_df(open_orders_df, order_id)
+        except:
+            print('Fail to cancel order {} !!!'.format(order_id))
 
     return open_orders_df, transactions_df
 
