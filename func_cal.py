@@ -39,7 +39,24 @@ def cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market):
     return buy_price_list
 
 
-def cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df):
+def cal_append_orders_head(n_order, n_open_order, grid, latest_price, open_buy_orders_df):
+    buy_price_list = []
+    
+    max_open_buy_price = max(open_buy_orders_df['price'])
+    buy_price = max_open_buy_price + grid
+
+    for _ in range(n_order - n_open_order):
+        if buy_price <= latest_price: # safety, just in case
+            buy_price_list.append(buy_price)
+        else:
+            break
+        
+        buy_price += grid
+
+    return buy_price_list
+
+
+def cal_append_orders_tail(n_order, n_open_order, grid, open_buy_orders_df):
     buy_price_list = []
     
     min_open_buy_price = min(open_buy_orders_df['price'])

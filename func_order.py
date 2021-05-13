@@ -93,15 +93,14 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
     
     max_open_buy_price = max(open_buy_orders_df['price'], default = 0)
 
-    if latest_price - max_open_buy_price > grid:
-        open_orders_df, transactions_df = cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
-        
+    if latest_price - max_open_buy_price > grid:    
         if len(open_sell_orders_df) == 0:
+            open_orders_df, transactions_df = cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market)
         else:    
-            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market = 0)
+            buy_price_list = cal_append_orders_head(n_order, n_open_order, grid, latest_price, open_buy_orders_df)
     else:
-        buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
+        buy_price_list = cal_append_orders_tail(n_order, n_open_order, grid, open_buy_orders_df)
 
     buy_price_list = price_range(buy_price_list, min_price, max_price)
     print('Open {} buy orders'.format(len(buy_price_list)))
