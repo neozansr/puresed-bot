@@ -42,7 +42,7 @@ def cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market):
 def cal_append_orders_head(n_order, n_open_order, grid, latest_price, open_buy_orders_df):
     buy_price_list = []
     
-    max_open_buy_price = max(open_buy_orders_df['price'])
+    max_open_buy_price = max(open_buy_orders_df['price'], default = 0)
     buy_price = max_open_buy_price + grid
 
     for _ in range(n_order - n_open_order):
