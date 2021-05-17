@@ -7,7 +7,7 @@ from func_order import *
 
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
-keys_path = '_keys/kucoin_keys.json'
+keys_path = '_keys/kucoin_1_keys.json'
 open_orders_df_path = 'open_orders.csv'
 assets_df_path = 'assets.csv'
 transactions_df_path = 'transactions.csv'
@@ -26,7 +26,7 @@ def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_param
     latest_price = get_latest_price(exchange, symbol)
     n_order, n_sell_order, n_open_order = cal_n_order(open_orders_df, budget, value)
     open_orders_df, transactions_df = open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_market, open_orders_df, transactions_df)
-    get_assets(open_orders_df, symbol, grid, latest_price)
+    print_hold_assets(open_orders_df, symbol, grid, latest_price)
 
     return open_orders_df, transactions_df
 

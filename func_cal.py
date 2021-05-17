@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 
 def cal_fee(amount, fee_percent):
@@ -73,3 +74,31 @@ def price_range(buy_price_list, min_price, max_price):
     buy_price_list = [x for x in buy_price_list if min_price <= x <= max_price]
 
     return buy_price_list
+
+
+def cal_realised(value, transactions_df):
+    transactions_df['date'] = pd.to_datetime(transactions_df['timestamp']).dt.date
+    transactions_sell_df = transactions_df[transactions_df['side'] == 'sell']
+    realised = sum(transactions_sell_df['value']) - (value * len(transactions_sell_df))
+    
+    return realised
+
+
+def cal_unrealised(grid, latest_price, open_orders_df):
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+    n_open_sell_oders = len(open_sell_orders_df)
+    
+    price_list = [x - grid for x in open_sell_orders_df['price']]
+    amount_list = open_sell_orders_df['amount'].to_list()
+
+    amount = sum(amount_list)
+    total_value = sum([i * j for i, j in zip(price_list, amount_list)])
+    
+    try:
+        avg_price = total_value / amount
+    except ZeroDivisionError:
+        avg_price = 0
+
+    unrealised_loss = (latest_price - avg_price) * amount
+
+    return unrealised_loss, n_open_sell_oders, amount, avg_price

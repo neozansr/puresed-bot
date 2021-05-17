@@ -4,7 +4,8 @@ from dateutil import tz
 import json
 import ccxt
 
-from noti import *
+from func_cal import *
+from func_noti import *
 
 
 def get_config_system(config_system_path):
@@ -72,21 +73,20 @@ def get_time(datetime_raw):
     return datetime_th + dt.timedelta(microseconds = us)
 
 
-def get_assets(open_orders_df, symbol, grid, latest_price):
-    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    
-    price_list = [x - grid for x in open_sell_orders_df['price']]
-    amount_list = open_sell_orders_df['amount'].to_list()
+def get_balance(exchange, symbol, latest_price):
+    balance = exchange.fetch_balance()
 
-    amount = sum(amount_list)
-    total_value = sum([i * j for i, j in zip(price_list, amount_list)])
+    coin_1 = symbol.split('/')[0]
+    coin_1_val = balance[coin_1]['total'] * latest_price
+    coin_2 = symbol.split('/')[1]
+    coin_2_val = balance[coin_2]['total']
+    total_val = coin_1_val + coin_2_val
     
-    try:
-        avg_price = total_value / amount
-    except ZeroDivisionError:
-        avg_price = 0
+    return total_val
 
-    unrealised_loss = (latest_price - avg_price) * amount
+
+def print_hold_assets(open_orders_df, symbol, grid, latest_price):
+    unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, latest_price, open_orders_df)
 
     assets_dict = {'datetime': dt.datetime.now(),
                    'latest_price': latest_price, 
@@ -96,6 +96,6 @@ def get_assets(open_orders_df, symbol, grid, latest_price):
 
     assets_df = pd.DataFrame(assets_dict, index = [0])
     assets_df.to_csv('assets.csv', index = False)
-    message = 'hold {} {} with {} orders at {} USDT: {} USDT unrealised'.format(amount, symbol.split('/')[0], len(open_sell_orders_df), avg_price, unrealised_loss)
+    message = 'hold {} {} with {} orders at {} USDT: {} USDT unrealised'.format(amount, symbol.split('/')[0], n_open_sell_oders, avg_price, unrealised_loss)
 
     print(message)

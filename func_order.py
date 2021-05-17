@@ -2,7 +2,7 @@ import datetime as dt
 import time
 
 from func_cal import *
-from noti import *
+from func_noti import *
 
 
 def append_df(df, order, symbol):
