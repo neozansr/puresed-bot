@@ -27,7 +27,7 @@ def cal_n_order(open_orders_df, budget, value):
 
 
 def cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market):
-    if start_market == 1:
+    if start_market == True:
         buy_price = latest_price
     else:
         buy_price = latest_price - grid
