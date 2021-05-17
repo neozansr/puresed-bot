@@ -1,5 +1,6 @@
 import pandas as pd
 import datetime as dt
+import os
 
 from func_get import *
 from func_cal import *
@@ -14,6 +15,7 @@ transactions_df_path = 'transactions.csv'
 
     
 def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_params_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, open_orders_df_path = open_orders_df_path):
+    bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
