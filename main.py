@@ -8,7 +8,7 @@ from func_order import *
 
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
-keys_path = '_keys/kucoin_1_keys.json'
+keys_path = '_keys/kucoin_keys.json'
 open_orders_df_path = 'open_orders.csv'
 assets_df_path = 'assets.csv'
 transactions_df_path = 'transactions.csv'
