@@ -6,15 +6,15 @@ from func_get import *
 from func_cal import *
 from func_order import *
 
+keys_path = '../_keys/kucoin_0_keys.json'
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
-keys_path = '_keys/kucoin_keys.json'
 open_orders_df_path = 'open_orders.csv'
-assets_df_path = 'assets.csv'
 transactions_df_path = 'transactions.csv'
+assets_df_path = 'assets.csv'
 
     
-def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_params_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, open_orders_df_path = open_orders_df_path):
+def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
