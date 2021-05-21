@@ -9,10 +9,13 @@ bot = telebot.TeleBot(token)
 x = bot.get_me()
 print(x)
 
+
 @bot.message_handler(commands = ['start', 'help', 'h'])
-def send_welcome(message):
-    text = '/balance /b: see current balance\n' \
-           'new commands to come'
-    bot.send_message(message.chat.id, message)
+def send_help(message):
+    text = '/b: get current balance\n' \
+           '/ob: get max open buy oders\n' \
+           '/os: get min open sell orders'
+    bot.send_message(message.chat.id, text)
+
 
 bot.polling()
