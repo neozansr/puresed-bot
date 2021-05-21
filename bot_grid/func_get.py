@@ -11,11 +11,11 @@ def get_config_system(config_system_path):
     with open(config_system_path) as config_file:
         config_system = json.load(config_file)
 
-    run_flag = config_system['run_flag']
+    loop_flag = config_system['loop_flag']
     idle_stage = config_system['idle_stage']
     idle_loop = config_system['idle_loop']
 
-    return run_flag, idle_stage, idle_loop
+    return loop_flag, idle_stage, idle_loop
 
 
 def get_config_params(config_params_path):

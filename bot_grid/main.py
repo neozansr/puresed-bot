@@ -33,10 +33,10 @@ def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_param
     return open_orders_df, transactions_df
 
 if __name__ == "__main__":
-    run_flag = True
-    while run_flag == True:
+    loop_flag = True
+    while loop_flag == True:
         print('start loop')
-        run_flag, idle_stage, idle_loop = get_config_system(config_system_path)
+        loop_flag, idle_stage, idle_loop = get_config_system(config_system_path)
         open_orders_df, transactions_df = run_bot(idle_stage)
         open_orders_df.to_csv(open_orders_df_path, index = False)
         transactions_df.to_csv(transactions_df_path, index = False)

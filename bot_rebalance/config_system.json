@@ -1,4 +1,4 @@
-{"run_flag": 1,
+{"loop_flag": 1,
  "idle_stage": 3,
  "min_idle": 60, 
  "max_idle": 900}

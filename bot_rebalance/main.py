@@ -30,9 +30,9 @@ def run_bot(idle_stage, keys_path = keys_path, config_system_path = config_syste
 
 
 if __name__ == "__main__":
-    run_flag = True
-    while run_flag == True:
-        run_flag, idle_stage, min_idle, max_idle = get_config_system(config_system_path)
+    loop_flag = True
+    while loop_flag == True:
+        loop_flag, idle_stage, min_idle, max_idle = get_config_system(config_system_path)
         print('start loop')
         open_orders_df, transactions_df = run_bot(idle_stage)
         print('end loop')

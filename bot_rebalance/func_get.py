@@ -7,12 +7,12 @@ def get_config_system(config_system_path):
     with open(config_system_path) as config_file:
         config_system = json.load(config_file)
 
-    run_flag = config_system['run_flag']
+    loop_flag = config_system['loop_flag']
     idle_stage = config_system['idle_stage']
     min_idle = config_system['min_idle']
     max_idle = config_system['max_idle']
 
-    return run_flag, idle_stage, min_idle, max_idle
+    return loop_flag, idle_stage, min_idle, max_idle
 
 
 def get_config_params(config_params_path):
