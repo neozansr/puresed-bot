@@ -4,8 +4,7 @@ from dateutil import tz
 import json
 import ccxt
 
-from func_cal import *
-from func_noti import *
+from func_cal import cal_unrealised
 
 
 def get_config_system(config_system_path):
@@ -58,7 +57,7 @@ def get_latest_price(exchange, symbol):
 def convert_tz(utc):
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
-    utc = utc.replace(tzinfo=from_zone).astimezone(to_zone)
+    utc = utc.replace(tzinfo = from_zone).astimezone(to_zone)
     
     return utc
 
@@ -73,14 +72,20 @@ def get_time(datetime_raw):
     return datetime_th + dt.timedelta(microseconds = us)
 
 
+def get_coin_name(symbol):
+    trade_coin = symbol.split('/')[0]
+    ref_coin = symbol.split('/')[1]
+
+    return trade_coin, ref_coin
+
+
 def get_balance(exchange, symbol, latest_price):
     balance = exchange.fetch_balance()
 
-    coin_1 = symbol.split('/')[0]
-    coin_1_val = balance[coin_1]['total'] * latest_price
-    coin_2 = symbol.split('/')[1]
-    coin_2_val = balance[coin_2]['total']
-    total_val = coin_1_val + coin_2_val
+    trade_coin, ref_coin = get_coin_name(symbol)
+    trade_coin_val = balance[trade_coin]['total'] * latest_price
+    ref_coin_val = balance[ref_coin]['total']
+    total_val = trade_coin_val + ref_coin_val
     
     return total_val
 
@@ -96,6 +101,7 @@ def print_hold_assets(open_orders_df, symbol, grid, latest_price):
 
     assets_df = pd.DataFrame(assets_dict, index = [0])
     assets_df.to_csv('assets.csv', index = False)
-    message = 'hold {} {} with {} orders at {} USDT: {} USDT unrealised'.format(amount, symbol.split('/')[0], n_open_sell_oders, avg_price, unrealised_loss)
 
+    trade_coin, ref_coin = get_coin_name(symbol)
+    message = 'hold {} {} with {} orders at {} {}\n{} {} unrealised'.format(amount, trade_coin, n_open_sell_oders, avg_price, ref_coin, unrealised_loss, ref_coin)
     print(message)

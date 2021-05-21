@@ -1,4 +1,3 @@
 {"symbol": "ETH/USDT",
  "fix_value": 1000, 
- "min_value": 10,
- "fee_percent": 0}
+ "min_value": 10}

@@ -1,8 +1,9 @@
 import datetime as dt
 import time
 
-from func_cal import *
-from func_noti import *
+from func_get import get_coin_name
+from func_cal import cal_fee, cal_sell_price, cal_new_orders, cal_append_orders_head, cal_append_orders_tail, price_range
+from func_noti import line_send
 
 
 def append_df(df, order, symbol):
@@ -30,13 +31,16 @@ def open_sell_order(exchange, order, symbol, sell_price, fee_percent):
     amount = order['filled']
     final_amount = cal_fee(amount, fee_percent)
     sell_order = exchange.create_order(symbol, 'limit', 'sell', final_amount, sell_price)
-    print('Open sell {} {} at {} USDT'.format(final_amount, symbol.split('/')[0], sell_price))
+
+    trade_coin, ref_coin = get_coin_name(symbol)
+    print('Open sell {} {} at {} {}'.format(final_amount, trade_coin, sell_price, ref_coin))
 
     return sell_order
 
 
 def noti_success_order(bot_name, order, symbol):
-    message = '{}: {} {} {} at {} USDT'.format(bot_name, order['side'], order['amount'], symbol.split('/')[0], order['price'])
+    trade_coin, ref_coin = get_coin_name(symbol)
+    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['amount'], trade_coin, order['price'], ref_coin)
     line_send(message)
     print(message)
 
@@ -81,7 +85,7 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
                 open_orders_df = append_df(open_orders_df, sell_order, symbol)
             
             open_orders_df = remove_df(open_orders_df, order_id)
-        except:
+        except: # if the order is pending in server, skip the order
             print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
 
     return open_orders_df, transactions_df
@@ -114,8 +118,9 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
         try:
             buy_order = exchange.create_order(symbol, 'limit', 'buy', amount, price)
             open_orders_df = append_df(open_orders_df, buy_order, symbol)
-            print('Open buy {} {} at {} USDT'.format(amount, symbol.split('/')[0], price))
+            trade_coin, ref_coin = get_coin_name(symbol)
+            print('Open buy {} {} at {} {}'.format(amount, trade_coin, price, ref_coin))
         except:
-            print('Error: Cannot buy at price {} USDT due to insufficient fund!!!'.format(price))
+            print('Error: Cannot buy at price {} {} due to insufficient fund!!!'.format(price, ref_coin))
 
     return open_orders_df, transactions_df

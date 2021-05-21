@@ -1,7 +1,8 @@
 import datetime as dt
 
-from func_cal import *
-from func_noti import *
+from func_cal import cal_buy_amount, cal_sell_amount
+from func_get import get_current_value
+from func_noti import line_send
 
 
 def append_df(df, order, symbol):
@@ -18,22 +19,11 @@ def append_df(df, order, symbol):
     return df
 
 
-def check_open_orders(exchange, symbol, open_orders_df, transaction_df):
-    cont_flag = 1
-    if len(open_orders_df) == 1:
-        order_id = open_orders_df['order_id'][0] # will always be 1 order
-        order = exchange.fetch_order(order_id, symbol)
+def remove_df(df, order_id):
+    df = df[df['order_id'] != order_id]
+    df = df.reset_index(drop = True)
 
-        if order['status'] == 'closed':
-            open_orders_df = remove_df(open_orders_df, order_id)
-            transactions_df = append_df(transactions_df, open_orders[0], symbol)
-        else:
-            try:
-                exchange.cancel_order(order_id, symbol) # order is in que
-            except:
-                cont_flag = 0
-
-    return open_orders_df, transactions_df, cont_flag
+    return df
 
 
 def noti_success_order(bot_name, order, symbol):
@@ -42,15 +32,35 @@ def noti_success_order(bot_name, order, symbol):
     print(message)
 
 
-def rebalance_port(symbol, fix_value, min_value, latest_price):
-    current_value = get_current_value(symbol)
+def check_open_orders(exchange, bot_name, symbol, open_orders_df, transactions_df):
+    cont_flag = 1
+    if len(open_orders_df) == 1:
+        order_id = open_orders_df['order_id'][0] # 1 order at most
+        order = exchange.fetch_order(order_id, symbol)
+
+        if order['status'] == 'closed':
+            noti_success_order(bot_name, order, symbol)
+            open_orders_df = remove_df(open_orders_df, order_id)
+            transactions_df = append_df(transactions_df, order, symbol)
+        else:
+            try: # if the order is pending in server, skip loop
+                exchange.cancel_order(order_id, symbol)
+            except:
+                cont_flag = 0
+
+    return open_orders_df, transactions_df, cont_flag
+
+
+def rebalance_port(exchange, symbol, fix_value, min_value, latest_price, open_orders_df):
+    current_value = get_current_value(exchange, symbol, latest_price)
 
     if current_value > fix_value + min_value:
         side = 'buy'
-        amount = cal_buy_amount(current_value, fix_value)
+        amount = cal_buy_amount(current_value, fix_value, latest_price)
     elif current_value < fix_value - min_value:
         side = 'sell'
-        amount = cal_sell_amount(current_value, fix_value)
+        amount = cal_sell_amount(current_value, fix_value, latest_price)
 
-    buy_order = exchange.create_order(symbol, 'limit', side, amount, latest_price)
-    print('Open {} {} {} at {} {}'.format(side, amount, symbol.split('/')[0], price, symbol.split('/')[1]))
+    order = exchange.create_order(symbol, 'limit', side, amount, latest_price)
+    open_orders_df = append_df(open_orders_df, order, symbol)
+    print('Open {} {} {} at {} {}'.format(side, amount, symbol.split('/')[0], latest_price, symbol.split('/')[1]))

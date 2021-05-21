@@ -1,5 +1,6 @@
 import random
 import ccxt
+import json
 
 
 def get_config_system(config_system_path):
@@ -7,10 +8,11 @@ def get_config_system(config_system_path):
         config_system = json.load(config_file)
 
     run_flag = config_system['run_flag']
+    idle_stage = config_system['idle_stage']
     min_idle = config_system['min_idle']
     max_idle = config_system['max_idle']
 
-    return run_flag, min_idle, max_idle
+    return run_flag, idle_stage, min_idle, max_idle
 
 
 def get_config_params(config_params_path):
@@ -20,9 +22,8 @@ def get_config_params(config_params_path):
     symbol = config_params['symbol']
     fix_value = config_params['fix_value']
     min_value = config_params['min_value']
-    fee_percent = config_params['fee_percent']
 
-    return symbol, fix_value, min_value, fee_percent
+    return symbol, fix_value, min_value
 
 
 def get_exchange(keys_path):
@@ -51,7 +52,7 @@ def get_latest_price(exchange, symbol):
     return latest_price
 
 
-def get_current_value(symbol, latest_price):
+def get_current_value(exchange, symbol, latest_price):
     balance = exchange.fetch_balance()
     coin = symbol.split('/')[1]
     amount = balance[coin]
