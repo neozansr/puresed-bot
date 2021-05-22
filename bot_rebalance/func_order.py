@@ -1,6 +1,5 @@
 import datetime as dt
 
-from func_cal import cal_buy_amount, cal_sell_amount
 from func_get import get_current_value
 from func_noti import line_send
 
@@ -56,10 +55,12 @@ def rebalance_port(exchange, symbol, fix_value, min_value, latest_price, open_or
 
     if current_value > fix_value + min_value:
         side = 'buy'
-        amount = cal_buy_amount(current_value, fix_value, latest_price)
+        diff_value = fix_value - current_value
     elif current_value < fix_value - min_value:
         side = 'sell'
-        amount = cal_sell_amount(current_value, fix_value, latest_price)
+        diff_value = current_value - fix_value
+    
+    amount = diff_value / latest_price
 
     order = exchange.create_order(symbol, 'limit', side, amount, latest_price)
     open_orders_df = append_df(open_orders_df, order, symbol)
