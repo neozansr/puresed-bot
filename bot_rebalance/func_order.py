@@ -1,6 +1,6 @@
 import datetime as dt
 
-from func_get import get_current_value
+from func_get import get_coin_name, get_current_value
 from func_noti import line_send
 
 
@@ -26,7 +26,8 @@ def remove_df(df, order_id):
 
 
 def noti_success_order(bot_name, order, symbol):
-    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['amount'], symbol.split('/')[0], order['price'], symbol.split('/')[1])
+    trade_coin, ref_coin = get_coin_name(symbol)
+    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['amount'], trade_coin, order['price'], ref_coin)
     line_send(message)
     print(message)
 
@@ -51,12 +52,13 @@ def check_open_orders(exchange, bot_name, symbol, open_orders_df, transactions_d
 
 
 def rebalance_port(exchange, symbol, fix_value, min_value, latest_price, open_orders_df):
+    trade_coin, ref_coin = get_coin_name(symbol)
     current_value = get_current_value(exchange, symbol, latest_price)
 
-    if current_value > fix_value + min_value:
+    if current_value < fix_value - min_value:
         side = 'buy'
         diff_value = fix_value - current_value
-    elif current_value < fix_value - min_value:
+    elif current_value > fix_value + min_value:
         side = 'sell'
         diff_value = current_value - fix_value
     
@@ -64,4 +66,4 @@ def rebalance_port(exchange, symbol, fix_value, min_value, latest_price, open_or
 
     order = exchange.create_order(symbol, 'limit', side, amount, latest_price)
     open_orders_df = append_df(open_orders_df, order, symbol)
-    print('Open {} {} {} at {} {}'.format(side, amount, symbol.split('/')[0], latest_price, symbol.split('/')[1]))
+    print('Open {} {} {} at {} {}'.format(side, amount, trade_coin, latest_price, ref_coin))

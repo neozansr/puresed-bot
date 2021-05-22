@@ -112,13 +112,14 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
     buy_price_list = price_range(buy_price_list, min_price, max_price)
     print('Open {} buy orders'.format(len(buy_price_list)))
 
+    trade_coin, ref_coin = get_coin_name(symbol)
+    
     for price in buy_price_list:
         amount = value / price
         
         try:
             buy_order = exchange.create_order(symbol, 'limit', 'buy', amount, price)
             open_orders_df = append_df(open_orders_df, buy_order, symbol)
-            trade_coin, ref_coin = get_coin_name(symbol)
             print('Open buy {} {} at {} {}'.format(amount, trade_coin, price, ref_coin))
         except:
             print('Error: Cannot buy at price {} {} due to insufficient fund!!!'.format(price, ref_coin))

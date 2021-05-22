@@ -52,11 +52,18 @@ def get_latest_price(exchange, symbol):
     return latest_price
 
 
+def get_coin_name(symbol):
+    trade_coin = symbol.split('/')[0]
+    ref_coin = symbol.split('/')[1]
+
+    return trade_coin, ref_coin
+    
+
 def get_current_value(exchange, symbol, latest_price):
     balance = exchange.fetch_balance()
-    coin = symbol.split('/')[1]
-    amount = balance[coin]
-
+    trade_coin, _ = get_coin_name(symbol)
+    
+    amount = balance[trade_coin]
     current_value = latest_price * amount
 
     return current_value
