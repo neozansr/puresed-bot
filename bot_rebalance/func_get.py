@@ -65,7 +65,7 @@ def get_current_value(exchange, symbol, latest_price):
     trade_coin, ref_coin = get_coin_name(symbol)
     
     try:
-        amount = balance[trade_coin]
+        amount = balance[trade_coin]['total']
         current_value = latest_price * amount
     except KeyError:
         current_value = 0
