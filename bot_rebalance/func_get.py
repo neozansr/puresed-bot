@@ -41,6 +41,7 @@ def get_exchange(keys_path):
 def get_random(min_idle, max_idle):
     idle_loop = random.randint(min_idle, max_idle)
     
+    print('Wait {} seconds'.format(idle_loop))
     return idle_loop
     
 
