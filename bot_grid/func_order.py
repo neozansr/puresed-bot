@@ -40,7 +40,7 @@ def open_sell_order(exchange, order, symbol, sell_price, fee_percent):
 
 def noti_success_order(bot_name, order, symbol):
     trade_coin, ref_coin = get_coin_name(symbol)
-    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['amount'], trade_coin, order['price'], ref_coin)
+    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['filled'], trade_coin, order['price'], ref_coin)
     line_send(message)
     print(message)
 
@@ -52,9 +52,9 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, latest_price, fe
         order = exchange.fetch_order(order_id, symbol)
         if order['status'] == 'closed':
             order_id = order['id']
-            noti_success_order(bot_name, order, symbol)
             open_orders_df = remove_df(open_orders_df, order_id)
             transactions_df = append_df(transactions_df, order, symbol)
+            noti_success_order(bot_name, order, symbol)
 
             # open sell orders after buy orders filled
             if side == 'buy':

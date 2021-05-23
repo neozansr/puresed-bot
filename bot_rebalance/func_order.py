@@ -27,7 +27,7 @@ def remove_df(df, order_id):
 
 def noti_success_order(bot_name, order, symbol):
     trade_coin, ref_coin = get_coin_name(symbol)
-    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['amount'], trade_coin, order['price'], ref_coin)
+    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['filled'], trade_coin, order['price'], ref_coin)
     line_send(message)
     print(message)
 
@@ -39,12 +39,13 @@ def check_open_orders(exchange, bot_name, symbol, open_orders_df, transactions_d
         order = exchange.fetch_order(order_id, symbol)
 
         if order['status'] == 'closed':
-            noti_success_order(bot_name, order, symbol)
             open_orders_df = remove_df(open_orders_df, order_id)
             transactions_df = append_df(transactions_df, order, symbol)
+            noti_success_order(bot_name, order, symbol)
         else:
             try: # if the order is pending in server, skip loop
                 exchange.cancel_order(order_id, symbol)
+                open_orders_df = remove_df(open_orders_df, order_id)
                 print('Cancel order {}'.format(order_id))
             except:
                 cont_flag = 0
