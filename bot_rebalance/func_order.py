@@ -57,15 +57,19 @@ def rebalance_port(exchange, symbol, fix_value, min_value, latest_price, open_or
     trade_coin, ref_coin = get_coin_name(symbol)
     current_value = get_current_value(exchange, symbol, latest_price)
 
+    exe_flag = 1
     if current_value < fix_value - min_value:
         side = 'buy'
         diff_value = fix_value - current_value
     elif current_value > fix_value + min_value:
         side = 'sell'
         diff_value = current_value - fix_value
-    
-    amount = diff_value / latest_price
-
-    order = exchange.create_order(symbol, 'limit', side, amount, latest_price)
-    open_orders_df = append_df(open_orders_df, order, symbol)
-    print('Open {} {} {} at {} {}'.format(side, amount, trade_coin, latest_price, ref_coin))
+    else:
+        exe_flag = 0
+        print('No action')
+        
+    if exe_flag == 1:
+        amount = diff_value / latest_price
+        order = exchange.create_order(symbol, 'limit', side, amount, latest_price)
+        open_orders_df = append_df(open_orders_df, order, symbol)
+        print('Open {} {} {} at {} {}'.format(side, amount, trade_coin, latest_price, ref_coin))
