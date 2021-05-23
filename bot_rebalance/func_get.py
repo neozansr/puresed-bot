@@ -61,9 +61,22 @@ def get_coin_name(symbol):
 
 def get_current_value(exchange, symbol, latest_price):
     balance = exchange.fetch_balance()
-    trade_coin, _ = get_coin_name(symbol)
+    trade_coin, ref_coin = get_coin_name(symbol)
     
     amount = balance[trade_coin]
     current_value = latest_price * amount
 
+    print('Current value: {} {}'.format(current_value, ref_coin))
     return current_value
+
+
+def print_current_balance(exchange, symbol, latest_price):
+    balance = exchange.fetch_balance()
+    trade_coin, ref_coin = get_coin_name(symbol)
+    
+    trade_coin_amount = balance[trade_coin]
+    trade_coin_value = latest_price * trade_coin_amount
+    ref_coin_value = balance[ref_coin]
+    total_balance = trade_coin_value + ref_coin_value
+
+    print('Current balance: {} {}'.format(total_balance, ref_coin))

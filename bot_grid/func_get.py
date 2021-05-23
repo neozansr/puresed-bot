@@ -105,3 +105,15 @@ def print_hold_assets(open_orders_df, symbol, grid, latest_price):
     trade_coin, ref_coin = get_coin_name(symbol)
     message = 'hold {} {} with {} orders at {} {}\n{} {} unrealised'.format(amount, trade_coin, n_open_sell_oders, avg_price, ref_coin, unrealised_loss, ref_coin)
     print(message)
+
+
+def print_current_balance(exchange, symbol, latest_price):
+    balance = exchange.fetch_balance()
+    trade_coin, ref_coin = get_coin_name(symbol)
+    
+    trade_coin_amount = balance[trade_coin]
+    trade_coin_value = latest_price * trade_coin_amount
+    ref_coin_value = balance[ref_coin]
+    total_balance = trade_coin_value + ref_coin_value
+
+    print('Current balance: {} {}'.format(total_balance, ref_coin))

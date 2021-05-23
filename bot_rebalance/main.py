@@ -2,7 +2,7 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_latest_price, get_random
+from func_get import get_config_system, get_config_params, get_exchange, get_latest_price, get_random, print_current_balance
 from func_order import check_open_orders, rebalance_port
 
 
@@ -21,11 +21,13 @@ def run_bot(idle_stage, keys_path = keys_path, config_system_path = config_syste
     symbol, fix_value, min_value = get_config_params(config_params_path)
     open_orders_df, transactions_df, cont_flag = check_open_orders(exchange, bot_name, symbol, open_orders_df, transactions_df)
     time.sleep(idle_stage)
-
+    latest_price = get_latest_price(exchange, symbol)
+    
     if cont_flag == 1:
-        latest_price = get_latest_price(exchange, symbol)
         rebalance_port(exchange, symbol, fix_value, min_value, latest_price, open_orders_df)
 
+    print_current_balance(exchange, symbol, latest_price)
+    
     return open_orders_df, transactions_df
 
 

@@ -45,8 +45,10 @@ def check_open_orders(exchange, bot_name, symbol, open_orders_df, transactions_d
         else:
             try: # if the order is pending in server, skip loop
                 exchange.cancel_order(order_id, symbol)
+                print('Cancel order {}'.format(order_id))
             except:
                 cont_flag = 0
+                print('Error: Cannot cancel order {}, wait for the next loop'.format(order_id))
 
     return open_orders_df, transactions_df, cont_flag
 
