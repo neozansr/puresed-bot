@@ -54,6 +54,18 @@ def get_coin_name(symbol):
     return trade_coin, ref_coin    
 
 
+def get_current_value(exchange, latest_price, trade_coin):
+    balance = exchange.fetch_balance()
+    
+    try:
+        amount = balance[trade_coin]['total']
+        current_value = latest_price * amount
+    except KeyError:
+        current_value = 0
+
+    return current_value
+
+
 def get_balance(exchange, latest_price, trade_coin, ref_coin, config_system_path):
     balance = exchange.fetch_balance()
 
@@ -105,7 +117,7 @@ def get_grid_text(text, bot_type, sub_path, config_system_path, config_params_pa
     unrealised_loss, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, latest_price, open_orders_df)
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(ref_coin, open_orders_df)
 
-    text += 'Balance: {:.2f} {}'.format(balance, ref_coin)
+    text += '\nBalance: {:.2f} {}'.format(balance, ref_coin)
     text += '\nHold {:.2f} {} with {} orders at {:.2f} {}'.format(amount, trade_coin, n_open_sell_oders, avg_price, ref_coin)
     text += '\nUnrealised: {:.2f} {}'.format(unrealised_loss, ref_coin)
     text += '\nMin buy price: {:.2f} {}'.format(min_buy_price, ref_coin)
@@ -125,7 +137,11 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     latest_price = get_latest_price(exchange, symbol)
 
     balance = get_balance(exchange, latest_price, trade_coin, ref_coin, config_system_path)
+    current_value = get_current_value(exchange, latest_price, trade_coin)
+    cash = balance - current_value
 
-    text += 'Balance: {:.2f} {}'.format(balance, ref_coin)
+    text += '\nBalance: {:.2f} {}'.format(balance, ref_coin)
+    text += '\nCurrent value: {:.2f} {}'.format(current_value, ref_coin)
+    text += '\nCash: {:.2f} {}'.format(cash, ref_coin)
 
     return text

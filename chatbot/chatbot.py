@@ -30,7 +30,7 @@ def send_bot_grid(message):
     bot_type = 'grid'
     sub_path = '../{}/'.format(bot_name)
 
-    text = '{}\n{}\n'.format(bot_name, bot_type)
+    text = '{}\n{}'.format(bot_name, bot_type)
     text = get_grid_text(text, bot_type, sub_path, config_system_path, config_params_path, open_orders_df_path)
     
     bot.send_message(message.chat.id, text)
@@ -42,7 +42,7 @@ def send_bot4(message):
     bot_type = 'rebalance'
     sub_path = '../{}/'.format(bot_name)
 
-    text = '{}\n{}\n'.format(bot_name, bot_type)
+    text = '{}\n{}'.format(bot_name, bot_type)
     text = get_rebalance_text(text, bot_type, sub_path, config_system_path, config_params_path)
     
     bot.send_message(message.chat.id, text)
