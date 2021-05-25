@@ -13,7 +13,7 @@ open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
 
 
-def run_bot(idle_stage, keys_path = keys_path, config_system_path = config_system_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path):
+def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -36,8 +36,8 @@ if __name__ == "__main__":
     loop_flag = True
     while loop_flag == True:
         print('start loop')
-        loop_flag, idle_stage, min_idle, max_idle = get_config_system(config_system_path)
-        open_orders_df, transactions_df = run_bot(idle_stage)
+        loop_flag, idle_stage, min_idle, max_idle, keys_path = get_config_system(config_system_path)
+        open_orders_df, transactions_df = run_bot(idle_stage, keys_path)
         open_orders_df.to_csv(open_orders_df_path, index = False)
         transactions_df.to_csv(transactions_df_path, index = False)
         print('end loop')

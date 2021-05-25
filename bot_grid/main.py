@@ -6,7 +6,6 @@ from func_get import get_config_system, get_config_params, get_exchange, get_lat
 from func_cal import cal_n_order
 from func_order import check_orders_status, open_buy_orders
 
-keys_path = '../_keys/kucoin_0_keys.json'
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
 open_orders_df_path = 'open_orders.csv'
@@ -14,7 +13,7 @@ transactions_df_path = 'transactions.csv'
 assets_df_path = 'assets.csv'
 
     
-def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path):
+def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -38,8 +37,8 @@ if __name__ == "__main__":
     loop_flag = True
     while loop_flag == True:
         print('start loop')
-        loop_flag, idle_stage, idle_loop = get_config_system(config_system_path)
-        open_orders_df, transactions_df = run_bot(idle_stage)
+        loop_flag, idle_stage, idle_loop, keys_path = get_config_system(config_system_path)
+        open_orders_df, transactions_df = run_bot(idle_stage, keys_path)
         open_orders_df.to_csv(open_orders_df_path, index = False)
         transactions_df.to_csv(transactions_df_path, index = False)
         print('end loop')
