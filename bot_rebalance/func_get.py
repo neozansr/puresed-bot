@@ -11,7 +11,7 @@ def get_config_system(config_system_path):
     idle_stage = config_system['idle_stage']
     min_idle = config_system['min_idle']
     max_idle = config_system['max_idle']
-    keys_path = config_system['key_path']
+    keys_path = config_system['keys_path']
 
     return loop_flag, idle_stage, min_idle, max_idle, keys_path
 
