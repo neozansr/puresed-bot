@@ -49,7 +49,7 @@ def get_latest_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     latest_price = ticker['last']
 
-    print('latest_price: {}'.format(latest_price))
+    print('Lastest price: {}'.format(latest_price))
     return latest_price
 
 
@@ -74,21 +74,35 @@ def get_current_value(exchange, symbol, latest_price):
     return current_value
 
 
+def print_pending_order(symbol, open_orders_df):
+    _, ref_coin = get_coin_name(symbol)
+    
+    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
+    min_buy_price = min(open_buy_orders_df['price'], default = 0)
+
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+    max_sell_price = max(open_sell_orders_df['price'], default = 0)
+
+    print('Min buy price: {} {}'.format(min_buy_price, ref_coin))
+    print('Max sell price: {} {}'.format(max_sell_price, ref_coin))
+
+
 def print_current_balance(exchange, symbol, latest_price):
     balance = exchange.fetch_balance()
     trade_coin, ref_coin = get_coin_name(symbol)
     
     try:
         trade_coin_amount = balance[trade_coin]['total']
-        trade_coin_value = latest_price * trade_coin_amount
     except KeyError:
-        trade_coin_value = 0
+        trade_coin_amount = 0
+
+    trade_coin_value = latest_price * trade_coin_amount
 
     try:    
         ref_coin_value = balance[ref_coin]['total']
     except KeyError:
         ref_coin_value = 0
-
+    
     total_balance = trade_coin_value + ref_coin_value
 
     print('Current balance: {} {}'.format(total_balance, ref_coin))

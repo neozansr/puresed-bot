@@ -90,7 +90,20 @@ def get_balance(exchange, symbol, latest_price):
     return total_val
 
 
-def print_hold_assets(open_orders_df, symbol, grid, latest_price):
+def print_pending_order(symbol, open_orders_df):
+    _, ref_coin = get_coin_name(symbol)
+    
+    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
+    min_buy_price = min(open_buy_orders_df['price'], default = 0)
+
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+    max_sell_price = max(open_sell_orders_df['price'], default = 0)
+
+    print('Min buy price: {} {}'.format(min_buy_price, ref_coin))
+    print('Max sell price: {} {}'.format(max_sell_price, ref_coin))
+
+
+def print_hold_assets(symbol, grid, latest_price, open_orders_df):
     unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, latest_price, open_orders_df)
 
     assets_dict = {'datetime': dt.datetime.now(),
@@ -103,8 +116,9 @@ def print_hold_assets(open_orders_df, symbol, grid, latest_price):
     assets_df.to_csv('assets.csv', index = False)
 
     trade_coin, ref_coin = get_coin_name(symbol)
-    message = 'hold {} {} with {} orders at {} {}\n{} {} unrealised'.format(amount, trade_coin, n_open_sell_oders, avg_price, ref_coin, unrealised_loss, ref_coin)
-    print(message)
+    
+    print('Hold {} {} with {} orders at {} {}'.format(amount, trade_coin, n_open_sell_oders, avg_price, ref_coin))
+    print('Unrealised: {} {}'.format(unrealised_loss, ref_coin))
 
 
 def print_current_balance(exchange, symbol, latest_price):

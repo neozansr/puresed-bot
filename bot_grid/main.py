@@ -2,7 +2,7 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_latest_price, print_hold_assets, print_current_balance
+from func_get import get_config_system, get_config_params, get_exchange, get_latest_price, print_pending_order, print_hold_assets, print_current_balance
 from func_cal import cal_n_order
 from func_order import check_orders_status, open_buy_orders
 
@@ -25,10 +25,11 @@ def run_bot(idle_stage, keys_path = keys_path, config_params_path = config_param
     time.sleep(idle_stage)
     open_orders_df, transactions_df = check_orders_status(exchange, bot_name, 'sell', symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
     time.sleep(idle_stage)
+    print_pending_order(symbol, open_orders_df)
     latest_price = get_latest_price(exchange, symbol)
     n_order, n_sell_order, n_open_order = cal_n_order(open_orders_df, budget, value)
     open_orders_df, transactions_df = open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_market, open_orders_df, transactions_df)
-    print_hold_assets(open_orders_df, symbol, grid, latest_price)
+    print_hold_assets(symbol, grid, latest_price, open_orders_df)
     print_current_balance(exchange, symbol, latest_price)
     
     return open_orders_df, transactions_df
