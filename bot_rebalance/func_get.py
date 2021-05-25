@@ -75,23 +75,6 @@ def get_current_value(exchange, symbol, latest_price):
     return current_value
 
 
-def print_pending_order(symbol, open_orders_df):
-    _, ref_coin = get_coin_name(symbol)
-    
-    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
-    min_buy_price = min(open_buy_orders_df['price'], default = 0)
-    max_buy_price = max(open_buy_orders_df['price'], default = 0)
-
-    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    min_sell_price = min(open_sell_orders_df['price'], default = 0)
-    max_sell_price = max(open_sell_orders_df['price'], default = 0)
-
-    print('Min buy price: {} {}'.format(min_buy_price, ref_coin))
-    print('Max buy price: {} {}'.format(max_buy_price, ref_coin))
-    print('Min sell price: {} {}'.format(min_sell_price, ref_coin))
-    print('Max sell price: {} {}'.format(max_sell_price, ref_coin))
-
-
 def print_current_balance(exchange, symbol, latest_price):
     balance = exchange.fetch_balance()
     trade_coin, ref_coin = get_coin_name(symbol)
