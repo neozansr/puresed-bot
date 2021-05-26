@@ -1,6 +1,9 @@
 import telebot
 import ccxt
+import requests
+import time
 import json
+
 
 from func_get import get_grid_text, get_rebalance_text
 
@@ -30,22 +33,26 @@ def send_bot_grid(message):
     bot_type = 'grid'
     sub_path = '../{}/'.format(bot_name)
 
-    text = '{}\n{}'.format(bot_name, bot_type)
+    text = '{}\n{}\n'.format(bot_name.title(), bot_type.title())
     text = get_grid_text(text, bot_type, sub_path, config_system_path, config_params_path, open_orders_df_path)
     
     bot.send_message(message.chat.id, text)
 
 
 @bot.message_handler(commands = ['bot_rebalance'])
-def send_bot4(message):
+def send_bot_rebalance(message):
     bot_name = 'bot_rebalance'
     bot_type = 'rebalance'
     sub_path = '../{}/'.format(bot_name)
 
-    text = '{}\n{}'.format(bot_name, bot_type)
+    text = '{}\n{}\n'.format(bot_name.title(), bot_type.title())
     text = get_rebalance_text(text, bot_type, sub_path, config_system_path, config_params_path)
     
     bot.send_message(message.chat.id, text)
 
 
-bot.polling()
+try:
+    bot.polling()
+except requests.exceptions.RequestException as e:
+    time.sleep(10)
+    bot.polling()
