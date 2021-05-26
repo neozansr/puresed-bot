@@ -1,4 +1,4 @@
 {"loop_flag": 1,
  "idle_stage": 3, 
  "idle_loop": 10,
- "keys_path": "../_keys/kucoin_0_keys.json"}
+ "keys_path": "../../_keys/kucoin/kucoin_test_keys.json"}

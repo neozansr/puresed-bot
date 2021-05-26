@@ -7,7 +7,7 @@ import json
 
 from func_get import get_grid_text, get_rebalance_text
 
-with open('../_keys/bot_token.json') as token_file:
+with open('../../_keys/bot_token.json') as token_file:
     token_dict = json.load(token_file)
 token = token_dict['telegram']
 
