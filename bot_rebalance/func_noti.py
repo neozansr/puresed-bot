@@ -12,7 +12,7 @@ def line_send(message):
 def get_line_message(payload):
     url = 'https://notify-api.line.me/api/notify'
     
-    with open('../_keys/bot_token.json') as token_file:
+    with open('../../_keys/bot_token.json') as token_file:
         token_dict = json.load(token_file)
     token = token_dict['line']
     
