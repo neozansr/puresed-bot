@@ -17,7 +17,8 @@ def cal_sell_price(order, grid, latest_price):
     return sell_price
 
 
-def cal_n_order(open_orders_df, budget, value):
+def cal_n_order(budget, value, open_orders_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     n_sell_order = len(open_sell_orders_df)
     n_open_order = len(open_orders_df)

@@ -91,7 +91,8 @@ def get_balance(exchange, symbol, latest_price):
     return total_val
 
 
-def print_pending_order(symbol, open_orders_df):
+def print_pending_order(symbol, open_orders_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     _, ref_coin = get_coin_name(symbol)
     
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
@@ -108,7 +109,8 @@ def print_pending_order(symbol, open_orders_df):
     print('Max sell price: {} {}'.format(max_sell_price, ref_coin))
 
 
-def print_hold_assets(symbol, grid, latest_price, open_orders_df):
+def print_hold_assets(symbol, grid, latest_price, open_orders_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, latest_price, open_orders_df)
 
     assets_dict = {'datetime': dt.datetime.now(),

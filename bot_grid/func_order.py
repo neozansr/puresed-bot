@@ -1,3 +1,4 @@
+import pandas as pd
 import datetime as dt
 import time
 
@@ -6,7 +7,9 @@ from func_cal import cal_fee, cal_sell_price, cal_new_orders, cal_append_orders_
 from func_noti import line_send
 
 
-def append_df(df, order, symbol):
+def append_df(df_path, order, symbol):
+    df = pd.read_csv(df_path)
+
     timestamp = dt.datetime.now()
     order_id = order['id']
     order_type = order['type']
@@ -16,19 +19,19 @@ def append_df(df, order, symbol):
     value = amount * price
 
     df.loc[len(df)] = [timestamp, order_id, symbol, order_type, order_side, amount, price, value]
+    df.to_csv(df_path, index = False)
 
-    return df
 
+def remove_df(df_path, order_id):
+    df = pd.read_csv(df_path)
 
-def remove_df(df, order_id):
     df = df[df['order_id'] != order_id]
     df = df.reset_index(drop = True)
+    df.to_csv(df_path, index = False)
 
-    return df
 
-
-def open_sell_order(exchange, order, symbol, sell_price, fee_percent):
-    amount = order['filled']
+def open_sell_order(exchange, buy_order, symbol, sell_price, fee_percent):
+    amount = buy_order['filled']
     final_amount = cal_fee(amount, fee_percent)
     sell_order = exchange.create_order(symbol, 'limit', 'sell', final_amount, sell_price)
 
@@ -45,7 +48,8 @@ def noti_success_order(bot_name, order, symbol):
     print(message)
 
 
-def check_orders_status(exchange, bot_name, side, symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df):
+def check_orders_status(exchange, bot_name, side, symbol, grid, latest_price, fee_percent, open_orders_df_path, transactions_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
     
     for order_id in open_orders_list:
@@ -58,15 +62,14 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, latest_price, fe
             if side == 'buy':
                 sell_price = cal_sell_price(order, grid, latest_price)
                 sell_order = open_sell_order(exchange, order, symbol, sell_price, fee_percent)
-                open_orders_df = append_df(open_orders_df, sell_order, symbol)
+                append_df(open_orders_df, sell_order, symbol)
 
-            open_orders_df = remove_df(open_orders_df, order_id)
-            transactions_df = append_df(transactions_df, order, symbol)
-
-    return open_orders_df, transactions_df
+            remove_df(open_orders_df_path, order_id)
+            append_df(transactions_df_path, order, symbol)
 
 
-def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df):
+def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df_path, transactions_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
 
@@ -79,19 +82,18 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
             print('Cancel order {}'.format(order_id))
             
             if filled > 0:
-                transactions_df = append_df(transactions_df, order, symbol)
+                append_df(transactions_df_path, order, symbol)
                 sell_price = cal_sell_price(order, grid, latest_price)
                 sell_order = open_sell_order(exchange, order, symbol, sell_price, fee_percent)
-                open_orders_df = append_df(open_orders_df, sell_order, symbol)
+                append_df(open_orders_df_path, sell_order, symbol)
             
-            open_orders_df = remove_df(open_orders_df, order_id)
+            remove_df(open_orders_df_path, order_id)
         except: # if the order is pending in server, skip for the next loop
             print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
 
-    return open_orders_df, transactions_df
 
-
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_market, open_orders_df, transactions_df):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_market, open_orders_df_path, transactions_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     
@@ -100,7 +102,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
     if latest_price - max_open_buy_price > grid:    
         if len(open_sell_orders_df) == 0:
             if len(open_buy_orders_df) > 0:
-                open_orders_df, transactions_df = cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df, transactions_df)
+                cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df_path, transactions_df_path)
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market)
         else:
             if len(open_buy_orders_df) == 0:
@@ -120,9 +122,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
         
         try:
             buy_order = exchange.create_order(symbol, 'limit', 'buy', amount, price)
-            open_orders_df = append_df(open_orders_df, buy_order, symbol)
+            append_df(open_orders_df_path, buy_order, symbol)
             print('Open buy {} {} at {} {}'.format(amount, trade_coin, price, ref_coin))
         except:
             print('Error: Cannot buy at price {} {} due to insufficient fund!!!'.format(price, ref_coin))
-
-    return open_orders_df, transactions_df
