@@ -2,7 +2,7 @@
  "budget": 100, 
  "grid": 10,
  "value": 20,
- "min_price": 3400,
- "max_price": 3800,
- "maker_fee_percent": 0,
+ "min_price": 2000,
+ "max_price": 5000,
+ "maker_fee_percent": 0.02,
  "start_safety": 0}
