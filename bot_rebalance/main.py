@@ -2,7 +2,7 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_latest_price, get_random, print_current_balance
+from func_get import get_config_system, get_config_params, get_exchange, get_latest_price, get_sequence, print_current_balance
 from func_order import check_open_orders, rebalance_port
 
 
@@ -28,10 +28,17 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
 
 if __name__ == "__main__":
     loop_flag = True
+    i = 0
     while loop_flag == True:
         print('start loop')
         loop_flag, idle_stage, min_idle, max_idle, keys_path = get_config_system(config_system_path)
+        idle_loop = get_sequence(min_idle, max_idle)
         run_bot(idle_stage, keys_path)
+        
         print('end loop')
-        idle_loop = get_random(min_idle, max_idle)
+        print('Wait {} seconds'.format(idle_loop[i]))
+        
+        i += 1
+        if i >= len(idle_loop):
+            i = 0
         time.sleep(idle_loop)

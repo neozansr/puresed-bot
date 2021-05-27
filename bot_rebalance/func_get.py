@@ -39,10 +39,9 @@ def get_exchange(keys_path):
     return exchange
 
 
-def get_random(min_idle, max_idle):
-    idle_loop = random.randint(min_idle, max_idle)
+def get_sequence(min_idle, max_idle, n_step = 10):
+    idle_loop = [random.randint(min_idle, max_idle) for _ in range(n_step)]
     
-    print('Wait {} seconds'.format(idle_loop))
     return idle_loop
     
 
