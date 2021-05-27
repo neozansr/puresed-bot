@@ -110,7 +110,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             start_price = bid_price - (grid * start_safety)
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
         else:
-            # grid *2, skip grid to prevent dupplicate order
+            # grid * 2, skip grid to prevent dupplicate order
             start_price = min(bid_price, min_open_sell_price - (grid * 2))
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
             
