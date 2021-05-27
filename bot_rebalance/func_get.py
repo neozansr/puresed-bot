@@ -1,5 +1,5 @@
-import random
 import ccxt
+import random
 import json
 
 
@@ -37,59 +37,73 @@ def get_exchange(keys_path):
                             'enableRateLimit': True})
 
     return exchange
-
-
-def get_sequence(min_idle, max_idle, n_step = 10):
-    idle_loop = [random.randint(min_idle, max_idle) for _ in range(n_step)]
-    
-    return idle_loop
     
 
-def get_latest_price(exchange, symbol):
+def get_currency(symbol):
+    base_currency = symbol.split('/')[0]
+    quote_currency = symbol.split('/')[1]
+
+    return base_currency, quote_currency
+
+
+def get_last_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
-    latest_price = ticker['last']
+    last_price = ticker['last']
 
-    print('Lastest price: {}'.format(latest_price))
-    return latest_price
+    print('Lastest price: {}'.format(last_price))
+    return last_price
 
 
-def get_coin_name(symbol):
-    trade_coin = symbol.split('/')[0]
-    ref_coin = symbol.split('/')[1]
+def get_bid_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
+    bid_price = ticker['bid']
 
-    return trade_coin, ref_coin
+    return bid_price
+
+
+def get_ask_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
+    ask_price = ticker['bid']
+
+    return ask_price
     
 
-def get_current_value(exchange, symbol, latest_price):
+def get_current_value(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
-    trade_coin, ref_coin = get_coin_name(symbol)
+    base_currency, quote_currency = get_currency(symbol)
     
     try:
-        amount = balance[trade_coin]['total']
-        current_value = latest_price * amount
+        amount = balance[base_currency]['total']
+        current_value = last_price * amount
     except KeyError:
         current_value = 0
 
-    print('Current value: {} {}'.format(current_value, ref_coin))
+    print('Current value: {} {}'.format(current_value, quote_currency))
     return current_value
 
 
-def print_current_balance(exchange, symbol, latest_price):
+def get_sequence(min_idle, max_idle):
+    idle_loop_list = [random.randint(min_idle, max_idle)]
+    
+    return idle_loop_list
+
+
+def print_current_balance(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
-    trade_coin, ref_coin = get_coin_name(symbol)
+    base_currency, quote_currency = get_currency(symbol)
     
     try:
-        trade_coin_amount = balance[trade_coin]['total']
+        base_currency_amount = balance[base_currency]['total']
     except KeyError:
-        trade_coin_amount = 0
+        base_currency_amount = 0
 
-    trade_coin_value = latest_price * trade_coin_amount
+    base_currency_value = last_price * base_currency_amount
 
     try:    
-        ref_coin_value = balance[ref_coin]['total']
+        quote_currency_value = balance[quote_currency]['total']
     except KeyError:
-        ref_coin_value = 0
+        quote_currency_value = 0
     
-    total_balance = trade_coin_value + ref_coin_value
+    total_balance = base_currency_value + quote_currency_value
 
-    print('Current balance: {} {}'.format(total_balance, ref_coin))
+    print('Current balance: {} {}'.format(total_balance, quote_currency))

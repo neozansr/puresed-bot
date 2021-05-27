@@ -1,18 +1,21 @@
 import numpy as np
 import pandas as pd
 
+from func_get import get_ask_price
 
-def cal_fee(amount, fee_percent):
-    fee_rate = (fee_percent / 100)
+
+def deduct_fee(amount, maker_fee_percent):
+    fee_rate = (maker_fee_percent / 100)
     fee = amount * fee_rate
     final_amount = amount - fee
 
     return final_amount
 
 
-def cal_sell_price(order, grid, latest_price):
+def cal_sell_price(order, exchange, symbol, grid):
+    ask_price = get_ask_price(exchange, symbol)
     buy_price = order['price']
-    sell_price = max(buy_price + grid, latest_price)
+    sell_price = max(buy_price + grid, ask_price)
 
     return sell_price
 
@@ -65,7 +68,7 @@ def cal_realised(value, transactions_df):
     return realised
 
 
-def cal_unrealised(grid, latest_price, open_orders_df):
+def cal_unrealised(grid, last_price, open_orders_df):
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     n_open_sell_oders = len(open_sell_orders_df)
     
@@ -80,6 +83,6 @@ def cal_unrealised(grid, latest_price, open_orders_df):
     except ZeroDivisionError:
         avg_price = 0
 
-    unrealised_loss = (latest_price - avg_price) * amount
+    unrealised_loss = (last_price - avg_price) * amount
 
     return unrealised_loss, n_open_sell_oders, amount, avg_price

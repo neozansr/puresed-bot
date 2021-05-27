@@ -1,8 +1,8 @@
+import ccxt
 import pandas as pd
 import datetime as dt
 from dateutil import tz
 import json
-import ccxt
 
 from func_cal import cal_unrealised
 
@@ -29,10 +29,10 @@ def get_config_params(config_params_path):
     value = config_params['value']
     min_price = config_params['min_price']
     max_price = config_params['max_price']
-    fee_percent = config_params['fee_percent']
+    maker_fee_percent = config_params['maker_fee_percent']
     start_safety = config_params['start_safety']
 
-    return symbol, budget, grid, value, min_price, max_price, fee_percent, start_safety
+    return symbol, budget, grid, value, min_price, max_price, maker_fee_percent, start_safety
 
 
 def get_exchange(keys_path):
@@ -45,14 +45,6 @@ def get_exchange(keys_path):
                             'enableRateLimit': True})
 
     return exchange
-
-
-def get_latest_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
-    latest_price = ticker['last']
-
-    print('latest_price: {}'.format(latest_price))
-    return latest_price
 
 
 def convert_tz(utc):
@@ -73,27 +65,49 @@ def get_time(datetime_raw):
     return datetime_th + dt.timedelta(microseconds = us)
 
 
-def get_coin_name(symbol):
-    trade_coin = symbol.split('/')[0]
-    ref_coin = symbol.split('/')[1]
+def get_currency(symbol):
+    base_currency = symbol.split('/')[0]
+    quote_currency = symbol.split('/')[1]
 
-    return trade_coin, ref_coin
+    return base_currency, quote_currency
 
 
-def get_balance(exchange, symbol, latest_price):
+def get_last_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
+    last_price = ticker['last']
+
+    print('last_price: {}'.format(last_price))
+    return last_price
+
+
+def get_bid_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
+    bid_price = ticker['bid']
+
+    return bid_price
+
+
+def get_ask_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
+    ask_price = ticker['bid']
+
+    return ask_price
+
+
+def get_balance(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
 
-    trade_coin, ref_coin = get_coin_name(symbol)
-    trade_coin_val = balance[trade_coin]['total'] * latest_price
-    ref_coin_val = balance[ref_coin]['total']
-    total_val = trade_coin_val + ref_coin_val
+    base_currency, quote_currency = get_currency(symbol)
+    base_currency_val = balance[base_currency]['total'] * last_price
+    quote_currency_val = balance[quote_currency]['total']
+    total_val = base_currency_val + quote_currency_val
     
     return total_val
 
 
 def print_pending_order(symbol, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    _, ref_coin = get_coin_name(symbol)
+    _, quote_currency = get_currency(symbol)
     
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     min_buy_price = min(open_buy_orders_df['price'], default = 0)
@@ -103,18 +117,18 @@ def print_pending_order(symbol, open_orders_df_path):
     min_sell_price = min(open_sell_orders_df['price'], default = 0)
     max_sell_price = max(open_sell_orders_df['price'], default = 0)
 
-    print('Min buy price: {} {}'.format(min_buy_price, ref_coin))
-    print('Max buy price: {} {}'.format(max_buy_price, ref_coin))
-    print('Min sell price: {} {}'.format(min_sell_price, ref_coin))
-    print('Max sell price: {} {}'.format(max_sell_price, ref_coin))
+    print('Min buy price: {} {}'.format(min_buy_price, quote_currency))
+    print('Max buy price: {} {}'.format(max_buy_price, quote_currency))
+    print('Min sell price: {} {}'.format(min_sell_price, quote_currency))
+    print('Max sell price: {} {}'.format(max_sell_price, quote_currency))
 
 
-def print_hold_assets(symbol, grid, latest_price, open_orders_df_path):
+def print_hold_assets(symbol, grid, last_price, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, latest_price, open_orders_df)
+    unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
 
     assets_dict = {'datetime': dt.datetime.now(),
-                   'latest_price': latest_price, 
+                   'last_price': last_price, 
                    'avg_price': avg_price, 
                    'amount': amount, 
                    'unrealised_loss': unrealised_loss}
@@ -122,27 +136,27 @@ def print_hold_assets(symbol, grid, latest_price, open_orders_df_path):
     assets_df = pd.DataFrame(assets_dict, index = [0])
     assets_df.to_csv('assets.csv', index = False)
 
-    trade_coin, ref_coin = get_coin_name(symbol)
+    base_currency, quote_currency = get_currency(symbol)
     
-    print('Hold {} {} with {} orders at {} {}'.format(amount, trade_coin, n_open_sell_oders, avg_price, ref_coin))
-    print('Unrealised: {} {}'.format(unrealised_loss, ref_coin))
+    print('Hold {} {} with {} orders at {} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency))
+    print('Unrealised: {} {}'.format(unrealised_loss, quote_currency))
 
 
-def print_current_balance(exchange, symbol, latest_price):
+def print_current_balance(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
-    trade_coin, ref_coin = get_coin_name(symbol)
+    base_currency, quote_currency = get_currency(symbol)
     
     try:
-        trade_coin_amount = balance[trade_coin]['total']
-        trade_coin_value = latest_price * trade_coin_amount
+        base_currency_amount = balance[base_currency]['total']
+        base_currency_value = last_price * base_currency_amount
     except KeyError:
-        trade_coin_value = 0
+        base_currency_value = 0
     
     try:
-        ref_coin_value = balance[ref_coin]['total']
+        quote_currency_value = balance[quote_currency]['total']
     except KeyError:
-        ref_coin_value = 0
+        quote_currency_value = 0
     
-    total_balance = trade_coin_value + ref_coin_value
+    total_balance = base_currency_value + quote_currency_value
 
-    print('Current balance: {} {}'.format(total_balance, ref_coin))
+    print('Current balance: {} {}'.format(total_balance, quote_currency))
