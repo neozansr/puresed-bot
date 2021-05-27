@@ -51,8 +51,8 @@ def send_bot_rebalance(message):
     bot.send_message(message.chat.id, text)
 
 
-try:
-    bot.polling()
-except requests.exceptions.RequestException as e:
-    time.sleep(10)
-    bot.polling()
+while True:
+    try:
+        bot.polling()
+    except Exception:
+        time.sleep(15)
