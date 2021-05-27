@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import datetime as dt
 import time
@@ -103,9 +104,9 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
     
     bid_price = get_bid_price(exchange, symbol)
     max_open_buy_price = max(open_buy_orders_df['price'], default = 0)
-    min_open_sell_price = min(open_sell_orders_df['price'], default = 0)
+    min_open_sell_price = min(open_sell_orders_df['price'], default = np.inf)
 
-    if bid_price - max_open_buy_price > grid:    
+    if min(bid_price, min_open_sell_price - grid) - max_open_buy_price > grid:    
         if len(open_sell_orders_df) == 0:
             start_price = bid_price - (grid * start_safety)
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
