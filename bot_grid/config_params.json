@@ -5,4 +5,4 @@
  "min_price": 3400,
  "max_price": 3800,
  "fee_percent": 0,
- "start_market": 1}
+ "start_safety": 0}

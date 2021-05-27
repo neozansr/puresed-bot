@@ -16,7 +16,7 @@ assets_df_path = 'assets.csv'
 def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
-    symbol, budget, grid, value, min_price, max_price, fee_percent, start_market = get_config_params(config_params_path)
+    symbol, budget, grid, value, min_price, max_price, fee_percent, start_safety = get_config_params(config_params_path)
     latest_price = get_latest_price(exchange, symbol)
     check_orders_status(exchange, bot_name, 'buy', symbol, grid, latest_price, fee_percent, open_orders_df_path, transactions_df_path)
     time.sleep(idle_stage)
@@ -25,7 +25,7 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
     print_pending_order(symbol, open_orders_df_path)
     latest_price = get_latest_price(exchange, symbol)
     n_order, n_sell_order, n_open_order = cal_n_order(budget, value, open_orders_df_path)
-    open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_market, open_orders_df_path, transactions_df_path)
+    open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_safety, open_orders_df_path, transactions_df_path)
     print_hold_assets(symbol, grid, latest_price, open_orders_df_path)
     print_current_balance(exchange, symbol, latest_price)
 

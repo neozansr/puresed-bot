@@ -1,9 +1,10 @@
 import pandas as pd
 import datetime as dt
 import time
+import sys
 
 from func_get import get_coin_name
-from func_cal import cal_fee, cal_sell_price, cal_new_orders, cal_append_orders_head, cal_append_orders_tail, price_range
+from func_cal import cal_fee, cal_sell_price, cal_new_orders, cal_append_orders, price_range
 from func_noti import line_send
 
 
@@ -74,10 +75,10 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
 
     for order_id in open_buy_orders_list:
+        order = exchange.fetch_order(order_id, symbol)
+        filled = order['filled']
+        
         try:
-            order = exchange.fetch_order(order_id, symbol)
-            filled = order['filled']
-
             exchange.cancel_order(order_id, symbol)
             print('Cancel order {}'.format(order_id))
             
@@ -88,29 +89,30 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
                 append_df(open_orders_df_path, sell_order, symbol)
             
             remove_df(open_orders_df_path, order_id)
-        except: # if the order is pending in server, skip for the next loop
+        except: # no order in the system (could casued by the order is queued), skip for the next loop
             print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_market, open_orders_df_path, transactions_df_path):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, latest_price, fee_percent, min_price, max_price, start_safety, open_orders_df_path, transactions_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     
     max_open_buy_price = max(open_buy_orders_df['price'], default = 0)
+    min_open_sell_price = min(open_sell_orders_df['price'], default = 0)
 
     if latest_price - max_open_buy_price > grid:    
         if len(open_sell_orders_df) == 0:
-            if len(open_buy_orders_df) > 0:
-                cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df_path, transactions_df_path)
-            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market)
+            start_price = latest_price - (grid * start_safety)
+            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
         else:
-            if len(open_buy_orders_df) == 0:
-                buy_price_list = cal_new_orders(n_order, n_sell_order, grid, latest_price, start_market = False)
-            else:
-                buy_price_list = cal_append_orders_head(n_order, n_open_order, grid, latest_price, open_buy_orders_df)
+            start_price = min(latest_price, min_open_sell_price - grid)
+            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
+            
+        if len(open_buy_orders_df) > 0:
+            cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, open_orders_df_path, transactions_df_path)
     else:
-        buy_price_list = cal_append_orders_tail(n_order, n_open_order, grid, open_buy_orders_df)
+        buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
 
     buy_price_list = price_range(buy_price_list, min_price, max_price)
     print('Open {} buy orders'.format(len(buy_price_list)))
@@ -124,5 +126,6 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             buy_order = exchange.create_order(symbol, 'limit', 'buy', amount, price)
             append_df(open_orders_df_path, buy_order, symbol)
             print('Open buy {} {} at {} {}'.format(amount, trade_coin, price, ref_coin))
-        except:
+        except: # not enough fund (could caused by wrong account), stop the loop
             print('Error: Cannot buy at price {} {} due to insufficient fund!!!'.format(price, ref_coin))
+            sys.exit(1)

@@ -30,9 +30,9 @@ def get_config_params(config_params_path):
     min_price = config_params['min_price']
     max_price = config_params['max_price']
     fee_percent = config_params['fee_percent']
-    start_market = config_params['start_market']
+    start_safety = config_params['start_safety']
 
-    return symbol, budget, grid, value, min_price, max_price, fee_percent, start_market
+    return symbol, budget, grid, value, min_price, max_price, fee_percent, start_safety
 
 
 def get_exchange(keys_path):
