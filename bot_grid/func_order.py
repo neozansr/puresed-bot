@@ -72,12 +72,11 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
 
     for order_id in open_buy_orders_list:
         try:
-            cancel_order = exchange.cancel_order(order_id, symbol)
-            order_id = cancel_order['data']['cancelledOrderIds'][0]
-            print('Cancel order {}'.format(order_id))
-
             order = exchange.fetch_order(order_id, symbol)
             filled = order['filled']
+
+            exchange.cancel_order(order_id, symbol)
+            print('Cancel order {}'.format(order_id))
             
             if filled > 0:
                 transactions_df = append_df(transactions_df, order, symbol)
@@ -86,7 +85,7 @@ def cancel_open_buy_orders(exchange, symbol, grid, latest_price, fee_percent, op
                 open_orders_df = append_df(open_orders_df, sell_order, symbol)
             
             open_orders_df = remove_df(open_orders_df, order_id)
-        except: # if the order is pending in server, skip the order
+        except: # if the order is pending in server, skip for the next loop
             print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
 
     return open_orders_df, transactions_df
