@@ -49,7 +49,7 @@ def get_last_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     last_price = ticker['last']
 
-    print('Lastest price: {}'.format(last_price))
+    print('Last price: {}'.format(last_price))
     return last_price
 
 
@@ -77,7 +77,7 @@ def get_current_value(exchange, symbol, last_price):
     except KeyError:
         current_value = 0
 
-    print('Current value: {} {}'.format(current_value, quote_currency))
+    print('Current value: {:.2f} {}'.format(current_value, quote_currency))
     return current_value
 
 
@@ -105,4 +105,4 @@ def print_current_balance(exchange, symbol, last_price):
     
     total_balance = base_currency_value + quote_currency_value
 
-    print('Current balance: {} {}'.format(total_balance, quote_currency))
+    print('Current balance: {:.2f} {}'.format(total_balance, quote_currency))

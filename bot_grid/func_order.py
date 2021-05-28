@@ -45,13 +45,13 @@ def open_sell_order(exchange, buy_order, symbol, grid, maker_fee_percent):
         base_currency_amount = balance[base_currency]['free']
         sell_order = exchange.create_order(symbol, 'limit', 'sell', base_currency_amount, sell_price)
     
-    print('Open sell {} {} at {} {}'.format(final_amount, base_currency, sell_price, quote_currency))
+    print('Open sell {:.4f} {} at {:.2f} {}'.format(final_amount, base_currency, sell_price, quote_currency))
     return sell_order
 
 
 def noti_success_order(bot_name, order, symbol):
     base_currency, quote_currency = get_currency(symbol)
-    message = '{}: {} {} {} at {} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
+    message = '{}: {} {:.4f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
     line_send(message)
     print(message)
 
@@ -131,7 +131,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
         try:
             buy_order = exchange.create_order(symbol, 'limit', 'buy', amount, price)
             append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
-            print('Open buy {} {} at {} {}'.format(amount, base_currency, price, quote_currency))
+            print('Open buy {:.4f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
         except: # not enough fund (could caused by wrong account), stop the loop
             print('Error: Cannot buy at price {} {} due to insufficient fund!!!'.format(price, quote_currency))
             sys.exit(1)
