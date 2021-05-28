@@ -1,5 +1,6 @@
 import pandas as pd
 import datetime as dt
+import sys
 
 from func_get import get_currency, get_bid_price, get_ask_price, get_current_value
 from func_noti import line_send
@@ -78,6 +79,10 @@ def rebalance_port(exchange, symbol, fix_value, min_value, last_price, open_orde
         
     if rebalance_flag == 1:
         amount = diff_value / price
-        order = exchange.create_order(symbol, 'limit', side, amount, price)
-        append_df(open_orders_df_path, order, symbol, amount_key = 'amount')
-        print('Open {} {:.4f} {} at {:.2f} {}'.format(side, amount, base_currency, price, quote_currency))
+        try:
+            order = exchange.create_order(symbol, 'limit', side, amount, price)
+            append_df(open_orders_df_path, order, symbol, amount_key = 'amount')
+            print('Open {} {:.4f} {} at {:.2f} {}'.format(side, amount, base_currency, price, quote_currency))
+        except: # not enough fund (could caused by wrong account), stop the loop
+            print('Error: Cannot {} at price {:.2f} {} due to insufficient fund!!!'.format(side, price, quote_currency))
+            sys.exit(1)

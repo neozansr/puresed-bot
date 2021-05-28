@@ -40,11 +40,11 @@ def get_exchange(keys_path):
     return exchange
 
 
-def get_latest_price(exchange, symbol):
+def get_last_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
-    latest_price = ticker['last']
+    last_price = ticker['last']
 
-    return latest_price
+    return last_price
 
 
 def get_currency(symbol):
@@ -54,19 +54,19 @@ def get_currency(symbol):
     return base_currency, quote_currency    
 
 
-def get_current_value(exchange, latest_price, base_currency):
+def get_current_value(exchange, last_price, base_currency):
     balance = exchange.fetch_balance()
     
     try:
         amount = balance[base_currency]['total']
-        current_value = latest_price * amount
+        current_value = last_price * amount
     except KeyError:
         current_value = 0
 
     return current_value
 
 
-def get_balance(exchange, latest_price, base_currency, quote_currency, config_system_path):
+def get_balance(exchange, last_price, base_currency, quote_currency, config_system_path):
     balance = exchange.fetch_balance()
 
     try:
@@ -74,7 +74,7 @@ def get_balance(exchange, latest_price, base_currency, quote_currency, config_sy
     except KeyError:
         base_currency_amount = 0
 
-    base_currency_value = latest_price * base_currency_amount
+    base_currency_value = last_price * base_currency_amount
 
     try:    
         quote_currency_value = balance[quote_currency]['total']
@@ -86,8 +86,8 @@ def get_balance(exchange, latest_price, base_currency, quote_currency, config_sy
     return total_balance
 
 
-def get_hold_assets(grid, latest_price, open_orders_df):
-    unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, latest_price, open_orders_df)
+def get_hold_assets(grid, last_price, open_orders_df):
+    unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
 
     return unrealised_loss, n_open_sell_oders, amount, avg_price
 
@@ -110,11 +110,11 @@ def get_grid_text(text, bot_type, sub_path, config_system_path, config_params_pa
 
     symbol, grid = get_config_params(bot_type, sub_path + config_params_path)
     base_currency, quote_currency = get_currency(symbol)
-    latest_price = get_latest_price(exchange, symbol)
+    last_price = get_last_price(exchange, symbol)
     open_orders_df = pd.read_csv(sub_path + open_orders_df_path)
 
-    balance = get_balance(exchange, latest_price, base_currency, quote_currency, config_system_path)
-    unrealised_loss, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, latest_price, open_orders_df)
+    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
+    unrealised_loss, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, last_price, open_orders_df)
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(quote_currency, open_orders_df)
 
     text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)
@@ -134,10 +134,10 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
 
     symbol, _ = get_config_params(bot_type, sub_path + config_params_path)
     base_currency, quote_currency = get_currency(symbol)
-    latest_price = get_latest_price(exchange, symbol)
+    last_price = get_last_price(exchange, symbol)
 
-    balance = get_balance(exchange, latest_price, base_currency, quote_currency, config_system_path)
-    current_value = get_current_value(exchange, latest_price, base_currency)
+    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
+    current_value = get_current_value(exchange, last_price, base_currency)
     cash = balance - current_value
 
     text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)

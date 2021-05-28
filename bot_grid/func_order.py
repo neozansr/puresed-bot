@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import datetime as dt
-import time
 import sys
 
 from func_get import get_currency, get_bid_price
@@ -133,5 +132,5 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
             print('Open buy {:.4f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
         except: # not enough fund (could caused by wrong account), stop the loop
-            print('Error: Cannot buy at price {} {} due to insufficient fund!!!'.format(price, quote_currency))
+            print('Error: Cannot buy at price {:.2f} {} due to insufficient fund!!!'.format(price, quote_currency))
             sys.exit(1)
