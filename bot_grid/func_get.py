@@ -11,12 +11,12 @@ def get_config_system(config_system_path):
     with open(config_system_path) as config_file:
         config_system = json.load(config_file)
 
-    loop_flag = config_system['loop_flag']
+    run_flag = config_system['run_flag']
     idle_stage = config_system['idle_stage']
     idle_loop = config_system['idle_loop']
     keys_path = config_system['keys_path']
 
-    return loop_flag, idle_stage, idle_loop, keys_path
+    return run_flag, idle_stage, idle_loop, keys_path
 
 
 def get_config_params(config_params_path):
@@ -158,4 +158,4 @@ def print_current_balance(exchange, symbol, last_price):
     
     total_balance = base_currency_value + quote_currency_value
 
-    print('Current balance: {:.2f} {}'.format(total_balance, quote_currency))
+    print('Balance: {:.2f} {}'.format(total_balance, quote_currency))

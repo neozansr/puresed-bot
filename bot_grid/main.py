@@ -30,11 +30,18 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
 
 
 if __name__ == "__main__":
-    loop_flag = True
-    while loop_flag == True:
-        print('start loop')
-        loop_flag, idle_stage, idle_loop, keys_path = get_config_system(config_system_path)
-        run_bot(idle_stage, keys_path)
+    while True:
+        run_flag, idle_stage, idle_loop, keys_path = get_config_system(config_system_path)
         
-        print('end loop')
-        time.sleep(idle_loop)
+        if run_flag == 1:
+            print('Start loop')
+            try:
+                run_bot(idle_stage, keys_path)
+            except: # Checked to be casused by losing connection only
+                print('No connection: Skip the loop')
+        
+            print('End loop')
+            time.sleep(idle_loop)
+        else:
+            print('Stop process')
+            break
