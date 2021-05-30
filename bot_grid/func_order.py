@@ -4,7 +4,7 @@ import pandas as pd
 import datetime as dt
 import sys
 
-from func_get import get_currency, get_bid_price
+from func_get import get_currency, get_bid_price, get_ask_price
 from func_cal import cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders, price_range
 from func_noti import line_send
 
@@ -42,7 +42,8 @@ def update_error_log(error_log, error_log_df_path):
 
 def open_sell_order(exchange, buy_order, symbol, grid, error_log_df_path):
     base_currency, quote_currency = get_currency(symbol)
-    sell_price = cal_sell_price(buy_order, exchange, symbol, grid)
+    ask_price = get_ask_price(exchange, buy_order)
+    sell_price = cal_sell_price(buy_order, ask_price, grid)
     
     try:
         final_amount = cal_final_amount(exchange, buy_order['id'])

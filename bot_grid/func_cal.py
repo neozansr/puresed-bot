@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from func_get import get_ask_price
-
 
 def cal_final_amount(exchange, order_id):
     trades_df = pd.DataFrame(exchange.fetch_my_trades())
@@ -14,8 +12,7 @@ def cal_final_amount(exchange, order_id):
     return final_amount
 
 
-def cal_sell_price(order, exchange, symbol, grid):
-    ask_price = get_ask_price(exchange, symbol)
+def cal_sell_price(order, ask_price, grid):
     buy_price = order['price']
     sell_price = max(buy_price + grid, ask_price)
 
