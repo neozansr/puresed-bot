@@ -5,7 +5,7 @@ import datetime as dt
 import sys
 
 from func_get import get_currency, get_bid_price
-from func_cal import deduct_fee, cal_sell_price, cal_new_orders, cal_append_orders, price_range
+from func_cal import cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders, price_range
 from func_noti import line_send
 
 
@@ -40,16 +40,15 @@ def update_error_log(error_log, error_log_df_path):
     df.to_csv(error_log_df_path, index = False)
 
 
-def open_sell_order(exchange, buy_order, symbol, grid, maker_fee_percent, error_log_df_path):
+def open_sell_order(exchange, buy_order, symbol, grid, error_log_df_path):
     base_currency, quote_currency = get_currency(symbol)
     sell_price = cal_sell_price(buy_order, exchange, symbol, grid)
     
     try:
-        amount = buy_order['filled']
-        final_amount = deduct_fee(amount, maker_fee_percent)
+        final_amount = cal_final_amount(exchange, buy_order['id'])
         sell_order = exchange.create_order(symbol, 'limit', 'sell', final_amount, sell_price)
     except ccxt.InsufficientFunds:
-        # not available amount to sell (could caused by taker fee), sell free amount
+        # not available amount to sell (could caused by decimal), sell free amount
         balance = exchange.fetch_balance()
         base_currency_amount = balance[base_currency]['free']
         sell_order = exchange.create_order(symbol, 'limit', 'sell', base_currency_amount, sell_price)
@@ -66,7 +65,7 @@ def noti_success_order(bot_name, order, symbol):
     print(message)
 
 
-def check_orders_status(exchange, bot_name, side, symbol, grid, maker_fee_percent, open_orders_df_path, transactions_df_path, error_log_df_path):
+def check_orders_status(exchange, bot_name, side, symbol, grid, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
     
@@ -77,14 +76,19 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, maker_fee_percen
             noti_success_order(bot_name, order, symbol)
 
             if side == 'buy':
-                sell_order = open_sell_order(exchange, order, symbol, grid, maker_fee_percent, error_log_df_path)
+                sell_order = open_sell_order(exchange, order, symbol, grid, error_log_df_path)
                 append_df(open_orders_df, sell_order, symbol, amount_key = 'amount')
 
             remove_df(open_orders_df_path, order_id)
             append_df(transactions_df_path, order, symbol, amount_key = 'filled')
 
+        elif order['status'] == 'canceled':
+            # Canceld by param PostOnly
+            remove_df(open_orders_df_path, order_id)
 
-def cancel_open_buy_orders(exchange, symbol, grid, maker_fee_percent, open_orders_df_path, transactions_df_path, error_log_df_path):
+
+
+def cancel_open_buy_orders(exchange, symbol, grid, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
@@ -99,7 +103,7 @@ def cancel_open_buy_orders(exchange, symbol, grid, maker_fee_percent, open_order
             
             if filled > 0:
                 append_df(transactions_df_path, order, symbol, amount_key = 'filled')
-                sell_order = open_sell_order(exchange, order, symbol, grid, maker_fee_percent, error_log_df_path)
+                sell_order = open_sell_order(exchange, order, symbol, grid, error_log_df_path)
                 append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
             
             remove_df(open_orders_df_path, order_id)
@@ -128,7 +132,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
             
         if len(open_buy_orders_df) > 0:
-            cancel_open_buy_orders(exchange, symbol, grid, maker_fee_percent, open_orders_df_path, transactions_df_path, error_log_df_path)
+            cancel_open_buy_orders(exchange, symbol, grid, open_orders_df_path, transactions_df_path, error_log_df_path)
     else:
         buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
 
@@ -141,7 +145,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
         amount = value / price
         
         try:
-            buy_order = exchange.create_order(symbol, 'limit', 'buy', amount, price)
+            buy_order = exchange.create_order(symbol, 'limit', 'buy', amount, price, params = {'postOnly':True})
             append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
             print('Open buy {:.4f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
         except ccxt.InsufficientFunds:

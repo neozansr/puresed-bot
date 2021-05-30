@@ -29,10 +29,9 @@ def get_config_params(config_params_path):
     value = config_params['value']
     min_price = config_params['min_price']
     max_price = config_params['max_price']
-    maker_fee_percent = config_params['maker_fee_percent']
     start_safety = config_params['start_safety']
 
-    return symbol, budget, grid, value, min_price, max_price, maker_fee_percent, start_safety
+    return symbol, budget, grid, value, min_price, max_price, start_safety
 
 
 def get_exchange(keys_path):

@@ -4,9 +4,11 @@ import pandas as pd
 from func_get import get_ask_price
 
 
-def deduct_fee(amount, maker_fee_percent):
-    fee_rate = (maker_fee_percent / 100)
-    fee = amount * fee_rate
+def cal_final_amount(exchange, order_id):
+    trades_df = pd.DataFrame(exchange.fetch_my_trades())
+    order_df = trades_df[trades_df['id'] == order_id].reset_index(drop = True)
+    amount = order_df['amount']
+    fee = order_df['fee'][0]['cost']
     final_amount = amount - fee
 
     return final_amount
