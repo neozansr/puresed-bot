@@ -3,6 +3,5 @@
  "grid": 10,
  "value": 20,
  "min_price": 2000,
- "max_price": 5000,
- "maker_fee_percent": 0.02,
+ "max_price": 5000
  "start_safety": 0}
