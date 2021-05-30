@@ -6,7 +6,7 @@ from func_get import get_ask_price
 
 def cal_final_amount(exchange, order_id):
     trades_df = pd.DataFrame(exchange.fetch_my_trades())
-    order_df = trades_df[trades_df['id'] == order_id].reset_index(drop = True)
+    order_df = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
     amount = order_df['amount']
     fee = order_df['fee'][0]['cost']
     final_amount = amount - fee

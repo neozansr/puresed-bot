@@ -113,7 +113,7 @@ def cancel_open_buy_orders(exchange, symbol, grid, open_orders_df_path, transact
             print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, maker_fee_percent, min_price, max_price, start_safety, open_orders_df_path, transactions_df_path, error_log_df_path):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, min_price, max_price, start_safety, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
