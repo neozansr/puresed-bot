@@ -33,6 +33,7 @@ def get_exchange(keys_path):
     
     exchange = ccxt.ftx({'apiKey': keys_dict['apiKey'],
                          'secret': keys_dict['secret'],
+                         'headers': {'FTX-SUBACCOUNT': keys_dict['subaccount']},
                          'enableRateLimit': True})
 
     return exchange

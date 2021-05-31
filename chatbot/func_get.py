@@ -32,10 +32,10 @@ def get_exchange(keys_path):
     with open(keys_path) as keys_file:
         keys_dict = json.load(keys_file)
     
-    exchange = ccxt.kucoin({'apiKey': keys_dict['apiKey'],
-                            'secret': keys_dict['secret'],
-                            'password': keys_dict['password'],
-                            'enableRateLimit': True})
+    exchange = ccxt.ftx({'apiKey': keys_dict['apiKey'],
+                         'secret': keys_dict['secret'],
+                         'headers': {'FTX-SUBACCOUNT': keys_dict['subaccount']},
+                         'enableRateLimit': True})
 
     return exchange
 
