@@ -39,7 +39,7 @@ if __name__ == "__main__":
             print('Start loop')
             try:
                 run_bot(idle_stage, keys_path)
-            except (ccxt.ExchangeError, ccxt.RequestTimeout, ccxt.NetworkError):
+            except (ccxt.RequestTimeout, ccxt.NetworkError):
                 update_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
         
