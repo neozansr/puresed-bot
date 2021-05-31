@@ -79,7 +79,7 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_or
 
             if side == 'buy':
                 sell_order = open_sell_order(exchange, order, symbol, grid, decimal, error_log_df_path)
-                append_df(open_orders_df, sell_order, symbol, amount_key = 'amount')
+                append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
 
             remove_df(open_orders_df_path, order_id)
             append_df(transactions_df_path, order, symbol, amount_key = 'filled')
