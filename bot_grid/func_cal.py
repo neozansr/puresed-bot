@@ -2,12 +2,23 @@ import numpy as np
 import pandas as pd
 
 
-def cal_final_amount(exchange, order_id):
+def floor_amount(amount, decimal):
+    floor_amount = np.floor((amount * (10 ** decimal))) / (10 ** decimal)
+    
+    return floor_amount
+
+
+def cal_final_amount(exchange, order_id, decimal):
     trades_df = pd.DataFrame(exchange.fetch_my_trades())
-    order_df = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
-    amount = order_df['amount']
-    fee = order_df['fee'][0]['cost']
-    final_amount = amount - fee
+    order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
+    
+    amount, fee = 0, 0
+    for i in range(len(order_trade)):
+        amount += order_trade['amount'][i]
+        fee += order_trade['fee'][i]['cost']
+
+    deducted_amount = amount - fee
+    final_amount = floor_amount(deducted_amount, decimal)
 
     return final_amount
 

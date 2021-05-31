@@ -30,8 +30,9 @@ def get_config_params(config_params_path):
     min_price = config_params['min_price']
     max_price = config_params['max_price']
     start_safety = config_params['start_safety']
+    decimal = config_params['decimal']
 
-    return symbol, budget, grid, value, min_price, max_price, start_safety
+    return symbol, budget, grid, value, min_price, max_price, start_safety, decimal
 
 
 def get_exchange(keys_path):
@@ -87,7 +88,7 @@ def get_bid_price(exchange, symbol):
 
 def get_ask_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
-    ask_price = ticker['bid']
+    ask_price = ticker['ask']
 
     return ask_price
 
@@ -136,7 +137,7 @@ def print_hold_assets(symbol, grid, last_price, open_orders_df_path):
 
     base_currency, quote_currency = get_currency(symbol)
     
-    print('Hold {:.4f} {} with {} orders at {:.2f} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency))
+    print('Hold {:.3f} {} with {} orders at {:.2f} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency))
     print('Unrealised: {:.2f} {}'.format(unrealised_loss, quote_currency))
 
 

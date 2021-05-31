@@ -40,7 +40,7 @@ def update_error_log(error_log, error_log_df_path):
 
 def noti_success_order(bot_name, order, symbol):
     base_currency, quote_currency = get_currency(symbol)
-    message = '{}: {} {:.4f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
+    message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
     line_send(message)
     print(message)
 
@@ -78,12 +78,12 @@ def rebalance_port(exchange, symbol, fix_value, min_value, last_price, open_orde
     rebalance_flag = 1
     if current_value < fix_value - min_value:
         side = 'buy'
-        price = get_bid_price(exchange, symbol)
         diff_value = fix_value - current_value
+        price = get_bid_price(exchange, symbol)
     elif current_value > fix_value + min_value:
         side = 'sell'
-        price = get_ask_price(exchange, symbol)
         diff_value = current_value - fix_value
+        price = get_ask_price(exchange, symbol)
     else:
         rebalance_flag = 0
         print('No action')
@@ -93,7 +93,7 @@ def rebalance_port(exchange, symbol, fix_value, min_value, last_price, open_orde
         try:
             order = exchange.create_order(symbol, 'limit', side, amount, price)
             append_df(open_orders_df_path, order, symbol, amount_key = 'amount')
-            print('Open {} {:.4f} {} at {:.2f} {}'.format(side, amount, base_currency, price, quote_currency))
+            print('Open {} {:.3f} {} at {:.2f} {}'.format(side, amount, base_currency, price, quote_currency))
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process
             update_error_log('InsufficientFunds', error_log_df_path)
