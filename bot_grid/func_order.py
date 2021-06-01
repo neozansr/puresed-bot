@@ -74,7 +74,6 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_or
     for order_id in open_orders_list:
         order = exchange.fetch_order(order_id, symbol)
         if order['status'] == 'closed':
-            order_id = order['id']
             noti_success_order(bot_name, order, symbol)
 
             if side == 'buy':
