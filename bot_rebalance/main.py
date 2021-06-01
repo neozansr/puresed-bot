@@ -31,7 +31,8 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
 if __name__ == "__main__":
     while True:
         run_flag, idle_stage, min_idle, max_idle, keys_path = get_config_system(config_system_path)
-        
+        idle_loop = get_idle_loop(min_idle, max_idle)
+
         if run_flag == 1:
             print('Start loop')
             try:
@@ -40,11 +41,10 @@ if __name__ == "__main__":
                 update_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
         
-            print('End loop')
-            
-            idle_loop = get_idle_loop(min_idle, max_idle)
+            print('End loop')    
             print('Wait {} seconds'.format(idle_loop))
             time.sleep(idle_loop)
         else:
             print('Stop process')
-            break
+            print('Wait {} seconds'.format(idle_loop))
+            time.sleep(idle_loop)

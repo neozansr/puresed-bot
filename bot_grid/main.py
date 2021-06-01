@@ -47,4 +47,4 @@ if __name__ == "__main__":
             time.sleep(idle_loop)
         else:
             print('Stop process')
-            break
+            time.sleep(idle_loop)
