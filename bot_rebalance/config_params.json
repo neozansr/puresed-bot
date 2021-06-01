@@ -1,3 +1,5 @@
-{"symbol": "ETH/USD",
+{
+ "symbol": "ETH/USD",
  "fix_value": 1000, 
- "min_value": 10}
+ "min_value": 10
+}

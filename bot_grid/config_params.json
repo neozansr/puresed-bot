@@ -1,8 +1,10 @@
-{"symbol": "ETH/USD",
+{
+ "symbol": "ETH/USD",
  "budget": 100, 
  "grid": 10,
  "value": 20,
  "min_price": 2000,
  "max_price": 5000,
  "start_safety": 0,
- "decimal": 3}
+ "decimal": 3
+}
