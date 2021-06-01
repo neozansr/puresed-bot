@@ -64,12 +64,6 @@ def cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df):
     return buy_price_list
 
 
-def price_range(buy_price_list, min_price, max_price):
-    buy_price_list = [x for x in buy_price_list if min_price <= x <= max_price]
-
-    return buy_price_list
-
-
 def cal_realised(value, transactions_df):
     transactions_df['date'] = pd.to_datetime(transactions_df['timestamp']).dt.date
     transactions_sell_df = transactions_df[transactions_df['side'] == 'sell']

@@ -5,7 +5,7 @@ import datetime as dt
 import sys
 
 from func_get import get_currency, get_bid_price, get_ask_price
-from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders, price_range
+from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders
 from func_noti import line_send
 
 
@@ -137,7 +137,6 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
     else:
         buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
 
-    buy_price_list = price_range(buy_price_list, min_price, max_price)
     print('Open {} buy orders'.format(len(buy_price_list)))
 
     base_currency, quote_currency = get_currency(symbol)
