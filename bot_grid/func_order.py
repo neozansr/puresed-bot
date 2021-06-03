@@ -2,6 +2,7 @@ import ccxt
 import numpy as np
 import pandas as pd
 import datetime as dt
+import time
 import sys
 
 from func_get import get_currency, update_budget, get_bid_price, get_ask_price, get_last_loop_price
@@ -170,7 +171,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             sys.exit(1)
 
 
-def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
+def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
     cont_flag = 1
 
     last_loop_price = get_last_loop_price(last_loop_path)
@@ -185,6 +186,7 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
                 cancel_open_buy_orders(exchange, symbol, 0, 0, False, open_orders_df_path, transactions_df_path, error_log_df_path)
                 cont_flag = 0
                 noti_warning(bot_name, 'Circuit breaker')
+                time.sleep(idle_rest)
 
     return cont_flag
 

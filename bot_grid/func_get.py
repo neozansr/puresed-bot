@@ -14,9 +14,10 @@ def get_config_system(config_system_path):
     run_flag = config_system['run_flag']
     idle_stage = config_system['idle_stage']
     idle_loop = config_system['idle_loop']
+    idle_rest = config_system['idle_rest']
     keys_path = config_system['keys_path']
 
-    return run_flag, idle_stage, idle_loop, keys_path
+    return run_flag, idle_stage, idle_loop, idle_rest, keys_path
 
 
 def get_config_params(config_params_path):

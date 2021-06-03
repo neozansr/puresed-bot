@@ -16,7 +16,7 @@ assets_df_path = 'assets.csv'
 error_log_df_path = 'error_log.csv'
 
     
-def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path):
+def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     symbol, budget, grid, value, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
@@ -30,7 +30,7 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
     cont_flag = check_cut_loss(bot_name, exchange, symbol, n_order, open_orders_df_path, config_params_path)
 
     if cont_flag == 1:
-        cont_flag = check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
+        cont_flag = check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
         if cont_flag == 1:
             open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, error_log_df_path)
@@ -40,12 +40,12 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
 
 if __name__ == "__main__":
     while True:
-        run_flag, idle_stage, idle_loop, keys_path = get_config_system(config_system_path)
+        run_flag, idle_stage, idle_loop, idle_rest, keys_path = get_config_system(config_system_path)
         
         if run_flag == 1:
             print('Start loop')
             try:
-                run_bot(idle_stage, keys_path)
+                run_bot(idle_stage, idle_loop, idle_rest, keys_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError):
                 update_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
