@@ -21,7 +21,7 @@ def cal_final_amount(exchange, order_id, decimal):
     final_amount = floor_amount(deducted_amount, decimal)
 
     return final_amount
-
+    
 
 def cal_sell_price(order, ask_price, grid):
     buy_price = order['price']

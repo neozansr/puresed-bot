@@ -4,5 +4,6 @@
  "grid": 10,
  "value": 20,
  "start_safety": 0,
+ "circuit_limit": 40,
  "decimal": 3
 }

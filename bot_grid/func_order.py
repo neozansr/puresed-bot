@@ -4,7 +4,7 @@ import pandas as pd
 import datetime as dt
 import sys
 
-from func_get import get_currency, get_bid_price, get_ask_price
+from func_get import get_currency, update_budget, get_bid_price, get_ask_price, get_last_loop_price
 from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders
 from func_noti import line_send
 
@@ -29,6 +29,13 @@ def remove_df(df_path, order_id):
 
     df = df[df['order_id'] != order_id]
     df = df.reset_index(drop = True)
+    df.to_csv(df_path, index = False)
+
+
+def clear_df(df_path):
+    df = pd.read_csv(df_path)
+
+    df = df.iloc[0:0]
     df.to_csv(df_path, index = False)
 
 
@@ -89,32 +96,34 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_or
 
 
 
-def cancel_open_buy_orders(exchange, symbol, grid, decimal, open_orders_df_path, transactions_df_path, error_log_df_path):
+def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
-
-    for order_id in open_buy_orders_list:
-        order = exchange.fetch_order(order_id, symbol)
-        filled = order['filled']
-        
-        try:
-            exchange.cancel_order(order_id, symbol)
-            print('Cancel order {}'.format(order_id))
+    
+    if len(open_buy_orders_list) > 0:
+        for order_id in open_buy_orders_list:
+            order = exchange.fetch_order(order_id, symbol)
+            filled = order['filled']
             
-            if filled > 0:
-                append_df(transactions_df_path, order, symbol, amount_key = 'filled')
-                sell_order = open_sell_order(exchange, order, symbol, grid, decimal, error_log_df_path)
-                append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
-            
-            remove_df(open_orders_df_path, order_id)
-        except ccxt.OrderNotFound:
-            # no order in the system (could casued by the order is queued), skip for the next loop
-            update_error_log('OrderNotFound', error_log_df_path)
-            print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
+            try:
+                exchange.cancel_order(order_id, symbol)
+                print('Cancel order {}'.format(order_id))
+                
+                if sell_filled == True:
+                    if filled > 0:
+                        append_df(transactions_df_path, order, symbol, amount_key = 'filled')
+                        sell_order = open_sell_order(exchange, order, symbol, grid, decimal, error_log_df_path)
+                        append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
+                
+                remove_df(open_orders_df_path, order_id)
+            except ccxt.OrderNotFound:
+                # no order in the system (could casued by the order is queued), skip for the next loop
+                update_error_log('OrderNotFound', error_log_df_path)
+                print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, min_price, max_price, start_safety, decimal, open_orders_df_path, transactions_df_path, error_log_df_path):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
@@ -132,8 +141,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             start_price = min(bid_price, min_open_sell_price - (grid * 2))
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
             
-        if len(open_buy_orders_df) > 0:
-            cancel_open_buy_orders(exchange, symbol, grid, decimal, open_orders_df_path, transactions_df_path, error_log_df_path)
+        cancel_open_buy_orders(exchange, symbol, grid, decimal, True, open_orders_df_path, transactions_df_path, error_log_df_path)
     else:
         buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
 
@@ -154,3 +162,42 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             update_error_log('InsufficientFunds', error_log_df_path)
             print('Error: Cannot buy at price {:.2f} {} due to insufficient fund!!!'.format(price, quote_currency))
             sys.exit(1)
+
+
+def check_circuit_breaker(exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
+    cont_flag = 1
+
+    last_loop_price = get_last_loop_price(last_loop_path)
+    transactions_df = pd.read_csv(transactions_df_path)
+
+    if len(transactions_df) >= circuit_limit:
+        side_list = transactions_df['side'][-circuit_limit:].unique()
+        
+        if (len(side_list) == 1) & (side_list[0] == 'buy'):
+            if last_price <= last_loop_price:
+                # Not open sell after cancel orders
+                cancel_open_buy_orders(exchange, symbol, 0, 0, False, open_orders_df_path, transactions_df_path, error_log_df_path)
+                cont_flag = 0
+
+    return cont_flag
+
+
+def check_cut_loss(exchange, symbol, n_order, open_orders_df_path, config_params_path):
+    cont_flag = 1
+
+    base_currency, _ = get_currency(symbol)
+    open_orders_df = pd.read_csv(open_orders_df_path)
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+
+    if len(open_sell_orders_df) >= n_order:
+        exchange.cancel_all_orders()
+        clear_df(open_orders_df_path)
+
+        balance = exchange.fetch_balance()
+        amount = balance[base_currency]['total']
+        exchange.create_order(symbol, 'market', 'sell', amount)
+        update_budget(exchange, symbol, config_params_path)
+
+        cont_flag = 0
+
+    return cont_flag
