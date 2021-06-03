@@ -74,6 +74,12 @@ def noti_success_order(bot_name, order, symbol):
     print(message)
 
 
+def noti_warning(bot_name, warning):
+    message = '{}: {}!!!!!'.format(bot_name, warning)
+    line_send(message)
+    print(message)
+
+
 def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
@@ -164,7 +170,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             sys.exit(1)
 
 
-def check_circuit_breaker(exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
+def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
     cont_flag = 1
 
     last_loop_price = get_last_loop_price(last_loop_path)
@@ -178,11 +184,12 @@ def check_circuit_breaker(exchange, symbol, last_price, circuit_limit, last_loop
                 # Not open sell after cancel orders
                 cancel_open_buy_orders(exchange, symbol, 0, 0, False, open_orders_df_path, transactions_df_path, error_log_df_path)
                 cont_flag = 0
+                noti_warning(bot_name, 'Circuit breaker')
 
     return cont_flag
 
 
-def check_cut_loss(exchange, symbol, n_order, open_orders_df_path, config_params_path):
+def check_cut_loss(bot_name, exchange, symbol, n_order, open_orders_df_path, config_params_path):
     cont_flag = 1
 
     base_currency, _ = get_currency(symbol)
@@ -199,5 +206,6 @@ def check_cut_loss(exchange, symbol, n_order, open_orders_df_path, config_params
         update_budget(exchange, symbol, config_params_path)
 
         cont_flag = 0
+        noti_warning(bot_name, 'Cut loss')
 
     return cont_flag

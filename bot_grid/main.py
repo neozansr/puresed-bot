@@ -27,10 +27,10 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
     time.sleep(idle_stage)
     print_pending_order(symbol, open_orders_df_path)
     n_order, n_sell_order, n_open_order = cal_n_order(budget, value, open_orders_df_path)
-    cont_flag = check_cut_loss(exchange, symbol, n_order, open_orders_df_path, config_params_path)
+    cont_flag = check_cut_loss(bot_name, exchange, symbol, n_order, open_orders_df_path, config_params_path)
 
     if cont_flag == 1:
-        cont_flag = check_circuit_breaker(exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
+        cont_flag = check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
         if cont_flag == 1:
             open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, update_error_log)
