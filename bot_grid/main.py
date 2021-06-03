@@ -21,9 +21,9 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
     exchange = get_exchange(keys_path)
     symbol, budget, grid, value, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
     last_price = get_last_price(exchange, symbol)
-    check_orders_status(exchange, bot_name, 'buy', symbol, grid, decimal, open_orders_df_path, transactions_df_path, update_error_log)
+    check_orders_status(exchange, bot_name, 'buy', symbol, grid, decimal, open_orders_df_path, transactions_df_path, error_log_df_path)
     time.sleep(idle_stage)
-    check_orders_status(exchange, bot_name, 'sell', symbol, grid, decimal, open_orders_df_path, transactions_df_path, update_error_log)
+    check_orders_status(exchange, bot_name, 'sell', symbol, grid, decimal, open_orders_df_path, transactions_df_path, error_log_df_path)
     time.sleep(idle_stage)
     print_pending_order(symbol, open_orders_df_path)
     n_order, n_sell_order, n_open_order = cal_n_order(budget, value, open_orders_df_path)
@@ -33,7 +33,7 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
         cont_flag = check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
         if cont_flag == 1:
-            open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, update_error_log)
+            open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, error_log_df_path)
             print_hold_assets(symbol, grid, last_price, open_orders_df_path)
             print_current_balance(exchange, symbol, last_price)
 
