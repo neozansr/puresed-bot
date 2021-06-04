@@ -118,11 +118,31 @@ def get_last_loop_price(last_loop_path):
     return last_loop_price
 
 
-def update_last_loop_price(last_price, last_loop_path):
+def update_last_loop_price(exchange, symbol, last_loop_path):
     with open(last_loop_path) as last_loop_file:
         last_loop_dict = json.load(last_loop_file)
 
+    last_price = get_last_price(exchange, symbol)
     last_loop_dict['price'] = last_price
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)
+
+
+def get_cut_loss_flag(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+    
+    cut_loss_flag = last_loop_dict['cut_loss_flag']
+
+    return cut_loss_flag
+
+
+def update_cut_loss_flag(cut_loss_flag, last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    last_loop_dict['cut_loss_flag'] = cut_loss_flag
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop_dict, last_loop_file, indent = 1)

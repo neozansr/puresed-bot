@@ -5,7 +5,7 @@ import datetime as dt
 import time
 import sys
 
-from func_get import get_currency, update_budget, get_bid_price, get_ask_price, get_last_loop_price
+from func_get import get_currency, update_budget, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price, get_cut_loss_flag, update_cut_loss_flag
 from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders
 from func_noti import line_send
 
@@ -191,14 +191,22 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
     return cont_flag
 
 
-def check_cut_loss(bot_name, exchange, symbol, n_order, open_orders_df_path, config_params_path):
+def check_cut_loss(bot_name, exchange, symbol, n_order, last_loop_path, open_orders_df_path, config_params_path):
     cont_flag = 1
+    cut_loss_flag = get_cut_loss_flag(last_loop_path)
 
     base_currency, _ = get_currency(symbol)
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
 
-    if len(open_sell_orders_df) >= n_order:
+    if cut_loss_flag == 0:
+        if len(open_sell_orders_df) >= n_order:
+            cut_loss_flag = 1
+
+    if cut_loss_flag == 1:
+        # if error while cut_loss, keep cut_loss on the next loop 
+        update_cut_loss_flag(1, last_loop_path)
+        
         exchange.cancel_all_orders()
         clear_df(open_orders_df_path)
 
@@ -206,8 +214,10 @@ def check_cut_loss(bot_name, exchange, symbol, n_order, open_orders_df_path, con
         amount = balance[base_currency]['total']
         exchange.create_order(symbol, 'market', 'sell', amount)
         update_budget(exchange, symbol, config_params_path)
-
+        
         cont_flag = 0
+        update_last_loop_price(exchange, symbol, last_loop_path)
+        update_cut_loss_flag(0, last_loop_path)
         noti_warning(bot_name, 'Cut loss')
 
     return cont_flag

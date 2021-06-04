@@ -1,3 +1,4 @@
 {
- "price": 0
+ "price": 0,
+ "cut_loss_flag": 0
 }

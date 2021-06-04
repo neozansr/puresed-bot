@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_last_price, print_pending_order, print_hold_assets, print_current_balance
+from func_get import get_config_system, get_config_params, get_exchange, get_last_price, update_last_loop_price, print_pending_order, print_hold_assets, print_current_balance
 from func_cal import cal_n_order
 from func_order import check_orders_status, open_buy_orders, update_error_log, check_circuit_breaker, check_cut_loss
 
@@ -16,7 +16,7 @@ assets_df_path = 'assets.csv'
 error_log_df_path = 'error_log.csv'
 
     
-def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path):
+def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     symbol, budget, grid, value, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
@@ -27,12 +27,13 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
     time.sleep(idle_stage)
     print_pending_order(symbol, open_orders_df_path)
     n_order, n_sell_order, n_open_order = cal_n_order(budget, value, open_orders_df_path)
-    cont_flag = check_cut_loss(bot_name, exchange, symbol, n_order, open_orders_df_path, config_params_path)
+    cont_flag = check_cut_loss(bot_name, exchange, symbol, n_order, last_loop_path, open_orders_df_path, config_params_path)
 
     if cont_flag == 1:
         cont_flag = check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
         if cont_flag == 1:
+            update_last_loop_price(exchange, symbol, last_loop_path)
             open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, error_log_df_path)
             print_hold_assets(symbol, grid, last_price, open_orders_df_path)
             print_current_balance(exchange, symbol, last_price)
