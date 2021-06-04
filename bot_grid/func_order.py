@@ -189,6 +189,7 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
                 # Not open sell after cancel orders
                 cancel_open_buy_orders(exchange, symbol, 0, 0, False, open_orders_df_path, transactions_df_path, error_log_df_path)
                 cont_flag = 0
+                update_last_loop_price(exchange, symbol, last_loop_path)
                 noti_warning(bot_name, 'Circuit breaker')
                 time.sleep(idle_rest)
 
