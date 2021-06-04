@@ -128,6 +128,10 @@ def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, open_or
                 # no order in the system (could casued by the order is queued), skip for the next loop
                 update_error_log('OrderNotFound', error_log_df_path)
                 print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
+            except ccxt.InvalidOrder:
+                # the order is closed by system (could caused by post_only param for buy orders)
+                remove_df(open_orders_df_path, order_id)
+
 
 
 def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, error_log_df_path):
