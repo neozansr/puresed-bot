@@ -1,11 +1,10 @@
 import ccxt
 import numpy as np
 import pandas as pd
-import datetime as dt
 import time
 import sys
 
-from func_get import get_currency, update_budget, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price, get_cut_loss_flag, update_cut_loss_flag
+from func_get import get_time, get_currency, update_budget, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price, get_cut_loss_flag, update_cut_loss_flag
 from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders
 from func_noti import line_send
 
@@ -13,7 +12,7 @@ from func_noti import line_send
 def append_df(df_path, order, symbol, amount_key):
     df = pd.read_csv(df_path)
 
-    timestamp = dt.datetime.now()
+    timestamp = get_time()
     order_id = order['id']
     order_type = order['type']
     order_side = order['side']
@@ -43,7 +42,7 @@ def clear_df(df_path):
 def update_error_log(error_log, error_log_df_path):
     df = pd.read_csv(error_log_df_path)
     
-    timestamp = dt.datetime.now()
+    timestamp = get_time()
     df.loc[len(df)] = [timestamp, error_log]
     df.to_csv(error_log_df_path, index = False)
 
@@ -91,6 +90,7 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_or
             noti_success_order(bot_name, order, symbol)
 
             if side == 'buy':
+
                 sell_order = open_sell_order(exchange, order, symbol, grid, decimal, error_log_df_path)
                 append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
 

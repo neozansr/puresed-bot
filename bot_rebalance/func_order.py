@@ -1,16 +1,15 @@
 import ccxt
 import pandas as pd
-import datetime as dt
 import sys
 
-from func_get import get_currency, get_bid_price, get_ask_price, get_current_value
+from func_get import get_time, get_currency, get_bid_price, get_ask_price, get_current_value
 from func_noti import line_send
 
 
 def append_df(df_path, order, symbol, amount_key):
     df = pd.read_csv(df_path)
     
-    timestamp = dt.datetime.now()
+    timestamp = get_time()
     order_id = order['id']
     order_type = order['type']
     order_side = order['side']
@@ -33,7 +32,7 @@ def remove_df(df_path, order_id):
 def update_error_log(error_log, error_log_df_path):
     df = pd.read_csv(error_log_df_path)
     
-    timestamp = dt.datetime.now()
+    timestamp = get_time()
     df.loc[len(df)] = [timestamp, error_log]
     df.to_csv(error_log_df_path, index = False)
 

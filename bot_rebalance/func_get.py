@@ -1,4 +1,6 @@
 import ccxt
+import datetime as dt
+from dateutil import tz
 import random
 import json
 
@@ -27,6 +29,12 @@ def get_config_params(config_params_path):
     return symbol, fix_value, min_value
 
 
+def get_time(timezone = 'Asia/Bangkok'):
+    timestamp = dt.datetime.now(tz = tz.gettz(timezone))
+    
+    return timestamp
+
+
 def get_exchange(keys_path):
     with open(keys_path) as keys_file:
         keys_dict = json.load(keys_file)
@@ -50,7 +58,8 @@ def get_last_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     last_price = ticker['last']
 
-    print('Last price: {:.2f}'.format(last_price))
+    _, quote_currency = get_currency(symbol)
+    print('Last price: {:.2f}, {}'.format(last_price, quote_currency))
     return last_price
 
 
