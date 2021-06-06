@@ -11,11 +11,9 @@ def get_config_system(config_system_path):
 
     run_flag = config_system['run_flag']
     idle_stage = config_system['idle_stage']
-    min_idle = config_system['min_idle']
-    max_idle = config_system['max_idle']
     keys_path = config_system['keys_path']
 
-    return run_flag, idle_stage, min_idle, max_idle, keys_path
+    return run_flag, idle_stage, keys_path
 
 
 def get_config_params(config_params_path):
@@ -91,8 +89,8 @@ def get_current_value(exchange, symbol, last_price):
     return current_value
 
 
-def get_idle_loop(min_idle, max_idle):
-    idle_loop = random.randint(min_idle, max_idle)
+def get_idle_loop():
+    idle_loop = 5
     
     return idle_loop
 
