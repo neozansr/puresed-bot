@@ -13,14 +13,18 @@ def cal_final_amount(exchange, order_id, symbol, decimal, idle_stage):
     trades_df = pd.DataFrame(exchange.fetch_my_trades(symbol, limit = 200))
     order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
     
-    while len(order_trade) == 0:
-        time.sleep(idle_stage)
-        order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
-        print('Wating order {} to be updated'.format(order_id))
-    
     amount, fee = 0, 0
     for i in range(len(order_trade)):
         amount += order_trade['amount'][i]
+
+        while order_trade['fee'][i] == None:
+            # fee is None, wait until updated
+            print('Wating order {} fee to be updated'.format(order_id))
+            time.sleep(idle_stage)
+            
+            trades_df = pd.DataFrame(exchange.fetch_my_trades(symbol, limit = 200))
+            order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
+            
         fee += order_trade['fee'][i]['cost']
 
     deducted_amount = amount - fee
