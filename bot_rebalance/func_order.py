@@ -66,6 +66,9 @@ def check_open_orders(exchange, bot_name, symbol, open_orders_df_path, transacti
                 cont_flag = 0
                 update_error_log('OrderNotFound', error_log_df_path)
                 print('Error: Cannot cancel order {}, wait for the next loop'.format(order_id))
+            except ccxt.InvalidOrder:
+                # the order is closed by system (could caused by post_only param for buy orders)
+                remove_df(open_orders_df_path, order_id)
 
     return cont_flag
 
