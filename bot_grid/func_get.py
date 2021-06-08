@@ -79,7 +79,8 @@ def get_last_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     last_price = ticker['last']
 
-    print('Last price: {:.2f}'.format(last_price))
+    _, quote_currency = get_currency(symbol)
+    print('Last price: {:.2f} {}'.format(last_price, quote_currency))
     return last_price
 
 

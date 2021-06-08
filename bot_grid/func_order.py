@@ -47,13 +47,13 @@ def update_error_log(error_log, error_log_df_path):
     df.to_csv(error_log_df_path, index = False)
 
 
-def open_sell_order(exchange, buy_order, symbol, grid, decimal, error_log_df_path):
+def open_sell_order(exchange, buy_order, symbol, grid, decimal, idle_stage, error_log_df_path):
     base_currency, quote_currency = get_currency(symbol)
     ask_price = get_ask_price(exchange, symbol)
     sell_price = cal_sell_price(buy_order, ask_price, grid)
     
     try:
-        final_amount = cal_final_amount(exchange, buy_order['id'], decimal)
+        final_amount = cal_final_amount(exchange, buy_order['id'], symbol, decimal, idle_stage)
         sell_order = exchange.create_order(symbol, 'limit', 'sell', final_amount, sell_price)
     except ccxt.InsufficientFunds:
         # not available amount to sell (could caused by decimal), sell free amount
@@ -80,7 +80,7 @@ def noti_warning(bot_name, warning):
     print(message)
 
 
-def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_orders_df_path, transactions_df_path, error_log_df_path):
+def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
     
@@ -91,7 +91,7 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_or
 
             if side == 'buy':
 
-                sell_order = open_sell_order(exchange, order, symbol, grid, decimal, error_log_df_path)
+                sell_order = open_sell_order(exchange, order, symbol, grid, decimal, idle_stage, error_log_df_path)
                 append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
 
             remove_df(open_orders_df_path, order_id)
@@ -102,8 +102,7 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, open_or
             remove_df(open_orders_df_path, order_id)
 
 
-
-def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, open_orders_df_path, transactions_df_path, error_log_df_path):
+def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
@@ -120,7 +119,7 @@ def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, open_or
                 if sell_filled == True:
                     if filled > 0:
                         append_df(transactions_df_path, order, symbol, amount_key = 'filled')
-                        sell_order = open_sell_order(exchange, order, symbol, grid, decimal, error_log_df_path)
+                        sell_order = open_sell_order(exchange, order, symbol, grid, decimal, idle_stage, error_log_df_path)
                         append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
                 
                 remove_df(open_orders_df_path, order_id)
@@ -133,8 +132,7 @@ def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, open_or
                 remove_df(open_orders_df_path, order_id)
 
 
-
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, open_orders_df_path, transactions_df_path, error_log_df_path):
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
@@ -152,7 +150,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             start_price = min(bid_price, min_open_sell_price - (grid * 2))
             buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
             
-        cancel_open_buy_orders(exchange, symbol, grid, decimal, True, open_orders_df_path, transactions_df_path, error_log_df_path)
+        cancel_open_buy_orders(exchange, symbol, grid, decimal, True, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
     else:
         buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
 
@@ -175,7 +173,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             sys.exit(1)
 
 
-def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
+def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
     cont_flag = 1
 
     last_loop_price = get_last_loop_price(last_loop_path)
@@ -187,7 +185,7 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
         if (len(side_list) == 1) & (side_list[0] == 'buy'):
             if last_price <= last_loop_price:
                 # Not open sell after cancel orders
-                cancel_open_buy_orders(exchange, symbol, 0, 0, False, open_orders_df_path, transactions_df_path, error_log_df_path)
+                cancel_open_buy_orders(exchange, symbol, 0, 0, False, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
                 cont_flag = 0
                 update_last_loop_price(exchange, symbol, last_loop_path)
                 noti_warning(bot_name, 'Circuit breaker')
