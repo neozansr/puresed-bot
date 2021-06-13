@@ -34,7 +34,7 @@ def get_time(timezone = 'Asia/Bangkok'):
 
 
 def get_date(timezone = 'Asia/Bangkok'):
-    timestamp = dt.date.today(tz = tz.gettz(timezone))
+    timestamp = dt.datetime.now(tz = tz.gettz(timezone))
     date = timestamp.date()
     
     return date
