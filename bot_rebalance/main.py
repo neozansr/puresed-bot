@@ -3,8 +3,9 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_last_price, get_idle_loop, print_current_balance
+from func_get import get_config_system, get_config_params, get_exchange, get_last_price, get_idle_loop
 from func_order import check_open_orders, rebalance_port, update_error_log
+from func_noti import print_current_balance
 
 
 config_system_path = 'config_system.json'

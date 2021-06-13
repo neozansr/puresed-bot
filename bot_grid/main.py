@@ -3,9 +3,10 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_last_price, update_last_loop_price, print_pending_order, print_hold_assets, print_current_balance
+from func_get import get_config_system, get_config_params, get_exchange, get_last_price, update_last_loop_price
 from func_cal import cal_n_order
 from func_order import check_orders_status, open_buy_orders, update_error_log, check_circuit_breaker, check_cut_loss
+from func_noti import print_pending_order, print_hold_assets, print_current_balance
 
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
