@@ -126,4 +126,4 @@ def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_
             last_cash = fix_value
 
         cash_flow = cash - last_cash
-        append_cash_flow_df(cur_date, balance, cash_flow, cash_flow_df, cash_flow_df_path)
+        append_cash_flow_df(cur_date, balance, cash_flow, cash, cash_flow_df, cash_flow_df_path)

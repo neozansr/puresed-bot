@@ -173,6 +173,6 @@ def reset_n_loop(last_loop_path):
         json.dump(last_loop_dict, last_loop_file, indent = 1)
 
 
-def append_cash_flow_df(cur_date, balance, cash_flow, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [cur_date, balance, cash_flow]
+def append_cash_flow_df(cur_date, balance, cash_flow, cash, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [cur_date, balance, cash_flow, cash]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
