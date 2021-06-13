@@ -170,7 +170,7 @@ def append_cash_flow_df(cur_date, balance, cash_flow, new_value, cash_flow_df, c
 
 
 def update_reinvest(new_budget, new_value, config_params_path):
-    with open(config_params_path, 'w') as config_file:
+    with open(config_params_path) as config_file:
         config_params = json.load(config_file)
 
     config_params['budget'] = new_budget
