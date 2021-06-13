@@ -147,7 +147,7 @@ def get_idle_loop(last_loop_path):
     series = gen_series()
     idle_loop = series[n_loop]
 
-    update_n_loop(n_loop, last_loop_dict, last_loop_dict, last_loop_path)
+    update_n_loop(n_loop, series, last_loop_dict, last_loop_path)
     
     return idle_loop
 
