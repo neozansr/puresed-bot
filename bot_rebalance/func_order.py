@@ -110,7 +110,7 @@ def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_
     try:
         last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
         last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date
-    except KeyError:
+    except IndexError:
         last_date = None
 
     cur_date = get_date()
@@ -121,10 +121,9 @@ def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_
 
         try:
             last_cash = cash_flow_df['cash'][len(cash_flow_df) - 1]
-        except KeyError:
+        except IndexError:
             # 1st day, use init_cash, equal fix_value if balance 50:50
             last_cash = fix_value
 
         cash_flow = cash - last_cash
-
         append_cash_flow_df(cur_date, balance, cash_flow, cash_flow_df, cash_flow_df_path)

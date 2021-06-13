@@ -203,7 +203,7 @@ def reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_ord
     try:
         last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
         last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date
-    except KeyError:
+    except IndexError:
         last_date = None
     
     cur_date = get_date()
