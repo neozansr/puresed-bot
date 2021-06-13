@@ -28,16 +28,13 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
     time.sleep(idle_stage)
     print_pending_order(symbol, open_orders_df_path)
     n_order, n_sell_order, n_open_order = cal_n_order(budget, value, open_orders_df_path)
-    cont_flag = check_cut_loss(bot_name, exchange, symbol, n_order, last_loop_path, open_orders_df_path, config_params_path)
+    cont_flag = check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     if cont_flag == 1:
-        cont_flag = check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
-
-        if cont_flag == 1:
-            update_last_loop_price(exchange, symbol, last_loop_path)
-            open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
-            print_hold_assets(symbol, grid, last_price, open_orders_df_path)
-            print_current_balance(exchange, symbol, last_price)
+        update_last_loop_price(exchange, symbol, last_loop_path)
+        open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
+        print_hold_assets(symbol, grid, last_price, open_orders_df_path)
+        print_current_balance(exchange, symbol, last_price)
 
 
 if __name__ == "__main__":
