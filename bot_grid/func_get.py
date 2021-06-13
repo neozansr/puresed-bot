@@ -23,6 +23,7 @@ def get_config_params(config_params_path):
         config_params = json.load(config_file)
 
     symbol = config_params['symbol']
+    init_budget = config_params['init_budget']
     budget = config_params['budget']
     grid = config_params['grid']
     value = config_params['value']
@@ -30,13 +31,20 @@ def get_config_params(config_params_path):
     circuit_limit = config_params['circuit_limit']
     decimal = config_params['decimal']
 
-    return symbol, budget, grid, value, start_safety, circuit_limit, decimal
+    return symbol, init_budget, budget, grid, value, start_safety, circuit_limit, decimal
 
 
 def get_time(timezone = 'Asia/Bangkok'):
     timestamp = dt.datetime.now(tz = tz.gettz(timezone))
     
     return timestamp
+
+
+def get_date(timezone = 'Asia/Bangkok'):
+    timestamp = dt.date.today(tz = tz.gettz(timezone))
+    date = timestamp.date()
+    
+    return date
 
 
 def get_exchange(keys_path):
@@ -137,10 +145,36 @@ def update_cut_loss_flag(cut_loss_flag, last_loop_path):
 
 def get_balance(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
-
     base_currency, quote_currency = get_currency(symbol)
-    base_currency_val = balance[base_currency]['total'] * last_price
-    quote_currency_val = balance[quote_currency]['total']
-    total_val = base_currency_val + quote_currency_val
     
-    return total_val
+    try:
+        base_currency_amount = balance[base_currency]['total']
+    except KeyError:
+        base_currency_amount = 0
+
+    base_currency_value = last_price * base_currency_amount
+
+    try:    
+        quote_currency_value = balance[quote_currency]['total']
+    except KeyError:
+        quote_currency_value = 0
+    
+    balance = base_currency_value + quote_currency_value
+    
+    return balance
+
+
+def append_cash_flow_df(cur_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [cur_date, balance, cash_flow, new_value]
+    cash_flow_df.to_csv(cash_flow_df_path, index = False)
+
+
+def update_reinvest(new_budget, new_value, config_params_path):
+    with open(config_params_path, 'w') as config_file:
+        config_params = json.load(config_file)
+
+    config_params['budget'] = new_budget
+    config_params['value'] = new_value
+
+    with open(config_params_path, 'w') as config_file:
+        json.dump(config_params, config_file, indent = 1)

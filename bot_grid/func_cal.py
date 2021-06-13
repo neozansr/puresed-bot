@@ -72,15 +72,7 @@ def cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df):
         buy_price -= grid
 
     return buy_price_list
-
-
-def cal_realised(value, transactions_df):
-    transactions_df['date'] = pd.to_datetime(transactions_df['timestamp']).dt.date
-    transactions_sell_df = transactions_df[transactions_df['side'] == 'sell']
-    realised = sum(transactions_sell_df['value']) - (value * len(transactions_sell_df))
     
-    return realised
-
 
 def cal_unrealised(grid, last_price, open_orders_df):
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']

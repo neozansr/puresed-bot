@@ -1,11 +1,13 @@
 import ccxt
 import numpy as np
 import pandas as pd
+import datetime as dt
 import time
+import json
 import sys
 
-from func_get import get_time, get_currency, update_budget, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price
-from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders
+from func_get import get_time, get_date, get_currency, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price, get_balance, append_cash_flow_df, update_reinvest
+from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders, cal_unrealised
 from func_noti import line_send
 
 
@@ -90,7 +92,6 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, idle_st
             noti_success_order(bot_name, order, symbol)
 
             if side == 'buy':
-
                 sell_order = open_sell_order(exchange, order, symbol, grid, decimal, idle_stage, error_log_df_path)
                 append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
 
@@ -192,3 +193,29 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
                 time.sleep(idle_rest)
 
     return cont_flag
+
+
+def reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, cash_flow_df_path):
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+    open_orders_df = pd.read_csv(open_orders_df_path)
+
+    try:
+        last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
+        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date
+    except KeyError:
+        last_date = None
+    
+    cur_date = get_date()
+
+    if last_date != cur_date:    
+        balance = get_balance(exchange, symbol, last_price)
+        unrealised, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
+        cash_flow_accum = sum(cash_flow_df['cash_flow'])
+        cash_flow = balance - unrealised - init_budget - cash_flow_accum
+        
+        new_budget = budget + cash_flow
+        new_value = (cash_flow / n_order) + value
+
+        append_cash_flow_df(cur_date, balance, cash_flow, cash_flow_df, cash_flow_df_path, new_value)
+        update_reinvest(new_budget, new_value, config_params_path)

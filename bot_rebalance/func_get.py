@@ -33,6 +33,13 @@ def get_time(timezone = 'Asia/Bangkok'):
     return timestamp
 
 
+def get_date(timezone = 'Asia/Bangkok'):
+    timestamp = dt.date.today(tz = tz.gettz(timezone))
+    date = timestamp.date()
+    
+    return date
+
+
 def get_exchange(keys_path):
     with open(keys_path) as keys_file:
         keys_dict = json.load(keys_file)
@@ -89,6 +96,27 @@ def get_current_value(exchange, symbol, last_price):
     return current_value
 
 
+def get_balance(exchange, symbol, last_price):
+    balance = exchange.fetch_balance()
+    base_currency, quote_currency = get_currency(symbol)
+    
+    try:
+        base_currency_amount = balance[base_currency]['total']
+    except KeyError:
+        base_currency_amount = 0
+
+    base_currency_value = last_price * base_currency_amount
+
+    try:    
+        quote_currency_value = balance[quote_currency]['total']
+    except KeyError:
+        quote_currency_value = 0
+    
+    balance = base_currency_value + quote_currency_value
+    
+    return balance
+
+
 def gen_series(n = 16):
     # haxanacci
     def hexa(n) :
@@ -129,7 +157,22 @@ def update_n_loop(n_loop, series, last_loop_dict, last_loop_path):
     if n_loop >= len(series):
         n_loop = 0
 
-    last_loop_dict['n_loop'] == n_loop
+    last_loop_dict['n_loop'] = n_loop
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop_dict, last_loop_file, indent = 1)
+
+
+def reset_n_loop(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    last_loop_dict['n_loop'] = 0
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)
+
+
+def append_cash_flow_df(cur_date, balance, cash_flow, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [cur_date, balance, cash_flow]
+    cash_flow_df.to_csv(cash_flow_df_path, index = False)

@@ -1,5 +1,6 @@
 {
  "symbol": "ETH/USD",
+ "init_budget": 100,
  "budget": 100, 
  "grid": 10,
  "value": 20,

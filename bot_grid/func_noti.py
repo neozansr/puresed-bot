@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import requests
 
-from func_get import get_time, get_currency
+from func_get import get_time, get_currency, get_balance
 from func_cal import cal_unrealised
 
 
@@ -63,20 +63,7 @@ def print_hold_assets(symbol, grid, last_price, open_orders_df_path):
 
 
 def print_current_balance(exchange, symbol, last_price):
-    balance = exchange.fetch_balance()
-    base_currency, quote_currency = get_currency(symbol)
-    
-    try:
-        base_currency_amount = balance[base_currency]['total']
-        base_currency_value = last_price * base_currency_amount
-    except KeyError:
-        base_currency_value = 0
-    
-    try:
-        quote_currency_value = balance[quote_currency]['total']
-    except KeyError:
-        quote_currency_value = 0
-    
-    total_balance = base_currency_value + quote_currency_value
+    _, quote_currency = get_currency(symbol)
+    balance = get_balance(exchange, symbol, last_price)
 
-    print('Balance: {:.2f} {}'.format(total_balance, quote_currency))
+    print('Balance: {:.2f} {}'.format(balance, quote_currency))

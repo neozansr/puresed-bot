@@ -81,9 +81,9 @@ def get_balance(exchange, last_price, base_currency, quote_currency, config_syst
     except KeyError:
         quote_currency_value = 0
     
-    total_balance = base_currency_value + quote_currency_value
+    balance = base_currency_value + quote_currency_value
 
-    return total_balance
+    return balance
 
 
 def get_hold_assets(grid, last_price, open_orders_df):
@@ -136,12 +136,12 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     base_currency, quote_currency = get_currency(symbol)
     last_price = get_last_price(exchange, symbol)
 
-    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
     current_value = get_current_value(exchange, last_price, base_currency)
+    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
     cash = balance - current_value
 
-    text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)
     text += '\nCurrent value: {:.2f} {}'.format(current_value, quote_currency)
+    text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)
     text += '\nCash: {:.2f} {}'.format(cash, quote_currency)
 
     return text

@@ -1,8 +1,9 @@
 import ccxt
 import pandas as pd
+import datetime as dt
 import sys
 
-from func_get import get_time, get_currency, get_bid_price, get_ask_price, get_current_value
+from func_get import get_time, get_date, get_currency, get_bid_price, get_ask_price, get_balance, append_cash_flow_df
 from func_noti import line_send
 
 
@@ -73,9 +74,8 @@ def check_open_orders(exchange, bot_name, symbol, open_orders_df_path, transacti
     return cont_flag
 
 
-def rebalance_port(exchange, symbol, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path):
+def rebalance(exchange, current_value, symbol, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path):
     base_currency, quote_currency = get_currency(symbol)
-    current_value = get_current_value(exchange, symbol, last_price)
 
     rebalance_flag = 1
     if current_value < fix_value - min_value:
@@ -101,3 +101,30 @@ def rebalance_port(exchange, symbol, fix_value, min_value, last_price, open_orde
             update_error_log('InsufficientFunds', error_log_df_path)
             print('Error: Cannot {} at price {:.2f} {} due to insufficient fund!!!'.format(side, price, quote_currency))
             sys.exit(1)
+
+
+def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, cash_flow_df_path):
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+
+    try:
+        last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
+        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date
+    except KeyError:
+        last_date = None
+
+    cur_date = get_date()
+
+    if last_date != cur_date:  
+        balance = get_balance(exchange, symbol, last_price)
+        cash = balance - current_value
+
+        try:
+            last_cash = cash_flow_df['cash'][len(cash_flow_df) - 1]
+        except KeyError:
+            # 1st day, use init_cash, equal fix_value if balance 50:50
+            last_cash = fix_value
+
+        cash_flow = cash - last_cash
+
+        append_cash_flow_df(cur_date, balance, cash_flow, cash_flow_df, cash_flow_df_path)
