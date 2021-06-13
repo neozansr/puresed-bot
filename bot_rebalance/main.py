@@ -10,6 +10,7 @@ from func_noti import print_current_balance
 
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
+last_loop_path = 'last_loop.json'
 open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
 error_log_df_path = 'error_log.csv'
@@ -32,7 +33,7 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
 if __name__ == "__main__":
     while True:
         run_flag, idle_stage, keys_path = get_config_system(config_system_path)
-        idle_loop = get_idle_loop()
+        idle_loop = get_idle_loop(last_loop_path)
 
         if run_flag == 1:
             print('Start loop')
@@ -49,3 +50,4 @@ if __name__ == "__main__":
             print('Stop process')
             print('Wait {} seconds'.format(idle_loop))
             time.sleep(idle_loop)
+            n_loop = 0

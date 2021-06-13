@@ -89,7 +89,47 @@ def get_current_value(exchange, symbol, last_price):
     return current_value
 
 
-def get_idle_loop():
-    idle_loop = 5
+def gen_series(n = 16):
+    # haxanacci
+    def hexa(n) :
+        if n in range(6):
+            return 0
+        elif n == 6:
+            return 1
+        else :
+            return (hexa(n - 1) +
+                    hexa(n - 2) +
+                    hexa(n - 3) +
+                    hexa(n - 4) +
+                    hexa(n - 5) +
+                    hexa(n - 6))
+    
+    series = []
+    for i in range(6, n):
+        series.append(hexa(i))
+        
+    return series
+
+
+def get_idle_loop(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    n_loop = last_loop_dict['n_loop']
+    series = gen_series()
+    idle_loop = series[n_loop]
+
+    update_n_loop(n_loop, last_loop_dict, last_loop_dict, last_loop_path)
     
     return idle_loop
+
+
+def update_n_loop(n_loop, series, last_loop_dict, last_loop_path):
+    n_loop += 1
+    if n_loop >= len(series):
+        n_loop = 0
+
+    last_loop_dict['n_loop'] == n_loop
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)
