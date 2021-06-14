@@ -74,7 +74,7 @@ def update_profit(sell_order, symbol, queue_df_path, profit_df_path, amount_key)
 
 def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
     message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
-    line_send(message)
+    line_send(message, noti_type = 'order')
     print(message)
 
 

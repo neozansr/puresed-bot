@@ -4,19 +4,19 @@ import requests
 from func_get import get_balance
 
 
-def line_send(message):
+def line_send(message, noti_type):
     payload = {'message':message}
-    send_message = get_line_message(payload)
+    send_message = get_line_message(payload, noti_type)
     
     return send_message
 
 
-def get_line_message(payload):
+def get_line_message(payload, noti_type):
     url = 'https://notify-api.line.me/api/notify'
     
     with open('../../_keys/bot_token.json') as token_file:
         token_dict = json.load(token_file)
-    token = token_dict['line']
+    token = token_dict['line'][noti_type]
     
     headers = {'Authorization':'Bearer ' + token}
     

@@ -71,13 +71,13 @@ def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, 
 
 def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
     message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
-    line_send(message)
+    line_send(message, noti_type = 'order')
     print(message)
 
 
 def noti_warning(bot_name, warning):
     message = '{}: {}!!!!!'.format(bot_name, warning)
-    line_send(message)
+    line_send(message, noti_type = 'warning')
     print(message)
 
 
