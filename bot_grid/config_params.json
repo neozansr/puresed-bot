@@ -4,7 +4,7 @@
  "budget": 100, 
  "grid": 10,
  "value": 20,
- "reinvest_ratio": 1,
+ "reinvest_ratio": -1,
  "start_safety": 0,
  "circuit_limit": 40,
  "decimal": 3

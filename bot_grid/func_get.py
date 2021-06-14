@@ -3,6 +3,8 @@ import pandas as pd
 import datetime as dt
 from dateutil import tz
 import json
+import requests
+from bs4 import BeautifulSoup
 
 
 def get_config_system(config_system_path):
@@ -165,8 +167,8 @@ def get_balance(exchange, symbol, last_price):
     return balance
 
 
-def append_cash_flow_df(prev_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash_flow, new_value]
+def append_cash_flow_df(prev_date, balance, cash_flow, new_value, reinvest_ratio, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash_flow, new_value, reinvest_ratio]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
 
 
@@ -179,3 +181,24 @@ def update_reinvest(new_budget, new_value, config_params_path):
 
     with open(config_params_path, 'w') as config_file:
         json.dump(config_params, config_file, indent = 1)
+
+
+def get_greed_index():
+    greed_index = None
+    
+    try:
+        URL = 'https://alternative.me/crypto/fear-and-greed-index/'
+        page = requests.get(URL)
+        soup = BeautifulSoup(page.content, 'html.parser')
+
+        period_class = soup.find_all('div', 'gray')
+        index_class = soup.find_all('div', 'fng-circle')
+
+        for p, i in zip(period_class, index_class):
+            if p.text == 'Now':
+                greed_index = int(i.text)
+
+    except requests.ConnectionError:
+        pass
+
+    return greed_index

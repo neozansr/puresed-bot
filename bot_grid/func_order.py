@@ -6,7 +6,7 @@ import time
 import json
 import sys
 
-from func_get import get_time, get_date, get_currency, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price, get_balance, append_cash_flow_df, update_reinvest
+from func_get import get_time, get_date, get_currency, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price, get_balance, append_cash_flow_df, update_reinvest, get_greed_index
 from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders, cal_unrealised
 from func_noti import line_send
 
@@ -218,10 +218,15 @@ def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, gr
             unrealised, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
             cash_flow_accum = sum(cash_flow_df['cash_flow'])
             cash_flow = balance - unrealised - init_budget - cash_flow_accum
+            
+            if reinvest_ratio == -1:
+                greed_index = get_greed_index()
+                reinvest_ratio = 1 - (greed_index / 100)
+
             reinvest_value = cash_flow * reinvest_ratio
 
             new_budget = budget + reinvest_value
             new_value = (reinvest_value / n_order) + value
 
-            append_cash_flow_df(prev_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path)
+            append_cash_flow_df(prev_date, balance, cash_flow, new_value, reinvest_ratio, cash_flow_df, cash_flow_df_path)
             update_reinvest(new_budget, new_value, config_params_path)
