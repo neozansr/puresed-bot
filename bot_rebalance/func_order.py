@@ -155,7 +155,7 @@ def rebalance(exchange, current_value, symbol, base_currency, quote_currency, fi
 def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, transactions_df_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-    transactions_df = pd.read_scv(transactions_df_path)
+    transactions_df = pd.read_csv(transactions_df_path)
 
     try:
         last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
