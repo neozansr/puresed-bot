@@ -1,8 +1,8 @@
 import ccxt
 import datetime as dt
 from dateutil import tz
-import random
 import json
+import sys
 
 
 def get_config_system(config_system_path):
@@ -117,7 +117,7 @@ def get_balance(exchange, symbol, last_price):
     return balance
 
 
-def gen_series(n = 16):
+def gen_series(n = 18, limit_min = 4):
     # haxanacci
     def hexa(n) :
         if n in range(6):
@@ -135,6 +135,12 @@ def gen_series(n = 16):
     series = []
     for i in range(6, n):
         series.append(hexa(i))
+        
+    series = [x for x in series if x >= limit_min]
+    
+    if len(series) == 0:
+        print('No series generated, increase n size')
+        sys.exit(1)
         
     return series
 
