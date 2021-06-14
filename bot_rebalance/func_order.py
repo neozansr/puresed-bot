@@ -103,27 +103,36 @@ def rebalance(exchange, current_value, symbol, fix_value, min_value, last_price,
             sys.exit(1)
 
 
-def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, cash_flow_df_path):
+def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, transactions_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
+    transactions_df = pd.read_scv(transactions_df_path)
 
     try:
         last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
-        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date
+        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
     except IndexError:
         last_date = None
 
     cur_date = get_date()
+    prev_date = cur_date - dt.timedelta(days = 1)
+    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
-    if last_date != cur_date:  
-        balance = get_balance(exchange, symbol, last_price)
-        cash = balance - current_value
+    # skip 1st date
+    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
+        if last_date != cur_date:
+            balance = get_balance(exchange, symbol, last_price)
+            cash = balance - current_value
 
-        try:
-            last_cash = cash_flow_df['cash'][len(cash_flow_df) - 1]
-        except IndexError:
-            # 1st day, use init_cash, equal fix_value if balance 50:50
-            last_cash = fix_value
+            try:
+                last_cash = cash_flow_df['cash'][len(cash_flow_df) - 1]
+            except IndexError:
+                # 1st day, use init_cash, equal fix_value if balance 50:50
+                last_cash = fix_value
 
-        cash_flow = cash - last_cash
-        append_cash_flow_df(cur_date, balance, cash_flow, cash, cash_flow_df, cash_flow_df_path)
+            last_sell = sum(last_transactions_df[last_transactions_df['side'] == 'sell']['value'])
+            last_buy = sum(last_transactions_df[last_transactions_df['side'] == 'buy']['value'])
+            last_profit = last_sell - last_buy
+            
+            cash_flow = last_profit - (cash - last_cash)
+            append_cash_flow_df(prev_date, balance, cash_flow, cash, cash_flow_df, cash_flow_df_path)

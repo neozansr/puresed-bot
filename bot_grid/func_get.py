@@ -164,8 +164,8 @@ def get_balance(exchange, symbol, last_price):
     return balance
 
 
-def append_cash_flow_df(cur_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [cur_date, balance, cash_flow, new_value]
+def append_cash_flow_df(prev_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash_flow, new_value]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
 
 

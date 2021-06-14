@@ -195,27 +195,32 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
     return cont_flag
 
 
-def reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, cash_flow_df_path):
+def reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
+    transactions_df = pd.read_scv(transactions_df_path)
 
     try:
         last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
-        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date
+        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
     except IndexError:
         last_date = None
     
     cur_date = get_date()
+    prev_date = cur_date - dt.timedelta(days = 1)
+    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
-    if last_date != cur_date:    
-        balance = get_balance(exchange, symbol, last_price)
-        unrealised, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
-        cash_flow_accum = sum(cash_flow_df['cash_flow'])
-        cash_flow = balance - unrealised - init_budget - cash_flow_accum
-        
-        new_budget = budget + cash_flow
-        new_value = (cash_flow / n_order) + value
+    # skip 1st date
+    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
+        if last_date != cur_date:    
+            balance = get_balance(exchange, symbol, last_price)
+            unrealised, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
+            cash_flow_accum = sum(cash_flow_df['cash_flow'])
+            cash_flow = balance - unrealised - init_budget - cash_flow_accum
+            
+            new_budget = budget + cash_flow
+            new_value = (cash_flow / n_order) + value
 
-        append_cash_flow_df(cur_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path)
-        update_reinvest(new_budget, new_value, config_params_path)
+            append_cash_flow_df(prev_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path)
+            update_reinvest(new_budget, new_value, config_params_path)
