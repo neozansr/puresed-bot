@@ -181,7 +181,7 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, grid, last_price,
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_side = list(open_orders_df['side'].unique())
 
-    if all(x == 'sell' for x in open_side):
+    if (len(open_side) > 0) & all(x == 'sell' for x in open_side):
         min_sell_price = min(open_orders_df['price'])
         
         if (min_sell_price - last_price) >= (grid * 2):
