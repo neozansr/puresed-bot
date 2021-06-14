@@ -37,7 +37,7 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
         print_hold_assets(symbol, grid, last_price, open_orders_df_path)
         print_current_balance(exchange, symbol, last_price)
 
-    reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, cash_flow_df_path)
+    reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
 
 
 if __name__ == "__main__":
