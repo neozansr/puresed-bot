@@ -27,11 +27,12 @@ def get_config_params(config_params_path):
     budget = config_params['budget']
     grid = config_params['grid']
     value = config_params['value']
+    reinvest_ratio = config_params['reinvest_ratio']
     start_safety = config_params['start_safety']
     circuit_limit = config_params['circuit_limit']
     decimal = config_params['decimal']
 
-    return symbol, init_budget, budget, grid, value, start_safety, circuit_limit, decimal
+    return symbol, init_budget, budget, grid, value, reinvest_ratio, start_safety, circuit_limit, decimal
 
 
 def get_time(timezone = 'Asia/Bangkok'):

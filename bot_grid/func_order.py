@@ -195,7 +195,7 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
     return cont_flag
 
 
-def reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
+def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -218,9 +218,10 @@ def reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_ord
             unrealised, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
             cash_flow_accum = sum(cash_flow_df['cash_flow'])
             cash_flow = balance - unrealised - init_budget - cash_flow_accum
-            
-            new_budget = budget + cash_flow
-            new_value = (cash_flow / n_order) + value
+            reinvest_value = cash_flow * reinvest_ratio
+
+            new_budget = budget + reinvest_value
+            new_value = (reinvest_value / n_order) + value
 
             append_cash_flow_df(prev_date, balance, cash_flow, new_value, cash_flow_df, cash_flow_df_path)
             update_reinvest(new_budget, new_value, config_params_path)

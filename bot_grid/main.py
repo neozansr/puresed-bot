@@ -21,7 +21,7 @@ cash_flow_df_path = '../cash_flow/{}.csv'
 def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
-    symbol, init_budget, budget, grid, value, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
+    symbol, init_budget, budget, grid, value, reinvest_ratio, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
     last_price = get_last_price(exchange, symbol)
     check_orders_status(exchange, bot_name, 'buy', symbol, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
     time.sleep(idle_stage)
@@ -37,7 +37,7 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
         print_hold_assets(symbol, grid, last_price, open_orders_df_path)
         print_current_balance(exchange, symbol, last_price)
 
-    reinvest(exchange, bot_name, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
+    reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
 
 
 if __name__ == "__main__":
