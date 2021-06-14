@@ -69,21 +69,6 @@ def get_currency(symbol):
     return base_currency, quote_currency
 
 
-def update_budget(exchange, symbol, config_params_path):
-    _, quote_currency = get_currency(symbol)
-
-    with open(config_params_path) as config_file:
-        config_params = json.load(config_file)
-    
-    balance = exchange.fetch_balance()
-    amount = balance[quote_currency]['total']
-    
-    config_params['budget'] = amount
-
-    with open(config_params_path, 'w') as config_file:
-        json.dump(config_params, config_file, indent = 1)
-
-
 def get_last_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     last_price = ticker['last']
@@ -107,45 +92,6 @@ def get_ask_price(exchange, symbol):
     return ask_price
 
 
-def get_last_loop_price(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-    
-    last_loop_price = last_loop_dict['price']
-
-    return last_loop_price
-
-
-def update_last_loop_price(exchange, symbol, last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-
-    last_price = get_last_price(exchange, symbol)
-    last_loop_dict['price'] = last_price
-
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
-
-
-def get_cut_loss_flag(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-    
-    cut_loss_flag = last_loop_dict['cut_loss_flag']
-
-    return cut_loss_flag
-
-
-def update_cut_loss_flag(cut_loss_flag, last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-
-    last_loop_dict['cut_loss_flag'] = cut_loss_flag
-
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
-    
-
 def get_balance(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
     base_currency, quote_currency = get_currency(symbol)
@@ -167,8 +113,59 @@ def get_balance(exchange, symbol, last_price):
     return balance
 
 
-def append_cash_flow_df(prev_date, balance, cash_flow, new_value, reinvest_ratio, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash_flow, new_value, reinvest_ratio]
+def get_last_loop_price(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+    
+    last_loop_price = last_loop_dict['price']
+
+    return last_loop_price
+
+
+def update_last_loop_price(exchange, symbol, last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    last_price = get_last_price(exchange, symbol)
+    last_loop_dict['price'] = last_price
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)
+    
+
+def get_used_cash_flow(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+    
+    used_cash_flow = last_loop_dict['used_cash_flow']
+
+    return used_cash_flow
+
+
+def update_used_cash_flow(loss, last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    used_cash_flow = last_loop_dict['used_cash_flow']
+    used_cash_flow += loss
+    last_loop_dict['used_cash_flow'] = used_cash_flow
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)
+
+
+def reset_used_cash_flow(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    last_loop_dict['used_cash_flow'] = 0
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)
+
+
+def append_cash_flow_df(prev_date, balance, cash_flow, value, reinvest, remain, used_cash_flow, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash_flow, value, reinvest, remain, used_cash_flow]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
 
 
@@ -183,8 +180,20 @@ def update_reinvest(new_budget, new_value, config_params_path):
         json.dump(config_params, config_file, indent = 1)
 
 
-def get_greed_index():
-    greed_index = None
+def reduce_budget(loss, config_params_path):
+    with open(config_params_path) as config_file:
+        config_params = json.load(config_file)
+    
+    budget = config_params['budget']
+    budget -= loss
+    config_params['budget'] = budget
+
+    with open(config_params_path, 'w') as config_file:
+        json.dump(config_params, config_file, indent = 1)
+
+
+def get_greed_index(default_index = 0.5):
+    greed_index = default_index
     
     try:
         URL = 'https://alternative.me/crypto/fear-and-greed-index/'

@@ -25,9 +25,8 @@ def get_line_message(payload):
     return requests.post(url, headers = headers , data = payload)
 
 
-def print_pending_order(symbol, open_orders_df_path):
+def print_pending_order(symbol, quote_currency, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    _, quote_currency = get_currency(symbol)
     
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     min_buy_price = min(open_buy_orders_df['price'], default = 0)
@@ -43,7 +42,7 @@ def print_pending_order(symbol, open_orders_df_path):
     print('Max sell price: {:.2f} {}'.format(max_sell_price, quote_currency))
 
 
-def print_hold_assets(symbol, grid, last_price, open_orders_df_path):
+def print_hold_assets(symbol, base_currency, quote_currency, grid, last_price, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
 
@@ -55,15 +54,12 @@ def print_hold_assets(symbol, grid, last_price, open_orders_df_path):
 
     assets_df = pd.DataFrame(assets_dict, index = [0])
     assets_df.to_csv('assets.csv', index = False)
-
-    base_currency, quote_currency = get_currency(symbol)
     
     print('Hold {:.3f} {} with {} orders at {:.2f} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency))
     print('Unrealised: {:.2f} {}'.format(unrealised_loss, quote_currency))
 
 
-def print_current_balance(exchange, symbol, last_price):
-    _, quote_currency = get_currency(symbol)
+def print_current_balance(exchange, symbol, quote_currency, last_price):
     balance = get_balance(exchange, symbol, last_price)
 
     print('Balance: {:.2f} {}'.format(balance, quote_currency))

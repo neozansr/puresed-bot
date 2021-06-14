@@ -6,8 +6,9 @@ import time
 import json
 import sys
 
-from func_get import get_time, get_date, get_currency, get_bid_price, get_ask_price, get_last_loop_price, update_last_loop_price, get_balance, append_cash_flow_df, update_reinvest, get_greed_index
-from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_new_orders, cal_append_orders, cal_unrealised
+from func_get import get_time, get_date, get_bid_price, get_ask_price, get_balance, get_greed_index
+from func_get import get_last_loop_price, update_last_loop_price, get_used_cash_flow, update_used_cash_flow, reset_used_cash_flow, append_cash_flow_df, update_reinvest, reduce_budget
+from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_buy_price_list, cal_unrealised
 from func_noti import line_send
 
 
@@ -49,8 +50,7 @@ def update_error_log(error_log, error_log_df_path):
     df.to_csv(error_log_df_path, index = False)
 
 
-def open_sell_order(exchange, buy_order, symbol, grid, decimal, idle_stage, error_log_df_path):
-    base_currency, quote_currency = get_currency(symbol)
+def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, grid, decimal, idle_stage, error_log_df_path):
     ask_price = get_ask_price(exchange, symbol)
     sell_price = cal_sell_price(buy_order, ask_price, grid)
     
@@ -69,8 +69,7 @@ def open_sell_order(exchange, buy_order, symbol, grid, decimal, idle_stage, erro
     return sell_order
 
 
-def noti_success_order(bot_name, order, symbol):
-    base_currency, quote_currency = get_currency(symbol)
+def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
     message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
     line_send(message)
     print(message)
@@ -82,17 +81,17 @@ def noti_warning(bot_name, warning):
     print(message)
 
 
-def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
+def check_orders_status(exchange, bot_name, side, symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
     
     for order_id in open_orders_list:
         order = exchange.fetch_order(order_id, symbol)
         if order['status'] == 'closed':
-            noti_success_order(bot_name, order, symbol)
+            noti_success_order(bot_name, order, symbol, base_currency, quote_currency)
 
             if side == 'buy':
-                sell_order = open_sell_order(exchange, order, symbol, grid, decimal, idle_stage, error_log_df_path)
+                sell_order = open_sell_order(exchange, order, symbol, base_currency, quote_currency, grid, decimal, idle_stage, error_log_df_path)
                 append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
 
             remove_df(open_orders_df_path, order_id)
@@ -103,7 +102,7 @@ def check_orders_status(exchange, bot_name, side, symbol, grid, decimal, idle_st
             remove_df(open_orders_df_path, order_id)
 
 
-def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
+def cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, decimal, sell_filled, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
@@ -120,7 +119,7 @@ def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, idle_st
                 if sell_filled == True:
                     if filled > 0:
                         append_df(transactions_df_path, order, symbol, amount_key = 'filled')
-                        sell_order = open_sell_order(exchange, order, symbol, grid, decimal, idle_stage, error_log_df_path)
+                        sell_order = open_sell_order(exchange, order, symbol, base_currency, quote_currency, grid, decimal, idle_stage, error_log_df_path)
                         append_df(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
                 
                 remove_df(open_orders_df_path, order_id)
@@ -133,32 +132,15 @@ def cancel_open_buy_orders(exchange, symbol, grid, decimal, sell_filled, idle_st
                 remove_df(open_orders_df_path, order_id)
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
-    open_orders_df = pd.read_csv(open_orders_df_path)
-    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
-    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    
+def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
     bid_price = get_bid_price(exchange, symbol)
-    max_open_buy_price = max(open_buy_orders_df['price'], default = 0)
-    min_open_sell_price = min(open_sell_orders_df['price'], default = np.inf)
-
-    if min(bid_price, min_open_sell_price - grid) - max_open_buy_price > grid:    
-        if len(open_sell_orders_df) == 0:
-            start_price = bid_price - (grid * start_safety)
-            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
-        else:
-            # grid * 2, skip grid to prevent dupplicate order
-            start_price = min(bid_price, min_open_sell_price - (grid * 2))
-            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
-            
-        cancel_open_buy_orders(exchange, symbol, grid, decimal, True, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
-    else:
-        buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
+    buy_price_list, cancel_flag = cal_buy_price_list(exchange, bid_price, n_order, n_sell_order, n_open_order, symbol, grid, start_safety, open_orders_df_path)
+    
+    if cancel_flag == 1:
+        cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, decimal, True, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     print('Open {} buy orders'.format(len(buy_price_list)))
 
-    base_currency, quote_currency = get_currency(symbol)
-    
     for price in buy_price_list:
         amount = value / price
         final_amount = floor_amount(amount, decimal)
@@ -174,7 +156,7 @@ def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, grid,
             sys.exit(1)
 
 
-def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
+def check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_currency, last_price, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
     cont_flag = 1
 
     last_loop_price = get_last_loop_price(last_loop_path)
@@ -186,16 +168,64 @@ def check_circuit_breaker(bot_name, exchange, symbol, last_price, circuit_limit,
         if (len(side_list) == 1) & (side_list[0] == 'buy'):
             if last_price <= last_loop_price:
                 # Not open sell after cancel orders
-                cancel_open_buy_orders(exchange, symbol, 0, 0, False, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
+                cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, 0, 0, False, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
                 cont_flag = 0
                 update_last_loop_price(exchange, symbol, last_loop_path)
-                noti_warning(bot_name, 'Circuit breaker')
+                noti_warning(bot_name, 'Circuit breaker at {} {}'.format(last_price, quote_currency))
                 time.sleep(idle_rest)
 
     return cont_flag
 
 
-def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
+def check_cut_loss(exchange, bot_name, symbol, quote_currency, grid, last_price, config_params_path, last_loop_path, open_orders_df_path, cash_flow_df_path, idle_stage):
+    open_orders_df = pd.read_csv(open_orders_df_path)
+    open_side = list(open_orders_df['side'].unique())
+
+    if all(x == 'sell' for x in open_side):
+        min_sell_price = min(open_orders_df['price'])
+        
+        if (min_sell_price - last_price) >= (grid * 2):
+            max_sell_price = max(open_orders_df['price'])
+            canceled_df = open_orders_df[open_orders_df['price'] == max_sell_price]
+            
+            canceled_id = canceled_df['order_id'].reset_index(drop = True)[0]
+            canceled_amount = canceled_df['amount'].reset_index(drop = True)[0]
+            buy_price = max_sell_price - grid
+            buy_value = buy_price * canceled_amount
+
+            exchange.cancel_order(canceled_id, symbol)
+            canceled_order = exchange.fetch_order(canceled_id, symbol)
+            time.sleep(idle_stage)
+            
+            while canceled_order['status'] != 'canceled':
+                time.sleep(idle_stage)
+                canceled_order = exchange.fetch_order(canceled_id, symbol)
+
+            sell_order = exchange.create_order(symbol, 'market', 'sell', canceled_amount)
+            time.sleep(idle_stage)
+            
+            while sell_order['status'] != 'closed':
+                time.sleep(idle_stage)
+                sell_order = exchange.fetch_order(sell_order['id'], symbol)
+
+            new_sell_price = sell_order['price']
+            new_sell_amount = sell_order['amount']
+            new_sell_value = new_sell_price * new_sell_amount
+            loss = new_sell_value - buy_value
+
+            cash_flow_df_path = cash_flow_df_path.format(bot_name)
+            cash_flow_df = pd.read_csv(cash_flow_df_path)
+            ramain_cash_flow_accum = sum(cash_flow_df['remain'])
+
+            if loss <= ramain_cash_flow_accum:
+                update_used_cash_flow(loss, last_loop_path)
+            else:
+                reduce_budget(loss, config_params_path)
+
+            noti_warning(bot_name, 'Cut loss {} {} at {} {}'.format(loss, quote_currency, last_price, quote_currency))
+
+
+def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, grid, value, n_order, last_price, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -217,16 +247,19 @@ def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, gr
             balance = get_balance(exchange, symbol, last_price)
             unrealised, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
             cash_flow_accum = sum(cash_flow_df['cash_flow'])
-            cash_flow = balance - unrealised - init_budget - cash_flow_accum
+            used_cash_flow = get_used_cash_flow(last_loop_path)
+            cash_flow = balance - unrealised - init_budget - cash_flow_accum - used_cash_flow
             
             if reinvest_ratio == -1:
                 greed_index = get_greed_index()
-                reinvest_ratio = 1 - (greed_index / 100)
+                reinvest = 1 - (greed_index / 100)
 
             reinvest_value = cash_flow * reinvest_ratio
+            remain = cash_flow - reinvest_value
 
             new_budget = budget + reinvest_value
             new_value = (reinvest_value / n_order) + value
 
-            append_cash_flow_df(prev_date, balance, cash_flow, new_value, reinvest_ratio, cash_flow_df, cash_flow_df_path)
+            append_cash_flow_df(prev_date, balance, cash_flow, value, reinvest, remain, used_cash_flow, cash_flow_df, cash_flow_df_path)
             update_reinvest(new_budget, new_value, config_params_path)
+            reset_used_cash_flow(last_loop_path)

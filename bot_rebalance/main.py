@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_last_price, get_current_value, get_idle_loop, reset_n_loop
+from func_get import get_config_system, get_config_params, get_exchange, get_currency, get_last_price, get_current_value, get_idle_loop, reset_n_loop
 from func_order import check_open_orders, rebalance, append_error_log, update_cash_flow
 from func_noti import print_current_balance
 
@@ -23,16 +23,17 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     symbol, fix_value, min_value = get_config_params(config_params_path)
-    cont_flag = check_open_orders(exchange, bot_name, symbol, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path)
+    base_currency, quote_currency = get_currency(symbol)
+    cont_flag = check_open_orders(exchange, bot_name, symbol, base_currency, quote_currency, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path)
 
     if cont_flag == 1:
         time.sleep(idle_stage)
         last_price = get_last_price(exchange, symbol)
         current_value = get_current_value(exchange, symbol, last_price)
-        rebalance(exchange, current_value, symbol, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path)
+        rebalance(exchange, current_value, symbol, base_currency, quote_currency, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path)
 
-    print_current_balance(exchange, current_value, symbol, last_price)
-    update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, transactions_df_path, cash_flow_df_path)
+    print_current_balance(exchange, current_value, symbol, quote_currency, last_price)
+    update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, transactions_df_path, profit_df_path, cash_flow_df_path)
 
 
 if __name__ == "__main__":

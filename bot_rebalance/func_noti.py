@@ -1,7 +1,7 @@
 import json
 import requests
 
-from func_get import get_currency, get_balance
+from func_get import get_balance
 
 
 def line_send(message):
@@ -23,8 +23,7 @@ def get_line_message(payload):
     return requests.post(url, headers = headers , data = payload)
 
 
-def print_current_balance(exchange, current_value, symbol, last_price):
-    _, quote_currency = get_currency(symbol)
+def print_current_balance(exchange, current_value, symbol, quote_currency, last_price):
     balance = get_balance(exchange, symbol, last_price)
     cash = balance - current_value
 

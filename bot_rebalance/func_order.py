@@ -3,7 +3,7 @@ import pandas as pd
 import datetime as dt
 import sys
 
-from func_get import get_time, get_date, get_currency, get_bid_price, get_ask_price, get_balance, append_cash_flow_df
+from func_get import get_time, get_date, get_bid_price, get_ask_price, get_balance, append_cash_flow_df
 from func_noti import line_send
 
 
@@ -72,8 +72,7 @@ def update_profit(sell_order, symbol, queue_df_path, profit_df_path, amount_key)
         sell_amount -= exe_amount
 
 
-def noti_success_order(bot_name, order, symbol):
-    base_currency, quote_currency = get_currency(symbol)
+def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
     message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
     line_send(message)
     print(message)
@@ -98,7 +97,7 @@ def cancel_open_order(exchange, order_id, symbol, open_orders_df_path, error_log
     return cont_flag
 
 
-def check_open_orders(exchange, bot_name, symbol, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path):
+def check_open_orders(exchange, bot_name, symbol, base_currency, quote_currency, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path):
     cont_flag = 1
     open_orders_df = pd.read_csv(open_orders_df_path)
 
@@ -113,7 +112,7 @@ def check_open_orders(exchange, bot_name, symbol, open_orders_df_path, transacti
             
             remove_df(open_orders_df_path, order_id)
             append_df(transactions_df_path, order, symbol, amount_key = 'filled')
-            noti_success_order(bot_name, order, symbol)
+            noti_success_order(bot_name, order, symbol, base_currency, quote_currency)
         
             if order['side'] == 'buy':
                 append_df(queue_df_path, order, symbol, amount_key = 'filled')
@@ -126,9 +125,7 @@ def check_open_orders(exchange, bot_name, symbol, open_orders_df_path, transacti
     return cont_flag
 
 
-def rebalance(exchange, current_value, symbol, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path):
-    base_currency, quote_currency = get_currency(symbol)
-
+def rebalance(exchange, current_value, symbol, base_currency, quote_currency, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path):
     rebalance_flag = 1
     if current_value < fix_value - min_value:
         side = 'buy'
