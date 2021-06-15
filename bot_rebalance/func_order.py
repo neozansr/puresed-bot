@@ -169,7 +169,7 @@ def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_
 
     # skip 1st date
     if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
-        if last_date != cur_date:
+        if last_date != prev_date:
             balance = get_balance(exchange, symbol, last_price)
             cash = balance - current_value
             
