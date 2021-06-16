@@ -252,7 +252,7 @@ def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, gr
             
             if reinvest_ratio == -1:
                 greed_index = get_greed_index()
-                reinvest = min(1 - (greed_index / 100), 0)
+                reinvest_ratio = min(1 - (greed_index / 100), 0)
 
             reinvest_value = cash_flow * reinvest_ratio
             remain = cash_flow - reinvest_value

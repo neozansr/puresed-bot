@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_currency, get_last_price, get_current_value, get_idle_loop, reset_n_loop
+from func_get import get_config_system, get_config_params, get_time, get_exchange, get_currency, get_last_price, get_current_value, get_idle_loop, reset_n_loop
 from func_order import check_open_orders, rebalance, append_error_log, update_cash_flow
 from func_noti import print_current_balance
 
@@ -49,7 +49,10 @@ if __name__ == "__main__":
                 append_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
         
-            print('End loop')    
+            print('End loop')
+
+            time = get_time()
+            print(time)
             print('Wait {} seconds'.format(idle_loop))
         else:
             print('Stop process')
