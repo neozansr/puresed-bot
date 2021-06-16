@@ -126,7 +126,7 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
-    symbol, _ = get_config_params(bot_type, sub_path + config_params_path)
+    symbol, _, _ = get_config_params(bot_type, sub_path + config_params_path)
     base_currency, quote_currency = get_currency(symbol)
     last_price = get_last_price(exchange, symbol)
 
