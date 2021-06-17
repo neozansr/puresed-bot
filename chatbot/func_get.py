@@ -1,5 +1,7 @@
 import ccxt
 import pandas as pd
+import datetime as dt
+from dateutil import tz
 import json
 
 from func_cal import cal_unrealised
@@ -131,9 +133,9 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     last_price = get_last_price(exchange, symbol)
 
     cur_date = get_date()
-    profit_df = pd.read_csv(profit_df_path)
+    profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
-    cash_flow = sum(last_profit_df['profit'])
+    cash_flow = sum(today_profit_df['profit'])
 
     current_value = get_current_value(exchange, last_price, base_currency)
     balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
@@ -147,7 +149,7 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     return text
 
 
-def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, open_orders_df_path, cash_flow_df_path):
+def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, last_loop_path, open_orders_df_path, cash_flow_df_path):
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
