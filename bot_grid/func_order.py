@@ -260,6 +260,6 @@ def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, gr
             new_budget = budget + reinvest_value
             new_value = (reinvest_value / n_order) + value
 
-            append_cash_flow_df(prev_date, balance, cash_flow, value, reinvest_value, remain, used_cash_flow, cash_flow_df, cash_flow_df_path)
+            append_cash_flow_df(prev_date, balance, unrealised_loss, cash_flow, value, reinvest_value, remain, used_cash_flow, cash_flow_df, cash_flow_df_path)
             update_reinvest(new_budget, new_value, config_params_path)
             reset_used_cash_flow(last_loop_path)
