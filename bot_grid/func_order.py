@@ -254,12 +254,12 @@ def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, gr
                 greed_index = get_greed_index()
                 reinvest_ratio = max(1 - (greed_index / 100), 0)
 
-            reinvest_value = cash_flow * reinvest_ratio
-            remain = cash_flow - reinvest_value
+            reinvest_amount = cash_flow * reinvest_ratio
+            remain_cash_flow = cash_flow - reinvest_amount
 
-            new_budget = budget + reinvest_value
-            new_value = (reinvest_value / n_order) + value
+            new_budget = budget + reinvest_amount
+            new_value = (reinvest_amount / n_order) + value
 
-            append_cash_flow_df(prev_date, balance, unrealised, cash_flow, value, reinvest_value, remain, used_cash_flow, cash_flow_df, cash_flow_df_path)
+            append_cash_flow_df(prev_date, balance, unrealised, value, used_cash_flow, cash_flow, reinvest_amount, remain_cash_flow, cash_flow_df, cash_flow_df_path)
             update_reinvest(new_budget, new_value, config_params_path)
             reset_used_cash_flow(last_loop_path)

@@ -177,4 +177,4 @@ def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_
             last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
             cash_flow = sum(last_profit_df['profit'])
             
-            append_cash_flow_df(prev_date, balance, cash_flow, cash, cash_flow_df, cash_flow_df_path)
+            append_cash_flow_df(prev_date, balance, cash, cash_flow, cash_flow_df, cash_flow_df_path)
