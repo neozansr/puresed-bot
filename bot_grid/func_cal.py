@@ -99,7 +99,7 @@ def cal_buy_price_list(exchange, bid_price, n_order, n_sell_order, n_open_order,
     return buy_price_list, cancel_flag
     
 
-def cal_unrealised(grid, last_price, open_orders_df):
+def cal_unrealised(last_price, grid, open_orders_df):
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     n_open_sell_oders = len(open_sell_orders_df)
     

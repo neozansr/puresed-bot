@@ -3,7 +3,8 @@ import pandas as pd
 import datetime as dt
 import sys
 
-from func_get import get_time, get_date, get_bid_price, get_ask_price, get_balance, append_cash_flow_df
+from func_get import get_time, get_date, get_bid_price, get_ask_price, get_balance, get_transfer
+from func_get import append_cash_flow_df, update_fix_value, reset_transfer
 from func_noti import line_send
 
 
@@ -125,7 +126,7 @@ def check_open_orders(exchange, bot_name, symbol, base_currency, quote_currency,
     return cont_flag
 
 
-def rebalance(exchange, current_value, symbol, base_currency, quote_currency, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path):
+def rebalance(exchange, current_value, symbol, base_currency, quote_currency, last_price, fix_value, min_value, open_orders_df_path, error_log_df_path):
     rebalance_flag = 1
     if current_value < fix_value - min_value:
         side = 'buy'
@@ -152,7 +153,7 @@ def rebalance(exchange, current_value, symbol, base_currency, quote_currency, fi
             sys.exit(1)
 
 
-def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, transactions_df_path, profit_df_path, cash_flow_df_path):
+def update_cash_flow(exchange, bot_name, symbol, last_price, fix_value, current_value, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
@@ -172,9 +173,13 @@ def update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_
         if last_date != prev_date:
             balance = get_balance(exchange, symbol, last_price)
             cash = balance - current_value
-            
+
             profit_df = pd.read_csv(profit_df_path)
             last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
             cash_flow = sum(last_profit_df['profit'])
+            deposit, withdraw = get_transfer(transfer_path)
             
-            append_cash_flow_df(prev_date, balance, cash, cash_flow, cash_flow_df, cash_flow_df_path)
+            append_cash_flow_df(prev_date, balance, cash, cash_flow, fix_value, deposit, withdraw, cash_flow_df, cash_flow_df_path)
+            update_fix_value(fix_value, deposit, withdraw, config_params_path)
+
+            reset_transfer(transfer_path)

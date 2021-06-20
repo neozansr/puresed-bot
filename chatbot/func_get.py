@@ -65,19 +65,7 @@ def get_currency(symbol):
     return base_currency, quote_currency    
 
 
-def get_current_value(exchange, last_price, base_currency):
-    balance = exchange.fetch_balance()
-    
-    try:
-        amount = balance[base_currency]['total']
-        current_value = last_price * amount
-    except KeyError:
-        current_value = 0
-
-    return current_value
-
-
-def get_balance(exchange, last_price, base_currency, quote_currency, config_system_path):
+def get_balance(exchange, base_currency, quote_currency, last_price, config_system_path):
     balance = exchange.fetch_balance()
 
     try:
@@ -97,8 +85,20 @@ def get_balance(exchange, last_price, base_currency, quote_currency, config_syst
     return balance
 
 
+def get_current_value(exchange, base_currency, last_price):
+    balance = exchange.fetch_balance()
+    
+    try:
+        amount = balance[base_currency]['total']
+        current_value = last_price * amount
+    except KeyError:
+        current_value = 0
+
+    return current_value
+
+
 def get_hold_assets(grid, last_price, open_orders_df):
-    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, grid, open_orders_df)
 
     return unrealised, n_open_sell_oders, amount, avg_price
 
@@ -136,8 +136,8 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
 
-    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
-    current_value = get_current_value(exchange, last_price, base_currency)
+    balance = get_balance(exchange, base_currency, quote_currency, last_price, config_system_path)
+    current_value = get_current_value(exchange, base_currency, last_price)
     cash = balance - current_value
     cash_flow = sum(today_profit_df['profit'])
 
@@ -161,7 +161,7 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(sub_path + open_orders_df_path)
 
-    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
+    balance = get_balance(exchange, base_currency, quote_currency, last_price, config_system_path)
     unrealised, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, last_price, open_orders_df)
     cash_flow_accum = sum(cash_flow_df['cash_flow'])
     used_cash_flow = get_used_cash_flow(sub_path + last_loop_path)

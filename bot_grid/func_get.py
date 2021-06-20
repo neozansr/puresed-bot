@@ -154,32 +154,6 @@ def update_used_cash_flow(loss, last_loop_path):
         json.dump(last_loop_dict, last_loop_file, indent = 1)
 
 
-def reset_used_cash_flow(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-
-    last_loop_dict['used_cash_flow'] = 0
-
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
-
-
-def append_cash_flow_df(prev_date, balance, unrealised, value, used_cash_flow, cash_flow, reinvest_amount, remain_cash_flow, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, unrealised, value, used_cash_flow, cash_flow, reinvest_amount, remain_cash_flow]
-    cash_flow_df.to_csv(cash_flow_df_path, index = False)
-
-
-def update_reinvest(new_budget, new_value, config_params_path):
-    with open(config_params_path) as config_file:
-        config_params = json.load(config_file)
-
-    config_params['budget'] = new_budget
-    config_params['value'] = new_value
-
-    with open(config_params_path, 'w') as config_file:
-        json.dump(config_params, config_file, indent = 1)
-
-
 def reduce_budget(loss, config_params_path):
     with open(config_params_path) as config_file:
         config_params = json.load(config_file)
@@ -211,3 +185,51 @@ def get_greed_index(default_index = 0.5):
         pass
 
     return greed_index
+
+
+def get_transfer(transfer_path):
+    with open(transfer_path) as transfer_file:
+        transfer_dict = json.load(transfer_file)
+
+    deposit = transfer_dict['deposit']
+    withdraw = transfer_dict['withdraw']
+
+    return deposit, withdraw
+
+
+def append_cash_flow_df(prev_date, balance, unrealised, value, used_cash_flow, cash_flow, reinvest_amount, remain_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, unrealised, value, used_cash_flow, cash_flow, reinvest_amount, remain_cash_flow, deposit, withdraw]
+    cash_flow_df.to_csv(cash_flow_df_path, index = False)
+
+
+def reset_used_cash_flow(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    last_loop_dict['used_cash_flow'] = 0
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)
+
+
+def reset_transfer(transfer_path):
+    with open(transfer_path) as transfer_file:
+        transfer_dict = json.load(transfer_file)
+
+    transfer_dict['deposit'] = 0
+    transfer_dict['withdraw'] = 0
+
+    with open(transfer_path, 'w') as transfer_file:
+        json.dump(transfer_dict, transfer_file, indent = 1)
+
+
+def update_reinvest(init_budget, new_budget, new_value, config_params_path):
+    with open(config_params_path) as config_file:
+        config_params = json.load(config_file)
+
+    config_params['init_budget'] = init_budget
+    config_params['budget'] = new_budget
+    config_params['value'] = new_value
+
+    with open(config_params_path, 'w') as config_file:
+        json.dump(config_params, config_file, indent = 1)

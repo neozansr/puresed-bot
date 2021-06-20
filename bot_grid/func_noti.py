@@ -42,9 +42,9 @@ def print_pending_order(symbol, quote_currency, open_orders_df_path):
     print('Max sell price: {:.2f} {}'.format(max_sell_price, quote_currency))
 
 
-def print_hold_assets(symbol, base_currency, quote_currency, grid, last_price, open_orders_df_path):
+def print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, grid, open_orders_df)
 
     assets_dict = {'timestamp': get_time(),
                    'last_price': last_price, 

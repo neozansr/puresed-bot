@@ -11,6 +11,7 @@ from func_noti import print_current_balance
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
 last_loop_path = 'last_loop.json'
+transfer_path = 'transfer.json'
 open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
 queue_df_path = 'queue.csv'
@@ -19,7 +20,7 @@ error_log_df_path = 'error_log.csv'
 cash_flow_df_path = '../cash_flow/{}.csv'
 
 
-def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
+def run_bot(idle_stage, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, transfer_path = transfer_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     symbol, fix_value, min_value = get_config_params(config_params_path)
@@ -30,10 +31,10 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, open
         time.sleep(idle_stage)
         last_price = get_last_price(exchange, symbol)
         current_value = get_current_value(exchange, symbol, last_price)
-        rebalance(exchange, current_value, symbol, base_currency, quote_currency, fix_value, min_value, last_price, open_orders_df_path, error_log_df_path)
+        rebalance(exchange, current_value, symbol, base_currency, quote_currency, last_price, fix_value, min_value, open_orders_df_path, error_log_df_path)
 
     print_current_balance(exchange, current_value, symbol, quote_currency, last_price)
-    update_cash_flow(exchange, bot_name, symbol, fix_value, current_value, last_price, transactions_df_path, profit_df_path, cash_flow_df_path)
+    update_cash_flow(exchange, bot_name, symbol, last_price, fix_value, current_value, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@
  "budget": 100, 
  "grid": 10,
  "value": 20,
+ "fluctuation_rate": 0.3,
  "reinvest_ratio": -1,
  "start_safety": 0,
  "circuit_limit": 40,
