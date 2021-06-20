@@ -40,7 +40,7 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
         print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path)
         print_current_balance(exchange, symbol, quote_currency, last_price)
 
-    reinvest_flag = reinvest(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
+    reinvest_flag = reinvest(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
 
     if reinvest_flag == 1:
         cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
