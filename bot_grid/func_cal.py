@@ -73,7 +73,8 @@ def cal_new_orders(remain_budget, grid, value, start_price):
 def cal_append_orders(free_budget, grid, value, open_buy_orders_df):
     buy_price_list = []
     
-    free_n_order = int(free_budget / value)
+    # fix -1 until the cause of InsufficientFunds can be identified
+    free_n_order = int(free_budget / value) - 1 
     min_open_buy_price = min(open_buy_orders_df['price'])
     buy_price = min_open_buy_price - grid
 

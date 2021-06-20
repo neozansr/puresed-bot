@@ -262,7 +262,8 @@ def reinvest(exchange, bot_name, symbol, last_price, init_budget, budget, grid, 
 
             deposit, withdraw = get_transfer(transfer_path)
             lower_price = last_price * (1 - fluctuation_rate)
-            n_order = int((last_price - lower_price) / grid)
+            upper_price = last_price * (1 + fluctuation_rate)
+            n_order = int((upper_price - lower_price) / grid)
 
             init_budget += (deposit - withdraw)
             new_budget = budget + reinvest_amount + deposit - withdraw
