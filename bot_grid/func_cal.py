@@ -40,41 +40,51 @@ def cal_sell_price(order, ask_price, grid):
     return sell_price
 
 
-def cal_n_order(budget, value, open_orders_df_path):
+def cal_budget(budget, grid, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
+    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    n_sell_order = len(open_sell_orders_df)
-    n_open_order = len(open_orders_df)
-    n_order = int(budget / value)
     
-    return n_order, n_sell_order, n_open_order
+    sell_price_list = open_sell_orders_df['price'].to_list()
+    sell_amount_list = open_sell_orders_df['amount'].to_list()
+    sell_value_list = [(i - grid) * j for i, j in zip(sell_price_list, sell_amount_list)]
+    used_budget = sum(sell_value_list)
+    remain_budget = budget - used_budget
+
+    buy_value_list = open_buy_orders_df['value'].to_list()
+    pending_buy_value = sum(buy_value_list)
+    free_budget = remain_budget - pending_buy_value
+
+    return remain_budget, free_budget
 
 
-def cal_new_orders(n_order, n_sell_order, grid, start_price):
+def cal_new_orders(remain_budget, grid, value, start_price):
     buy_price = start_price
+    remain_n_order = int(remain_budget / value)
 
     buy_price_list = []    
-    for _ in range(n_order - n_sell_order):
+    for _ in range(remain_n_order):
         buy_price_list.append(buy_price)
         buy_price -= grid
 
     return buy_price_list
 
 
-def cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df):
+def cal_append_orders(free_budget, grid, value, open_buy_orders_df):
     buy_price_list = []
     
+    free_n_order = int(free_budget / value)
     min_open_buy_price = min(open_buy_orders_df['price'])
     buy_price = min_open_buy_price - grid
 
-    for _ in range(n_order - n_open_order):
+    for _ in range(free_n_order):
         buy_price_list.append(buy_price)
         buy_price -= grid
 
     return buy_price_list
 
 
-def cal_buy_price_list(exchange, bid_price, n_order, n_sell_order, n_open_order, symbol, grid, start_safety, open_orders_df_path):
+def cal_buy_price_list(exchange, remain_budget, free_budget, symbol, bid_price, grid, value, start_safety, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
@@ -85,15 +95,15 @@ def cal_buy_price_list(exchange, bid_price, n_order, n_sell_order, n_open_order,
     if min(bid_price, min_open_sell_price - grid) - max_open_buy_price > grid:    
         if len(open_sell_orders_df) == 0:
             start_price = bid_price - (grid * start_safety)
-            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
+            buy_price_list = cal_new_orders(remain_budget, grid, value, start_price)
         else:
             # grid * 2, skip grid to prevent dupplicate order
             start_price = min(bid_price, min_open_sell_price - (grid * 2))
-            buy_price_list = cal_new_orders(n_order, n_sell_order, grid, start_price)
+            buy_price_list = cal_new_orders(remain_budget, grid, value, start_price)
             
         cancel_flag = 1
     else:
-        buy_price_list = cal_append_orders(n_order, n_open_order, grid, open_buy_orders_df)
+        buy_price_list = cal_append_orders(free_budget, grid, value, open_buy_orders_df)
         cancel_flag = 0
 
     return buy_price_list, cancel_flag

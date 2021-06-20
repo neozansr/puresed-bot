@@ -131,9 +131,9 @@ def cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid
                 remove_df(open_orders_df_path, order_id)
 
 
-def open_buy_orders(exchange, n_order, n_sell_order, n_open_order, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
+def open_buy_orders(exchange, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
     bid_price = get_bid_price(exchange, symbol)
-    buy_price_list, cancel_flag = cal_buy_price_list(exchange, bid_price, n_order, n_sell_order, n_open_order, symbol, grid, start_safety, open_orders_df_path)
+    buy_price_list, cancel_flag = cal_buy_price_list(exchange, remain_budget, free_budget, symbol, bid_price, grid, value, start_safety, open_orders_df_path)
     
     if cancel_flag == 1:
         cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
