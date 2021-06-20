@@ -103,7 +103,9 @@ def cal_buy_price_list(exchange, remain_budget, free_budget, symbol, bid_price, 
             
         cancel_flag = 1
     else:
-        buy_price_list = cal_append_orders(free_budget, grid, value, open_buy_orders_df)
+        # disable cal_append_orders until free_budget problem can be identified
+        # buy_price_list = cal_append_orders(free_budget, grid, value, open_buy_orders_df)
+        buy_price_list = []
         cancel_flag = 0
 
     return buy_price_list, cancel_flag
