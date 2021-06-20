@@ -98,9 +98,9 @@ def get_balance(exchange, last_price, base_currency, quote_currency, config_syst
 
 
 def get_hold_assets(grid, last_price, open_orders_df):
-    unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
 
-    return unrealised_loss, n_open_sell_oders, amount, avg_price
+    return unrealised, n_open_sell_oders, amount, avg_price
 
 
 def get_pending_order(quote_currency, open_orders_df):
@@ -135,14 +135,14 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     cur_date = get_date()
     profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
+
+    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
+    current_value = get_current_value(exchange, last_price, base_currency)
+    cash = balance - current_value
     cash_flow = sum(today_profit_df['profit'])
 
-    current_value = get_current_value(exchange, last_price, base_currency)
-    balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
-    cash = balance - current_value
-
-    text += '\nCurrent value: {:.2f} {}'.format(current_value, quote_currency)
     text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)
+    text += '\nCurrent value: {:.2f} {}'.format(current_value, quote_currency)
     text += '\nCash: {:.2f} {}'.format(cash, quote_currency)
     text += '\nToday cash flow: {:.2f} {}'.format(cash_flow, quote_currency)
 
@@ -162,16 +162,16 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
     open_orders_df = pd.read_csv(sub_path + open_orders_df_path)
 
     balance = get_balance(exchange, last_price, base_currency, quote_currency, config_system_path)
-    unrealised_loss, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, last_price, open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, last_price, open_orders_df)
     cash_flow_accum = sum(cash_flow_df['cash_flow'])
     used_cash_flow = get_used_cash_flow(sub_path + last_loop_path)
-    cash_flow = balance - unrealised_loss - init_budget - cash_flow_accum - used_cash_flow
+    cash_flow = balance - unrealised - init_budget - cash_flow_accum - used_cash_flow
     
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(quote_currency, open_orders_df)
 
     text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)
     text += '\nHold {:.4f} {} with {} orders at {:.2f} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency)
-    text += '\nUnrealised: {:.2f} {}'.format(unrealised_loss, quote_currency)
+    text += '\nUnrealised: {:.2f} {}'.format(unrealised, quote_currency)
     text += '\nToday cash flow: {:.2f} {}'.format(cash_flow, quote_currency)
     text += '\nMin buy price: {:.2f} {}'.format(min_buy_price, quote_currency)
     text += '\nMax buy price: {:.2f} {}'.format(max_buy_price, quote_currency)

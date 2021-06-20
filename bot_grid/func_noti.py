@@ -44,19 +44,19 @@ def print_pending_order(symbol, quote_currency, open_orders_df_path):
 
 def print_hold_assets(symbol, base_currency, quote_currency, grid, last_price, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    unrealised_loss, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(grid, last_price, open_orders_df)
 
     assets_dict = {'timestamp': get_time(),
                    'last_price': last_price, 
                    'avg_price': avg_price, 
                    'amount': amount, 
-                   'unrealised_loss': unrealised_loss}
+                   'unrealised': unrealised}
 
     assets_df = pd.DataFrame(assets_dict, index = [0])
     assets_df.to_csv('assets.csv', index = False)
     
     print('Hold {:.3f} {} with {} orders at {:.2f} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency))
-    print('Unrealised: {:.2f} {}'.format(unrealised_loss, quote_currency))
+    print('Unrealised: {:.2f} {}'.format(unrealised, quote_currency))
 
 
 def print_current_balance(exchange, symbol, quote_currency, last_price):

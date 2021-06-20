@@ -245,10 +245,10 @@ def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, gr
     if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
         if last_date != prev_date:
             balance = get_balance(exchange, symbol, last_price)
-            unrealised_loss, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
+            unrealised, _, _, _ = cal_unrealised(grid, last_price, open_orders_df)
             cash_flow_accum = sum(cash_flow_df['cash_flow'])
             used_cash_flow = get_used_cash_flow(last_loop_path)
-            cash_flow = balance - unrealised_loss - init_budget - cash_flow_accum - used_cash_flow
+            cash_flow = balance - unrealised - init_budget - cash_flow_accum - used_cash_flow
             
             if reinvest_ratio == -1:
                 greed_index = get_greed_index()
@@ -260,6 +260,6 @@ def reinvest(exchange, bot_name, reinvest_ratio, init_budget, budget, symbol, gr
             new_budget = budget + reinvest_value
             new_value = (reinvest_value / n_order) + value
 
-            append_cash_flow_df(prev_date, balance, unrealised_loss, cash_flow, value, reinvest_value, remain, used_cash_flow, cash_flow_df, cash_flow_df_path)
+            append_cash_flow_df(prev_date, balance, unrealised, cash_flow, value, reinvest_value, remain, used_cash_flow, cash_flow_df, cash_flow_df_path)
             update_reinvest(new_budget, new_value, config_params_path)
             reset_used_cash_flow(last_loop_path)

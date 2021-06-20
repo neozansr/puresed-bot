@@ -13,6 +13,6 @@ def cal_unrealised(grid, last_price, open_orders_df):
     except ZeroDivisionError:
         avg_price = 0
 
-    unrealised_loss = (last_price - avg_price) * amount
+    unrealised = (last_price - avg_price) * amount
 
-    return unrealised_loss, n_open_sell_oders, amount, avg_price
+    return unrealised, n_open_sell_oders, amount, avg_price
