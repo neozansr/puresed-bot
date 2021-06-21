@@ -131,7 +131,7 @@ def cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid
                 remove_df(open_orders_df_path, order_id)
 
 
-def open_buy_orders(exchange, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
+def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     bid_price = get_bid_price(exchange, symbol)
     buy_price_list, cancel_flag = cal_buy_price_list(exchange, remain_budget, free_budget, symbol, bid_price, grid, value, start_safety, open_orders_df_path)
     
@@ -140,14 +140,26 @@ def open_buy_orders(exchange, remain_budget, free_budget, symbol, base_currency,
 
     print('Open {} buy orders'.format(len(buy_price_list)))
 
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+    remain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
+
     for price in buy_price_list:
         amount = value / price
         final_amount = floor_amount(amount, decimal)
         
         try:
-            buy_order = exchange.create_order(symbol, 'limit', 'buy', final_amount, price, params = {'postOnly':True})
-            append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
-            print('Open buy {:.3f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
+            balance = exchange.fetch_balance()
+            quote_currency_amount = balance[quote_currency]['free']
+
+            # ignore ccxt.InsufficientFunds until cal_budget can be resolved
+            if quote_currency_amount >= remain_cash_flow_accum + value:
+                buy_order = exchange.create_order(symbol, 'limit', 'buy', final_amount, price, params = {'postOnly':True})
+                append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
+                print('Open buy {:.3f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
+            else:
+                update_error_log('InsufficientFunds', error_log_df_path)
+                print('Error: Cannot buy at price {:.2f} {} due to insufficient fund!!!'.format(price, quote_currency))
         except ccxt.InsufficientFunds:
             # not enough fund (could caused by wrong account), stop the process
             update_error_log('InsufficientFunds', error_log_df_path)
