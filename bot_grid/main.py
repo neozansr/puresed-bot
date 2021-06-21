@@ -36,7 +36,7 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
         check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df_path, cash_flow_df_path, idle_stage)
         update_last_loop_price(exchange, symbol, last_loop_path)
         remain_budget, free_budget = cal_budget(budget, grid, open_orders_df_path)
-        open_buy_orders(exchange, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
+        open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
         print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path)
         print_current_balance(exchange, symbol, quote_currency, last_price)
 
