@@ -64,6 +64,9 @@ def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, 
         final_amount = floor_amount(base_currency_amount, decimal)
         sell_order = exchange.create_order(symbol, 'limit', 'sell', final_amount, sell_price)
         update_error_log('InsufficientFunds', error_log_df_path)
+    except ccxt.InvalidOrder:
+        # filled small value than minimum order, ignore
+        update_error_log('InvalidOrder', error_log_df_path)
     
     print('Open sell {:.3f} {} at {:.2f} {}'.format(final_amount, base_currency, sell_price, quote_currency))
     return sell_order
@@ -261,9 +264,11 @@ def reinvest(exchange, bot_name, symbol, last_price, init_budget, budget, grid, 
 
             balance = get_balance(exchange, symbol, last_price)
             unrealised, _, _, _ = cal_unrealised(last_price, grid, open_orders_df)
-            cash_flow_accum = sum(cash_flow_df['cash_flow'])
+
             used_cash_flow = get_used_cash_flow(last_loop_path)
-            cash_flow = balance - unrealised - init_budget - cash_flow_accum - used_cash_flow
+            last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
+            profit = sum(last_sell_df['amount'] * grid)
+            cash_flow = profit - used_cash_flow
             
             if reinvest_ratio == -1:
                 greed_index = get_greed_index()

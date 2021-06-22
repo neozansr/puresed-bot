@@ -149,7 +149,7 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     return text
 
 
-def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, last_loop_path, open_orders_df_path, cash_flow_df_path):
+def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path):
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
@@ -157,15 +157,19 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
     base_currency, quote_currency = get_currency(symbol)
     last_price = get_last_price(exchange, symbol)
     
-    cash_flow_df_path = cash_flow_df_path.format(bot_name)
-    cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(sub_path + open_orders_df_path)
+    transactions_df = pd.read_csv(transactions_df_path)
+
+    cur_date = get_date()
+    today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
+    today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
+    profit = sum(today_sell_df['amount'] * grid)
 
     balance = get_balance(exchange, base_currency, quote_currency, last_price, config_system_path)
     unrealised, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, last_price, open_orders_df)
-    cash_flow_accum = sum(cash_flow_df['cash_flow'])
+
     used_cash_flow = get_used_cash_flow(sub_path + last_loop_path)
-    cash_flow = balance - unrealised - init_budget - cash_flow_accum - used_cash_flow
+    cash_flow = profit - used_cash_flow
     
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(quote_currency, open_orders_df)
 
