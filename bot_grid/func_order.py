@@ -191,11 +191,16 @@ def check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_curre
     return cont_flag
 
 
-def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df_path, cash_flow_df_path, idle_stage):
-    open_orders_df = pd.read_csv(open_orders_df_path)
-    open_side = list(open_orders_df['side'].unique())
+def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, value, config_params_path, last_loop_path, open_orders_df_path, cash_flow_df_path, idle_stage):
+    balance = exchange.fetch_balance()
+    quote_currency_amount = balance[quote_currency]['free']
 
-    if (len(open_side) > 0) & all(x == 'sell' for x in open_side):
+    open_orders_df = pd.read_csv(open_orders_df_path)
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+    remain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
+    
+    if quote_currency_amount < remain_cash_flow_accum + value:
         min_sell_price = min(open_orders_df['price'])
         
         if (min_sell_price - last_price) >= (grid * 2):
@@ -227,11 +232,7 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
             new_sell_value = new_sell_price * new_sell_amount
             loss = new_sell_value - buy_value
 
-            cash_flow_df_path = cash_flow_df_path.format(bot_name)
-            cash_flow_df = pd.read_csv(cash_flow_df_path)
-            ramain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
-
-            if loss <= ramain_cash_flow_accum:
+            if loss <= remain_cash_flow_accum:
                 update_used_cash_flow(loss, last_loop_path)
             else:
                 reduce_budget(loss, config_params_path)
