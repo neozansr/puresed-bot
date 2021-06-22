@@ -229,7 +229,7 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
 
             cash_flow_df_path = cash_flow_df_path.format(bot_name)
             cash_flow_df = pd.read_csv(cash_flow_df_path)
-            ramain_cash_flow_accum = sum(cash_flow_df['remain'])
+            ramain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
 
             if loss <= ramain_cash_flow_accum:
                 update_used_cash_flow(loss, last_loop_path)
