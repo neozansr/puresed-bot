@@ -15,8 +15,8 @@ config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
 last_loop_path = 'last_loop.json'
 open_orders_df_path = 'open_orders.csv'
+transactions_df_path = 'transactions.csv'
 profit_df_path = 'profit.csv'
-cash_flow_df_path = '../cash_flow/{}.csv'
 
 
 bot = telebot.TeleBot(token)
