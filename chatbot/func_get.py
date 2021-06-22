@@ -158,7 +158,7 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
     last_price = get_last_price(exchange, symbol)
     
     open_orders_df = pd.read_csv(sub_path + open_orders_df_path)
-    transactions_df = pd.read_csv(transactions_df_path)
+    transactions_df = pd.read_csv(sub_path + transactions_df_path)
 
     cur_date = get_date()
     today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
