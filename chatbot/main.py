@@ -49,7 +49,7 @@ def send_bot_grid(message):
     sub_path = '../{}/'.format(bot_name)
 
     text = '{}\n{}\n'.format(bot_name.title(), bot_type.title())
-    text = get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, last_loop_path,open_orders_df_path, cash_flow_df_path)
+    text = get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, last_loop_path,open_orders_df_path, transactions_df_path)
     
     bot.send_message(message.chat.id, text)
 
