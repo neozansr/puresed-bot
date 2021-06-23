@@ -149,15 +149,15 @@ def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base
 
     for price in buy_price_list:
         amount = value / price
-        final_amount = floor_amount(amount, decimal)
+        floor_amount = floor_amount(amount, decimal)
         
         balance = exchange.fetch_balance()
         quote_currency_amount = balance[quote_currency]['free']
 
         if quote_currency_amount >= remain_cash_flow_accum + value:
-            buy_order = exchange.create_order(symbol, 'limit', 'buy', final_amount, price, params = {'postOnly':True})
+            buy_order = exchange.create_order(symbol, 'limit', 'buy', floor_amount, price, params = {'postOnly':True})
             append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
-            print('Open buy {:.3f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
+            print('Open buy {:.3f} {} at {:.2f} {}'.format(floor_amount, base_currency, price, quote_currency))
         else:
             # actual buget less than cal_budget (could caused by open_orders match during loop)
             print('Error: Cannot buy at price {:.2f} {} due to insufficient fund!!!'.format(price, quote_currency))
@@ -271,8 +271,7 @@ def reinvest(exchange, bot_name, symbol, last_price, init_budget, budget, grid, 
 
             deposit, withdraw = get_transfer(transfer_path)
             lower_price = last_price * (1 - fluctuation_rate)
-            upper_price = last_price * (1 + fluctuation_rate)
-            n_order = int((upper_price - lower_price) / grid)
+            n_order = int((last_price - lower_price) / grid)
 
             init_budget += (deposit - withdraw)
             new_budget = budget + reinvest_amount + deposit - withdraw
