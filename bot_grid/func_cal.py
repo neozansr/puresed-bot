@@ -3,7 +3,7 @@ import pandas as pd
 import time
 
 
-def floor_amount(amount, decimal):
+def round_down_amount(amount, decimal):
     floor_amount = np.floor((amount * (10 ** decimal))) / (10 ** decimal)
     
     return floor_amount
@@ -28,7 +28,7 @@ def cal_final_amount(exchange, order_id, symbol, decimal, idle_stage):
         fee += order_trade['fee'][i]['cost']
 
     deducted_amount = amount - fee
-    final_amount = floor_amount(deducted_amount, decimal)
+    final_amount = round_down_amount(deducted_amount, decimal)
 
     return final_amount
     

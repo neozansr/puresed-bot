@@ -8,7 +8,7 @@ import sys
 
 from func_get import get_time, get_date, get_bid_price, get_ask_price, get_last_loop_price, get_balance, get_greed_index, get_used_cash_flow, get_transfer
 from func_get import update_last_loop_price, update_used_cash_flow, update_reinvest, reduce_budget, append_cash_flow_df, reset_used_cash_flow, reset_transfer
-from func_cal import floor_amount, cal_final_amount, cal_sell_price, cal_buy_price_list, cal_unrealised
+from func_cal import round_down_amount, cal_final_amount, cal_sell_price, cal_buy_price_list, cal_unrealised
 from func_noti import line_send
 
 
@@ -73,7 +73,7 @@ def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, 
         # not available amount to sell (could caused by decimal), sell free amount
         balance = exchange.fetch_balance()
         base_currency_amount = balance[base_currency]['free']
-        final_amount = floor_amount(base_currency_amount, decimal)
+        final_amount = round_down_amount(base_currency_amount, decimal)
         sell_order = exchange.create_order(symbol, 'limit', 'sell', final_amount, sell_price)
         update_error_log('InsufficientFunds', error_log_df_path)
     except ccxt.InvalidOrder:
@@ -149,7 +149,7 @@ def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base
 
     for price in buy_price_list:
         amount = value / price
-        floor_amount = floor_amount(amount, decimal)
+        floor_amount = round_down_amount(amount, decimal)
         
         balance = exchange.fetch_balance()
         quote_currency_amount = balance[quote_currency]['free']
