@@ -24,12 +24,13 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
     exchange = get_exchange(keys_path)
     symbol, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
     base_currency, quote_currency = get_currency(symbol)
-    last_price = get_last_price(exchange, symbol)
     check_orders_status(exchange, bot_name, 'buy', symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
     time.sleep(idle_stage)
     check_orders_status(exchange, bot_name, 'sell', symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
     time.sleep(idle_stage)
     print_pending_order(symbol, quote_currency, open_orders_df_path)
+    
+    last_price = get_last_price(exchange, symbol)
     cont_flag = check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_currency, last_price, grid, value, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     if cont_flag == 1:

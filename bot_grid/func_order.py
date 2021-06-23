@@ -50,6 +50,18 @@ def update_error_log(error_log, error_log_df_path):
     df.to_csv(error_log_df_path, index = False)
 
 
+def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
+    message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
+    line_send(message, noti_type = 'order')
+    print(message)
+
+
+def noti_warning(bot_name, warning):
+    message = '{}: {}!!!!!'.format(bot_name, warning)
+    line_send(message, noti_type = 'warning')
+    print(message)
+
+
 def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, grid, decimal, idle_stage, error_log_df_path):
     ask_price = get_ask_price(exchange, symbol)
     sell_price = cal_sell_price(buy_order, ask_price, grid)
@@ -70,18 +82,6 @@ def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, 
     
     print('Open sell {:.3f} {} at {:.2f} {}'.format(final_amount, base_currency, sell_price, quote_currency))
     return sell_order
-
-
-def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
-    message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
-    line_send(message, noti_type = 'order')
-    print(message)
-
-
-def noti_warning(bot_name, warning):
-    message = '{}: {}!!!!!'.format(bot_name, warning)
-    line_send(message, noti_type = 'warning')
-    print(message)
 
 
 def check_orders_status(exchange, bot_name, side, symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path):
@@ -151,23 +151,17 @@ def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base
         amount = value / price
         final_amount = floor_amount(amount, decimal)
         
-        try:
-            balance = exchange.fetch_balance()
-            quote_currency_amount = balance[quote_currency]['free']
+        balance = exchange.fetch_balance()
+        quote_currency_amount = balance[quote_currency]['free']
 
-            # ignore ccxt.InsufficientFunds until cal_budget can be resolved
-            if quote_currency_amount >= remain_cash_flow_accum + value:
-                buy_order = exchange.create_order(symbol, 'limit', 'buy', final_amount, price, params = {'postOnly':True})
-                append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
-                print('Open buy {:.3f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
-            else:
-                update_error_log('InsufficientFunds', error_log_df_path)
-                print('Error: Cannot buy at price {:.2f} {} due to insufficient fund!!!'.format(price, quote_currency))
-        except ccxt.InsufficientFunds:
-            # not enough fund (could caused by wrong account), stop the process
-            update_error_log('InsufficientFunds', error_log_df_path)
+        if quote_currency_amount >= remain_cash_flow_accum + value:
+            buy_order = exchange.create_order(symbol, 'limit', 'buy', final_amount, price, params = {'postOnly':True})
+            append_df(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
+            print('Open buy {:.3f} {} at {:.2f} {}'.format(amount, base_currency, price, quote_currency))
+        else:
+            # actual buget less than cal_budget (could caused by open_orders match during loop)
             print('Error: Cannot buy at price {:.2f} {} due to insufficient fund!!!'.format(price, quote_currency))
-            sys.exit(1)
+            break
 
 
 def check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_currency, last_price, grid, value, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
@@ -200,17 +194,18 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     remain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
     
-    if quote_currency_amount < remain_cash_flow_accum + value:
-        min_sell_price = min(open_orders_df['price'])
-        
-        if (min_sell_price - last_price) >= (grid * 2):
+    min_sell_price = min(open_orders_df['price'])    
+    if (min_sell_price - last_price) >= (grid * 2):
+
+        # double check budget, in case of last_price shift much higher
+        if quote_currency_amount < remain_cash_flow_accum + value:
             max_sell_price = max(open_orders_df['price'])
             canceled_df = open_orders_df[open_orders_df['price'] == max_sell_price]
             
             canceled_id = canceled_df['order_id'].reset_index(drop = True)[0]
-            canceled_amount = canceled_df['amount'].reset_index(drop = True)[0]
+            buy_amount = canceled_df['amount'].reset_index(drop = True)[0]
             buy_price = max_sell_price - grid
-            buy_value = buy_price * canceled_amount
+            buy_value = buy_price * buy_amount
 
             exchange.cancel_order(canceled_id, symbol)
             canceled_order = exchange.fetch_order(canceled_id, symbol)
@@ -220,7 +215,7 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
                 time.sleep(idle_stage)
                 canceled_order = exchange.fetch_order(canceled_id, symbol)
 
-            sell_order = exchange.create_order(symbol, 'market', 'sell', canceled_amount)
+            sell_order = exchange.create_order(symbol, 'market', 'sell', buy_amount)
             time.sleep(idle_stage)
             
             while sell_order['status'] != 'closed':
@@ -231,11 +226,7 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
             new_sell_amount = sell_order['amount']
             new_sell_value = new_sell_price * new_sell_amount
             loss = new_sell_value - buy_value
-
-            if loss <= remain_cash_flow_accum:
-                update_used_cash_flow(loss, last_loop_path)
-            else:
-                reduce_budget(loss, config_params_path)
+            reduce_budget(loss, config_params_path)
 
             noti_warning(bot_name, 'Cut loss {} {} at {} {}'.format(loss, quote_currency, last_price, quote_currency))
 
