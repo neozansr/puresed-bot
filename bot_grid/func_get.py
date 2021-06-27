@@ -76,7 +76,7 @@ def get_last_price(exchange, symbol):
 
     _, quote_currency = get_currency(symbol)
     
-    print('Last price: {:.2f} {}'.format(last_price, quote_currency))
+    print('Last price: {} {}'.format(last_price, quote_currency))
     return last_price
 
 
@@ -135,22 +135,22 @@ def update_last_loop_price(exchange, symbol, last_loop_path):
         json.dump(last_loop_dict, last_loop_file, indent = 1)
     
 
-def get_used_cash_flow(last_loop_path):
+def get_loss(last_loop_path):
     with open(last_loop_path) as last_loop_file:
         last_loop_dict = json.load(last_loop_file)
     
-    used_cash_flow = last_loop_dict['used_cash_flow']
+    loss = last_loop_dict['loss']
 
-    return used_cash_flow
+    return loss
 
 
-def update_used_cash_flow(loss, last_loop_path):
+def update_loss(loss, last_loop_path):
     with open(last_loop_path) as last_loop_file:
         last_loop_dict = json.load(last_loop_file)
 
-    used_cash_flow = last_loop_dict['used_cash_flow']
-    used_cash_flow += loss
-    last_loop_dict['used_cash_flow'] = used_cash_flow
+    loss = last_loop_dict['loss']
+    loss -= loss
+    last_loop_dict['loss'] = loss
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop_dict, last_loop_file, indent = 1)
@@ -161,7 +161,8 @@ def reduce_budget(loss, config_params_path):
         config_params = json.load(config_file)
     
     budget = config_params['budget']
-    budget -= loss
+    # loss is negative
+    budget += loss
     config_params['budget'] = budget
 
     with open(config_params_path, 'w') as config_file:
@@ -195,20 +196,21 @@ def get_transfer(transfer_path):
 
     deposit = transfer_dict['deposit']
     withdraw = transfer_dict['withdraw']
+    withdraw_cash_flow = transfer_dict['withdraw_cash_flow']
 
-    return deposit, withdraw
+    return deposit, withdraw, withdraw_cash_flow
 
 
-def append_cash_flow_df(prev_date, balance, unrealised, value, used_cash_flow, cash_flow, reinvest_amount, remain_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, unrealised, value, used_cash_flow, cash_flow, reinvest_amount, remain_cash_flow, deposit, withdraw]
+def append_cash_flow_df(prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
 
 
-def reset_used_cash_flow(last_loop_path):
+def reset_loss(last_loop_path):
     with open(last_loop_path) as last_loop_file:
         last_loop_dict = json.load(last_loop_file)
 
-    last_loop_dict['used_cash_flow'] = 0
+    last_loop_dict['loss'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop_dict, last_loop_file, indent = 1)
@@ -220,6 +222,7 @@ def reset_transfer(transfer_path):
 
     transfer_dict['deposit'] = 0
     transfer_dict['withdraw'] = 0
+    transfer_dict['withdraw_cash_flow'] = 0
 
     with open(transfer_path, 'w') as transfer_file:
         json.dump(transfer_dict, transfer_file, indent = 1)
@@ -235,3 +238,10 @@ def update_reinvest(init_budget, new_budget, new_value, config_params_path):
 
     with open(config_params_path, 'w') as config_file:
         json.dump(config_params, config_file, indent = 1)
+
+
+def get_avaialble_cash_flow(withdraw_cash_flow, cash_flow_df):
+    avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
+    avaialble_cash_flow -= withdraw_cash_flow
+
+    return avaialble_cash_flow

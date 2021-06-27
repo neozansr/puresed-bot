@@ -185,8 +185,9 @@ def get_transfer(transfer_path):
 
     deposit = transfer_dict['deposit']
     withdraw = transfer_dict['withdraw']
+    withdraw_cash_flow = transfer_dict['withdraw_cash_flow']
 
-    return deposit, withdraw
+    return deposit, withdraw, withdraw_cash_flow
 
 
 def update_fix_value(fix_value, deposit, withdraw, config_params_path):
@@ -201,8 +202,8 @@ def update_fix_value(fix_value, deposit, withdraw, config_params_path):
         json.dump(last_loop_dict, last_loop_file, indent = 1)
 
 
-def append_cash_flow_df(prev_date, balance, cash, cash_flow, fix_value, deposit, withdraw, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash, cash_flow, fix_value, deposit, withdraw]
+def append_cash_flow_df(prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
 
 
@@ -215,3 +216,10 @@ def reset_transfer(transfer_path):
 
     with open(transfer_path, 'w') as transfer_file:
         json.dump(transfer_dict, transfer_file, indent = 1)
+
+
+def get_avaialble_cash_flow(withdraw_cash_flow, cash_flow_df):
+    avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
+    avaialble_cash_flow -= withdraw_cash_flow
+
+    return avaialble_cash_flow

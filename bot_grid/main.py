@@ -19,7 +19,7 @@ error_log_df_path = 'error_log.csv'
 cash_flow_df_path = '../cash_flow/{}.csv'
 
     
-def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, transfer_path = transfer_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
+def run_bot(idle_stage, idle_rest, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, transfer_path = transfer_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     symbol, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
@@ -34,7 +34,7 @@ def run_bot(idle_stage, idle_loop, idle_rest, keys_path, config_params_path = co
     cont_flag = check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_currency, last_price, grid, value, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     if cont_flag == 1:
-        check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, value, config_params_path, last_loop_path, open_orders_df_path, cash_flow_df_path, idle_stage)
+        check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, value, config_params_path, last_loop_path, transfer_path, open_orders_df_path, cash_flow_df_path, idle_stage)
         update_last_loop_price(exchange, symbol, last_loop_path)
         remain_budget, free_budget = cal_budget(budget, grid, open_orders_df_path)
         open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         if run_flag == 1:
             print('Start loop')
             try:
-                run_bot(idle_stage, idle_loop, idle_rest, keys_path)
+                run_bot(idle_stage, idle_rest, keys_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError):
                 update_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')

@@ -3,7 +3,7 @@ import pandas as pd
 import datetime as dt
 import sys
 
-from func_get import get_time, get_date, get_bid_price, get_ask_price, get_balance, get_transfer
+from func_get import get_time, get_date, get_bid_price, get_ask_price, get_balance, get_transfer, get_avaialble_cash_flow
 from func_get import append_cash_flow_df, update_fix_value, reset_transfer
 from func_noti import line_send
 
@@ -177,9 +177,11 @@ def update_cash_flow(exchange, bot_name, symbol, last_price, fix_value, current_
             profit_df = pd.read_csv(profit_df_path)
             last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
             cash_flow = sum(last_profit_df['profit'])
-            deposit, withdraw = get_transfer(transfer_path)
+            deposit, withdraw, withdraw_cash_flow = get_transfer(transfer_path)
             
-            append_cash_flow_df(prev_date, balance, cash, cash_flow, fix_value, deposit, withdraw, cash_flow_df, cash_flow_df_path)
+            available_cash_flow = get_avaialble_cash_flow(withdraw_cash_flow, cash_flow_df)
+            available_cash_flow += cash_flow
+            
+            append_cash_flow_df(prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path)
             update_fix_value(fix_value, deposit, withdraw, config_params_path)
-
             reset_transfer(transfer_path)
