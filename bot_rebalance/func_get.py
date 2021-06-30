@@ -1,4 +1,5 @@
 import ccxt
+import pandas as pd
 import datetime as dt
 from dateutil import tz
 import json
@@ -84,7 +85,7 @@ def get_ask_price(exchange, symbol):
 
 def get_current_value(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
-    base_currency, quote_currency = get_currency(symbol)
+    base_currency, _ = get_currency(symbol)
     
     try:
         amount = balance[base_currency]['total']
@@ -92,7 +93,6 @@ def get_current_value(exchange, symbol, last_price):
     except KeyError:
         current_value = 0
 
-    print('Current value: {:.2f} {}'.format(current_value, quote_currency))
     return current_value
 
 
@@ -169,11 +169,23 @@ def update_n_loop(n_loop, series, last_loop_dict, last_loop_path):
         json.dump(last_loop_dict, last_loop_file, indent = 1)
 
 
-def reset_n_loop(last_loop_path):
+def get_withdraw_flag(last_loop_path):
     with open(last_loop_path) as last_loop_file:
         last_loop_dict = json.load(last_loop_file)
 
-    last_loop_dict['n_loop'] = 0
+    withdraw_flag = last_loop_dict['withdraw_flag']
+
+    return withdraw_flag
+
+
+def update_withdraw_flag(last_loop_path, enable):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    if enable == True:
+        last_loop_dict['withdraw_flag'] = 1
+    else:
+        last_loop_dict['withdraw_flag'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop_dict, last_loop_file, indent = 1)
@@ -190,21 +202,32 @@ def get_transfer(transfer_path):
     return deposit, withdraw, withdraw_cash_flow
 
 
-def update_fix_value(fix_value, deposit, withdraw, config_params_path):
-    fix_value += ((deposit - withdraw) / 2)
+def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
+    try:
+        avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
+        avaialble_cash_flow -= withdraw_cash_flow
+    except IndexError:
+        # first date
+        avaialble_cash_flow = 0
 
-    with open(config_params_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-
-    last_loop_dict['fix_value'] = fix_value
-
-    with open(config_params_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
+    return avaialble_cash_flow
 
 
 def append_cash_flow_df(prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path):
     cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
+
+
+def update_fix_value(fix_value, deposit, withdraw, config_params_path):
+    fix_value += ((deposit - withdraw) / 2)
+
+    with open(config_params_path) as config_file:
+        config_params = json.load(config_file)
+
+    config_params['fix_value'] = fix_value
+
+    with open(config_params_path, 'w') as config_params_path:
+        json.dump(config_params, config_params_path, indent = 1)
 
 
 def reset_transfer(transfer_path):
@@ -218,8 +241,55 @@ def reset_transfer(transfer_path):
         json.dump(transfer_dict, transfer_file, indent = 1)
 
 
-def get_avaialble_cash_flow(withdraw_cash_flow, cash_flow_df):
-    avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
-    avaialble_cash_flow -= withdraw_cash_flow
+def update_budget(exchange, bot_name, symbol, fix_value, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+    withdraw_flag = 0
 
-    return avaialble_cash_flow
+    last_price = get_last_price(exchange, symbol)
+    current_value = get_current_value(exchange, symbol, last_price)
+    
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+    transactions_df = pd.read_csv(transactions_df_path)
+
+    try:
+        last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
+        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
+    except IndexError:
+        last_date = None
+
+    cur_date = get_date()
+    prev_date = cur_date - dt.timedelta(days = 1)
+    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
+
+    # skip 1st date
+    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
+        if last_date != prev_date:
+            balance = get_balance(exchange, symbol, last_price)
+            cash = balance - current_value
+
+            profit_df = pd.read_csv(profit_df_path)
+            last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
+            cash_flow = sum(last_profit_df['profit'])
+            deposit, withdraw, withdraw_cash_flow = get_transfer(transfer_path)
+            
+            available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
+            available_cash_flow += cash_flow
+            
+            append_cash_flow_df(prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path)
+            update_fix_value(fix_value, deposit, withdraw, config_params_path)
+            reset_transfer(transfer_path)
+
+            if  withdraw > deposit:
+                withdraw_flag = 1
+
+    return withdraw_flag
+
+
+def reset_n_loop(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop_dict = json.load(last_loop_file)
+
+    last_loop_dict['n_loop'] = 0
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop_dict, last_loop_file, indent = 1)

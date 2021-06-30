@@ -1,11 +1,10 @@
 import ccxt
-import pandas as pd
 import time
 import os
 
-from func_get import get_config_system, get_config_params, get_exchange, get_currency, get_last_price, update_last_loop_price
+from func_get import get_config_system, get_config_params, get_exchange, get_currency, get_last_price, update_last_loop_price, update_budget
 from func_cal import cal_budget
-from func_order import check_orders_status, cancel_open_buy_orders, open_buy_orders, update_error_log, check_circuit_breaker, check_cut_loss, reinvest
+from func_order import check_orders_status, cancel_open_buy_orders, open_buy_orders, append_error_log, check_circuit_breaker, check_cut_loss
 from func_noti import print_pending_order, print_hold_assets, print_current_balance
 
 config_system_path = 'config_system.json'
@@ -18,7 +17,7 @@ assets_df_path = 'assets.csv'
 error_log_df_path = 'error_log.csv'
 cash_flow_df_path = '../cash_flow/{}.csv'
 
-    
+
 def run_bot(idle_stage, idle_rest, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, transfer_path = transfer_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
@@ -41,9 +40,9 @@ def run_bot(idle_stage, idle_rest, keys_path, config_params_path = config_params
         print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path)
         print_current_balance(exchange, symbol, quote_currency, last_price)
 
-    reinvest_flag = reinvest(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
+    change_params_flag = update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
 
-    if reinvest_flag == 1:
+    if change_params_flag == 1:
         cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
 
 
@@ -56,7 +55,7 @@ if __name__ == "__main__":
             try:
                 run_bot(idle_stage, idle_rest, keys_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError):
-                update_error_log('ConnectionError', error_log_df_path)
+                append_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
         
             print('End loop')

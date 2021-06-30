@@ -6,13 +6,6 @@ from func_get import get_time, get_currency, get_balance
 from func_cal import cal_unrealised
 
 
-def line_send(message, noti_type):
-    payload = {'message':message}
-    send_message = get_line_message(payload, noti_type)
-    
-    return send_message
-
-
 def get_line_message(payload, noti_type):
     url = 'https://notify-api.line.me/api/notify'
     
@@ -23,6 +16,25 @@ def get_line_message(payload, noti_type):
     headers = {'Authorization':'Bearer ' + token}
     
     return requests.post(url, headers = headers , data = payload)
+
+    
+def line_send(message, noti_type):
+    payload = {'message':message}
+    send_message = get_line_message(payload, noti_type)
+    
+    return send_message
+
+
+def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
+    message = '{}: {} {:.3f} {} at {} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
+    line_send(message, noti_type = 'order')
+    print(message)
+
+
+def noti_warning(bot_name, warning):
+    message = '{}: {}!!!!!'.format(bot_name, warning)
+    line_send(message, noti_type = 'warning')
+    print(message)
 
 
 def print_pending_order(symbol, quote_currency, open_orders_df_path):

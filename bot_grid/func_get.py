@@ -6,6 +6,8 @@ import json
 import requests
 from bs4 import BeautifulSoup
 
+from func_cal import cal_unrealised
+
 
 def get_config_system(config_system_path):
     with open(config_system_path) as config_file:
@@ -201,9 +203,32 @@ def get_transfer(transfer_path):
     return deposit, withdraw, withdraw_cash_flow
 
 
+def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
+    try:
+        avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
+        avaialble_cash_flow -= withdraw_cash_flow
+    except IndexError:
+        # first date
+        avaialble_cash_flow = 0
+
+    return avaialble_cash_flow
+
+
 def append_cash_flow_df(prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw, cash_flow_df, cash_flow_df_path):
     cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw]
     cash_flow_df.to_csv(cash_flow_df_path, index = False)
+
+
+def update_reinvest(init_budget, new_budget, new_value, config_params_path):
+    with open(config_params_path) as config_file:
+        config_params = json.load(config_file)
+
+    config_params['init_budget'] = init_budget
+    config_params['budget'] = new_budget
+    config_params['value'] = new_value
+
+    with open(config_params_path, 'w') as config_file:
+        json.dump(config_params, config_file, indent = 1)
 
 
 def reset_loss(last_loop_path):
@@ -228,20 +253,57 @@ def reset_transfer(transfer_path):
         json.dump(transfer_dict, transfer_file, indent = 1)
 
 
-def update_reinvest(init_budget, new_budget, new_value, config_params_path):
-    with open(config_params_path) as config_file:
-        config_params = json.load(config_file)
+def update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
+    change_params_flag = 0
 
-    config_params['init_budget'] = init_budget
-    config_params['budget'] = new_budget
-    config_params['value'] = new_value
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+    open_orders_df = pd.read_csv(open_orders_df_path)
+    transactions_df = pd.read_csv(transactions_df_path)
 
-    with open(config_params_path, 'w') as config_file:
-        json.dump(config_params, config_file, indent = 1)
+    try:
+        last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
+        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
+    except IndexError:
+        last_date = None
+    
+    cur_date = get_date()
+    prev_date = cur_date - dt.timedelta(days = 1)
+    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
+    # skip 1st date
+    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
+        if last_date != prev_date:
+            change_params_flag = 1
 
-def get_avaialble_cash_flow(withdraw_cash_flow, cash_flow_df):
-    avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
-    avaialble_cash_flow -= withdraw_cash_flow
+            balance = get_balance(exchange, symbol, last_price)
+            unrealised, _, _, _ = cal_unrealised(last_price, grid, open_orders_df)
 
-    return avaialble_cash_flow
+            loss = get_loss(last_loop_path)
+            last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
+            cash_flow = sum(last_sell_df['amount'] * grid)
+            
+            if reinvest_ratio == -1:
+                greed_index = get_greed_index()
+                reinvest_ratio = max(1 - (greed_index / 100), 0)
+
+            reinvest_amount = cash_flow * reinvest_ratio
+            remain_cash_flow = cash_flow - reinvest_amount
+
+            deposit, withdraw, withdraw_cash_flow = get_transfer(transfer_path)
+            lower_price = last_price * (1 - fluctuation_rate)
+            n_order = int((last_price - lower_price) / grid)
+
+            init_budget += (deposit - withdraw)
+            new_budget = budget + reinvest_amount + deposit - withdraw
+            new_value = new_budget / n_order
+            
+            available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
+            available_cash_flow += remain_cash_flow
+
+            append_cash_flow_df(prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw, cash_flow_df, cash_flow_df_path)
+            update_reinvest(init_budget, new_budget, new_value, config_params_path)
+            reset_loss(last_loop_path)
+            reset_transfer(transfer_path)
+
+    return change_params_flag
