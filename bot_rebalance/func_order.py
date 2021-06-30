@@ -83,15 +83,16 @@ def clear_open_order(exchange, order_id, symbol, method, open_orders_df_path, er
 
 
 def update_queue(sell_order, symbol, queue_df_path, profit_df_path, amount_key, method):
-    queue_df = pd.read_csv(queue_df_path)
     sell_amount = sell_order[amount_key]
 
-    if method == 'fifo':
-        order_index = 0
-    elif method == 'lifo':
-        order_index = len(queue_df) - 1
-    
     while sell_amount > 0:
+        queue_df = pd.read_csv(queue_df_path)
+        
+        if method == 'fifo':
+            order_index = 0
+        elif method == 'lifo':
+            order_index = len(queue_df) - 1
+    
         sell_queue = queue_df['amount'][order_index]
         exe_amount = min(sell_amount, sell_queue)
         remaining_queue = sell_queue - exe_amount
