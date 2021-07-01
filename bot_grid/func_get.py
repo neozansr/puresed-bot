@@ -271,8 +271,8 @@ def update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, g
     prev_date = cur_date - dt.timedelta(days = 1)
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
-    # skip 1st date
     if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
+        # skip 1st date
         if last_date != prev_date:
             change_params_flag = 1
 

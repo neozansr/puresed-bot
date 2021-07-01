@@ -73,6 +73,7 @@ def check_orders_status(exchange, bot_name, side, symbol, base_currency, quote_c
     
     for order_id in open_orders_list:
         order = exchange.fetch_order(order_id, symbol)
+        
         if order['status'] == 'closed':
             noti_success_order(bot_name, order, symbol, base_currency, quote_currency)
 
@@ -152,6 +153,7 @@ def check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_curre
 
     last_loop_price = get_last_loop_price(last_loop_path)
     transactions_df = pd.read_csv(transactions_df_path)
+    update_last_loop_price(exchange, symbol, last_loop_path)
 
     if len(transactions_df) >= circuit_limit:
         side_list = transactions_df['side'][-circuit_limit:].unique()
@@ -161,14 +163,15 @@ def check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_curre
                 cont_flag = 0
 
                 cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, value, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
-                update_last_loop_price(exchange, symbol, last_loop_path)
                 noti_warning(bot_name, 'Circuit breaker at {} {}'.format(last_price, quote_currency))
                 time.sleep(idle_rest)
 
     return cont_flag
 
 
-def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, value, config_params_path, last_loop_path, transfer_path, open_orders_df_path, cash_flow_df_path, idle_stage):
+def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, value, idle_stage, idle_rest, config_params_path, last_loop_path, transfer_path, open_orders_df_path, cash_flow_df_path):
+    cont_flag = 1
+
     balance = exchange.fetch_balance()
     quote_currency_amount = balance[quote_currency]['free']
 
@@ -177,14 +180,19 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     
     min_sell_price = min(open_orders_df['price'])    
+    
     if (min_sell_price - last_price) >= (grid * 2):
         # double check budget, in case of last_price shift much higher
+        cont_flag = 0
+
         _, _, withdraw_cash_flow = get_transfer(transfer_path)
         available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
 
         while quote_currency_amount < available_cash_flow + value:
             cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df, idle_stage)
-            time.sleep(idle_stage)
+            time.sleep(idle_rest)
+
+    return cont_flag
             
 
 def cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df, idle_stage):
@@ -200,8 +208,8 @@ def cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, confi
     time.sleep(idle_stage)
     canceled_order = exchange.fetch_order(canceled_id, symbol)
 
-    # cancel orders will be removed from db on the next loop by check_orders_status
     while canceled_order['status'] != 'canceled':
+        # cancel orders will be removed from db on the next loop by check_orders_status
         time.sleep(idle_stage)
         canceled_order = exchange.fetch_order(canceled_id, symbol)
 

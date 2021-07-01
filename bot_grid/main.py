@@ -33,12 +33,13 @@ def run_bot(idle_stage, idle_rest, keys_path, config_params_path = config_params
     cont_flag = check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_currency, last_price, grid, value, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     if cont_flag == 1:
-        check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, value, config_params_path, last_loop_path, transfer_path, open_orders_df_path, cash_flow_df_path, idle_stage)
-        update_last_loop_price(exchange, symbol, last_loop_path)
-        remain_budget, free_budget = cal_budget(budget, grid, open_orders_df_path)
-        open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
-        print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path)
-        print_current_balance(exchange, symbol, quote_currency, last_price)
+        cont_flag = check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, value, idle_stage, idle_rest, config_params_path, last_loop_path, transfer_path, open_orders_df_path, cash_flow_df_path)
+
+        if cont_flag == 1:
+            remain_budget, free_budget = cal_budget(budget, grid, open_orders_df_path)
+            open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
+            print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path)
+            print_current_balance(exchange, symbol, quote_currency, last_price)
 
     change_params_flag = update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
 

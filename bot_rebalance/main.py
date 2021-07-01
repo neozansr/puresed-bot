@@ -29,10 +29,10 @@ def run_bot(idle_stage, keys_path, config_params_path = config_params_path, last
     withdraw_flag = get_withdraw_flag(last_loop_path)
 
     if withdraw_flag == 0:
+        # skip loop if the order from last loop hasn't been recieved by the server
         cont_flag = check_open_orders(exchange, bot_name, symbol, base_currency, quote_currency, 'lifo', open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path)
 
-        # skip loop if the order from last loop hasn't been recieved by the server
-        if cont_flag == 1:    
+        if cont_flag == 1:
             withdraw_flag = update_budget(exchange, bot_name, symbol, fix_value, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
         
             if withdraw_flag == 1:

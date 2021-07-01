@@ -14,6 +14,7 @@ def cal_final_amount(exchange, order_id, symbol, decimal, idle_stage):
     order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
     
     amount, fee = 0, 0
+    
     for i in range(len(order_trade)):
         amount += order_trade['amount'][i]
 
@@ -49,11 +50,12 @@ def cal_budget(budget, grid, open_orders_df_path):
     sell_amount_list = open_sell_orders_df['amount'].to_list()
     sell_value_list = [(i - grid) * j for i, j in zip(sell_price_list, sell_amount_list)]
     used_budget = sum(sell_value_list)
+    
     # for cal_new_orders
     remain_budget = budget - used_budget
-
     buy_value_list = open_buy_orders_df['value'].to_list()
     pending_buy_value = sum(buy_value_list)
+    
     # for cal_append_orders
     free_budget = remain_budget - pending_buy_value
 
@@ -65,6 +67,7 @@ def cal_new_orders(remain_budget, grid, value, start_price):
     remain_n_order = int(remain_budget / np.ceil(value))
 
     buy_price_list = []    
+    
     for _ in range(remain_n_order):
         buy_price_list.append(buy_price)
         buy_price -= grid

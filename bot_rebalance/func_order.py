@@ -119,15 +119,15 @@ def check_open_orders(exchange, bot_name, symbol, base_currency, quote_currency,
         if order['filled'] > 0:
             if order['status'] != 'closed':
                 cont_flag = clear_open_order(exchange, order_id, symbol, method, open_orders_df_path, error_log_df_path)
-
-            remove_order(open_orders_df_path, order_id)
-            append_order(transactions_df_path, order, symbol, amount_key = 'filled')
-            noti_success_order(bot_name, order, symbol, base_currency, quote_currency)
         
             if order['side'] == 'buy':
                 append_order(queue_df_path, order, symbol, amount_key = 'filled')
             elif order['side'] == 'sell':
                 update_queue(order, symbol, queue_df_path, profit_df_path, amount_key = 'filled', method = method)
+
+            remove_order(open_orders_df_path, order_id)
+            append_order(transactions_df_path, order, symbol, amount_key = 'filled')
+            noti_success_order(bot_name, order, symbol, base_currency, quote_currency)
         
         else:
             cont_flag = clear_open_order(exchange, order_id, symbol, method, open_orders_df_path, error_log_df_path)
