@@ -26,13 +26,17 @@ def line_send(message, noti_type):
 
 
 def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
-    message = '{}: {} {:.3f} {} at {} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
+    side = order['side']
+    filled = order['filled']
+    price = order['price']
+    
+    message = f'{bot_name}: {side} {filled:.3f} {base_currency} at {price} {quote_currency}'
     line_send(message, noti_type = 'order')
     print(message)
 
 
 def noti_warning(bot_name, warning):
-    message = '{}: {}!!!!!'.format(bot_name, warning)
+    message = f'{bot_name}: {warning}!!!!!'
     line_send(message, noti_type = 'warning')
     print(message)
 
@@ -48,10 +52,10 @@ def print_pending_order(symbol, quote_currency, open_orders_df_path):
     min_sell_price = min(open_sell_orders_df['price'], default = 0)
     max_sell_price = max(open_sell_orders_df['price'], default = 0)
 
-    print('Min buy price: {:.2f} {}'.format(min_buy_price, quote_currency))
-    print('Max buy price: {:.2f} {}'.format(max_buy_price, quote_currency))
-    print('Min sell price: {:.2f} {}'.format(min_sell_price, quote_currency))
-    print('Max sell price: {:.2f} {}'.format(max_sell_price, quote_currency))
+    print(f'Min buy price: {min_buy_price:.2f} {quote_currency}')
+    print(f'Max buy price: {max_buy_price:.2f} {quote_currency}')
+    print(f'Min sell price: {min_sell_price:.2f} {quote_currency}')
+    print(f'Max sell price: {max_sell_price:.2f} {quote_currency}')
 
 
 def print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path):
@@ -67,11 +71,11 @@ def print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, o
     assets_df = pd.DataFrame(assets_dict, index = [0])
     assets_df.to_csv('assets.csv', index = False)
     
-    print('Hold {:.3f} {} with {} orders at {:.2f} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency))
-    print('Unrealised: {:.2f} {}'.format(unrealised, quote_currency))
+    print(f'Hold {amount:.3f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}')
+    print(f'Unrealised: {unrealised:.2f} {quote_currency}')
 
 
 def print_current_balance(exchange, symbol, quote_currency, last_price):
     balance = get_balance(exchange, symbol, last_price)
 
-    print('Balance: {:.2f} {}'.format(balance, quote_currency))
+    print(f'Balance: {balance:.2f} {quote_currency}')

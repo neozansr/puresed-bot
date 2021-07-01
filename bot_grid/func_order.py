@@ -58,7 +58,7 @@ def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, 
         # filled small value than minimum order, ignore
         append_error_log('InvalidOrder', error_log_df_path)
     
-    print('Open sell {:.3f} {} at {} {}'.format(final_amount, base_currency, sell_price, quote_currency))
+    print(f'Open sell {final_amount:.3f} {base_currency} at {sell_price} {quote_currency}')
     return sell_order
 
 
@@ -101,7 +101,7 @@ def cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid
             
             try:
                 exchange.cancel_order(order_id, symbol)
-                print('Cancel order {}'.format(order_id))
+                print(f'Cancel order {order_id}')
                 
                 if filled > 0:
                     append_order(transactions_df_path, order, symbol, amount_key = 'filled')
@@ -112,7 +112,7 @@ def cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid
             except ccxt.OrderNotFound:
                 # no order in the system (could casued by the order is queued), skip for the next loop
                 append_error_log('OrderNotFound', error_log_df_path)
-                print('Error: Cannot cancel order {} due to unavailable order!!!'.format(order_id))
+                print(f'Error: Cannot cancel order {order_id} due to unavailable order!!!')
             except ccxt.InvalidOrder:
                 # the order is closed by system (could caused by post_only param for buy orders)
                 remove_order(open_orders_df_path, order_id)
@@ -125,7 +125,7 @@ def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base
     if cancel_flag == 1:
         cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
 
-    print('Open {} buy orders'.format(len(buy_price_list)))
+    print(f'Open {len(buy_price_list)} buy orders')
 
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
@@ -141,10 +141,10 @@ def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base
         if quote_currency_amount >= remain_cash_flow_accum + value:
             buy_order = exchange.create_order(symbol, 'limit', 'buy', floor_amount, price, params = {'postOnly':True})
             append_order(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
-            print('Open buy {:.3f} {} at {} {}'.format(floor_amount, base_currency, price, quote_currency))
+            print(f'Open buy {floor_amount:.3f} {base_currency} at {price} {quote_currency}')
         else:
             # actual buget less than cal_budget (could caused by open_orders match during loop)
-            print('Error: Cannot buy at price {} {} due to insufficient fund!!!'.format(price, quote_currency))
+            print(f'Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!')
             break
 
 
@@ -163,7 +163,7 @@ def check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_curre
                 cont_flag = 0
 
                 cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, value, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
-                noti_warning(bot_name, 'Circuit breaker at {} {}'.format(last_price, quote_currency))
+                noti_warning(bot_name, f'Circuit breaker at {last_price} {quote_currency}')
                 time.sleep(idle_rest)
 
     return cont_flag
@@ -227,4 +227,4 @@ def cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, confi
     
     update_loss(loss, last_loop_path)
     reduce_budget(loss, config_params_path)
-    noti_warning(bot_name, 'Cut loss {:.2f} {} at {} {}'.format(loss, quote_currency, last_price, quote_currency))
+    noti_warning(bot_name, f'Cut loss {loss:.2f} {quote_currency} at {last_price} {quote_currency}')

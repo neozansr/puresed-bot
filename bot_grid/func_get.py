@@ -78,7 +78,7 @@ def get_last_price(exchange, symbol):
 
     _, quote_currency = get_currency(symbol)
     
-    print('Last price: {} {}'.format(last_price, quote_currency))
+    print(f'Last price: {last_price} {quote_currency}')
     return last_price
 
 

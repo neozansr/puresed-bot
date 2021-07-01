@@ -34,9 +34,9 @@ def send_help(message):
 def send_bot_rebalance(message):
     bot_name = 'bot_rebalance'
     bot_type = 'rebalance'
-    sub_path = '../{}/'.format(bot_name)
+    sub_path = f'../{bot_name}/'
 
-    text = '{}\n{}\n'.format(bot_name.title(), bot_type.title())
+    text = f'{bot_name.title()}\n{bot_type.title()}\n'
     text = get_rebalance_text(text, bot_type, sub_path, config_system_path, config_params_path, profit_df_path)
     
     bot.send_message(message.chat.id, text)
@@ -46,9 +46,9 @@ def send_bot_rebalance(message):
 def send_bot_grid(message):
     bot_name = 'bot_grid'
     bot_type = 'grid'
-    sub_path = '../{}/'.format(bot_name)
+    sub_path = f'../{bot_name}/'
 
-    text = '{}\n{}\n'.format(bot_name.title(), bot_type.title())
+    text = f'{bot_name.title()}\n{bot_type.title()}\n'
     text = get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path)
     
     bot.send_message(message.chat.id, text)

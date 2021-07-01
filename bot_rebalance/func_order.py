@@ -55,12 +55,12 @@ def cancel_open_order(exchange, order_id, symbol, open_orders_df_path, error_log
     try:
         exchange.cancel_order(order_id, symbol)
         remove_order(open_orders_df_path, order_id)
-        print('Cancel order {}'.format(order_id))
+        print(f'Cancel order {order_id}')
         cont_flag = 1
     except ccxt.OrderNotFound:
         # no order in the system (could casued by the order is queued), skip for the next loop
         append_error_log('OrderNotFound', error_log_df_path)
-        print('Error: Cannot cancel order {}, wait for the next loop'.format(order_id))
+        print(f'Error: Cannot cancel order {order_id}, wait for the next loop')
         cont_flag = 0
     except ccxt.InvalidOrder:
         # the order is closed by system (could caused by post_only param for buy orders)
@@ -159,9 +159,9 @@ def rebalance(exchange, symbol, base_currency, quote_currency, fix_value, curren
                 exchange.create_order(symbol, 'market', side, amount)
 
             append_order(open_orders_df_path, order, symbol, amount_key = 'amount')
-            print('Open {} {:.3f} {} at {:.2f} {}'.format(side, amount, base_currency, price, quote_currency))
+            print(f'Open {side} {amount:.3f} {base_currency} at {price:.2f} {quote_currency}')
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process
             append_error_log('InsufficientFunds', error_log_df_path)
-            print('Error: Cannot {} at price {:.2f} {} due to insufficient fund!!!'.format(side, price, quote_currency))
+            print(f'Error: Cannot {side} at price {price:.2f} {quote_currency} due to insufficient fund!!!')
             sys.exit(1)

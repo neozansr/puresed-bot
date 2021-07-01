@@ -20,7 +20,7 @@ def cal_final_amount(exchange, order_id, symbol, decimal, idle_stage):
 
         while order_trade['fee'][i] == None:
             # fee is None, wait until updated
-            print('Wating order {} fee to be updated'.format(order_id))
+            print(f'Wating order {order_id} fee to be updated')
             time.sleep(idle_stage)
             
             trades_df = pd.DataFrame(exchange.fetch_my_trades(symbol, limit = 200))

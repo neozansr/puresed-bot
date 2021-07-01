@@ -71,7 +71,7 @@ if __name__ == "__main__":
         
             print('End loop')
             print(get_time())
-            print('Wait {} seconds'.format(idle_loop))
+            print(f'Wait {idle_loop} seconds')
         else:
             print('Stop process')
             reset_n_loop(last_loop_path)

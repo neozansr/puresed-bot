@@ -24,7 +24,11 @@ def line_send(message, noti_type):
 
 
 def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
-    message = '{}: {} {:.3f} {} at {:.2f} {}'.format(bot_name, order['side'], order['filled'], base_currency, order['price'], quote_currency)
+    side = order['side']
+    filled = order['filled']
+    price = order['price']
+
+    message = f'{bot_name}: {side} {filled:.3f} {base_currency} at {price:.2f} {quote_currency}'
     line_send(message, noti_type = 'order')
     print(message)
 
@@ -33,6 +37,6 @@ def print_current_balance(exchange, current_value, symbol, quote_currency, last_
     balance = get_balance(exchange, symbol, last_price)
     cash = balance - current_value
 
-    print('Balance: {:.2f} {}'.format(balance, quote_currency))
-    print('Current value: {:.2f} {}'.format(current_value, quote_currency))
-    print('Cash: {:.2f} {}'.format(cash, quote_currency))
+    print(f'Balance: {balance:.2f} {quote_currency}')
+    print(f'Current value: {current_value:.2f} {quote_currency}')
+    print(f'Cash: {cash:.2f} {quote_currency}')

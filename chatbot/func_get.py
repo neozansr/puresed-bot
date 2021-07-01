@@ -132,10 +132,10 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     cash = balance - current_value
     cash_flow = sum(today_profit_df['profit'])
 
-    text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)
-    text += '\nCurrent value: {:.2f} {}'.format(current_value, quote_currency)
-    text += '\nCash: {:.2f} {}'.format(cash, quote_currency)
-    text += '\nToday cash flow: {:.2f} {}'.format(cash_flow, quote_currency)
+    text += f'\nBalance: {balance:.2f} {quote_currency}'
+    text += f'\nCurrent value: {current_value:.2f} {quote_currency}'
+    text += f'\nCash: {cash:.2f} {quote_currency}'
+    text += f'\nToday cash flow: {cash_flow:.2f} {quote_currency}'
 
     return text
 
@@ -162,13 +162,13 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
     
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(quote_currency, open_orders_df)
 
-    text += '\nBalance: {:.2f} {}'.format(balance, quote_currency)
-    text += '\nHold {:.4f} {} with {} orders at {:.2f} {}'.format(amount, base_currency, n_open_sell_oders, avg_price, quote_currency)
-    text += '\nUnrealised: {:.2f} {}'.format(unrealised, quote_currency)
-    text += '\nToday cash flow: {:.2f} {}'.format(cash_flow, quote_currency)
-    text += '\nMin buy price: {:.2f} {}'.format(min_buy_price, quote_currency)
-    text += '\nMax buy price: {:.2f} {}'.format(max_buy_price, quote_currency)
-    text += '\nMin sell price: {:.2f} {}'.format(min_sell_price, quote_currency)
-    text += '\nMax sell price: {:.2f} {}'.format(max_sell_price, quote_currency)
+    text += f'\nBalance: {balance:.2f} {quote_currency}'
+    text += f'\nHold {amount:.4f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}'
+    text += f'\nUnrealised: {unrealised:.2f} {quote_currency}'
+    text += f'\nToday cash flow: {cash_flow:.2f} {quote_currency}'
+    text += f'\nMin buy price: {min_buy_price:.2f} {quote_currency}'
+    text += f'\nMax buy price: {max_buy_price:.2f} {quote_currency}'
+    text += f'\nMin sell price: {min_sell_price:.2f} {quote_currency}'
+    text += f'\nMax sell price: {max_sell_price:.2f} {quote_currency}'
 
     return text
