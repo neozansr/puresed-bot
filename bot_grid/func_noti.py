@@ -15,7 +15,7 @@ def get_line_message(payload, noti_type):
     
     headers = {'Authorization':'Bearer ' + token}
     
-    return requests.post(url, headers = headers , data = payload)
+    return requests.post(url, headers=headers , data=payload)
 
     
 def line_send(message, noti_type):
@@ -25,7 +25,7 @@ def line_send(message, noti_type):
     return send_message
 
 
-def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
+def noti_success_order(bot_name, order, base_currency, quote_currency):
     side = order['side']
     filled = order['filled']
     price = order['price']
@@ -37,20 +37,20 @@ def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
 
 def noti_warning(bot_name, warning):
     message = f'{bot_name}: {warning}!!!!!'
-    line_send(message, noti_type = 'warning')
+    line_send(message, noti_type='warning')
     print(message)
 
 
-def print_pending_order(symbol, quote_currency, open_orders_df_path):
+def print_pending_order(quote_currency, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
-    min_buy_price = min(open_buy_orders_df['price'], default = 0)
-    max_buy_price = max(open_buy_orders_df['price'], default = 0)
+    min_buy_price = min(open_buy_orders_df['price'], default=0)
+    max_buy_price = max(open_buy_orders_df['price'], default=0)
 
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    min_sell_price = min(open_sell_orders_df['price'], default = 0)
-    max_sell_price = max(open_sell_orders_df['price'], default = 0)
+    min_sell_price = min(open_sell_orders_df['price'], default=0)
+    max_sell_price = max(open_sell_orders_df['price'], default=0)
 
     print(f'Min buy price: {min_buy_price:.2f} {quote_currency}')
     print(f'Max buy price: {max_buy_price:.2f} {quote_currency}')
@@ -58,7 +58,7 @@ def print_pending_order(symbol, quote_currency, open_orders_df_path):
     print(f'Max sell price: {max_sell_price:.2f} {quote_currency}')
 
 
-def print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path):
+def print_hold_assets(base_currency, quote_currency, last_price, grid, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, grid, open_orders_df)
 
@@ -68,8 +68,8 @@ def print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, o
                    'amount': amount, 
                    'unrealised': unrealised}
 
-    assets_df = pd.DataFrame(assets_dict, index = [0])
-    assets_df.to_csv('assets.csv', index = False)
+    assets_df = pd.DataFrame(assets_dict, index=[0])
+    assets_df.to_csv('assets.csv', index=False)
     
     print(f'Hold {amount:.3f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}')
     print(f'Unrealised: {unrealised:.2f} {quote_currency}')

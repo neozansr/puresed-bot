@@ -13,12 +13,11 @@ last_loop_path = 'last_loop.json'
 transfer_path = 'transfer.json'
 open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
-assets_df_path = 'assets.csv'
 error_log_df_path = 'error_log.csv'
 cash_flow_df_path = '../cash_flow/{}.csv'
 
 
-def run_bot(idle_stage, idle_rest, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, transfer_path = transfer_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, assets_df_path = assets_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
+def run_bot(idle_stage, idle_rest, keys_path, config_params_path=config_params_path, last_loop_path=last_loop_path, transfer_path=transfer_path, open_orders_df_path=open_orders_df_path, transactions_df_path=transactions_df_path, error_log_df_path=error_log_df_path, cash_flow_df_path=cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     symbol, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
@@ -27,7 +26,7 @@ def run_bot(idle_stage, idle_rest, keys_path, config_params_path = config_params
     time.sleep(idle_stage)
     check_orders_status(exchange, bot_name, 'sell', symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
     time.sleep(idle_stage)
-    print_pending_order(symbol, quote_currency, open_orders_df_path)
+    print_pending_order(quote_currency, open_orders_df_path)
     
     last_price = get_last_price(exchange, symbol)
     cont_flag = check_circuit_breaker(bot_name, exchange, symbol, base_currency, quote_currency, last_price, grid, value, circuit_limit, idle_stage, idle_rest, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
@@ -38,7 +37,7 @@ def run_bot(idle_stage, idle_rest, keys_path, config_params_path = config_params
         if cont_flag == 1:
             remain_budget, free_budget = cal_budget(budget, grid, open_orders_df_path)
             open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
-            print_hold_assets(symbol, base_currency, quote_currency, last_price, grid, open_orders_df_path)
+            print_hold_assets(base_currency, quote_currency, last_price, grid, open_orders_df_path)
             print_current_balance(exchange, symbol, quote_currency, last_price)
 
     change_params_flag = update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)

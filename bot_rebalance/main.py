@@ -19,7 +19,7 @@ error_log_df_path = 'error_log.csv'
 cash_flow_df_path = '../cash_flow/{}.csv'
 
 
-def run_bot(idle_stage, keys_path, config_params_path = config_params_path, last_loop_path = last_loop_path, transfer_path = transfer_path, open_orders_df_path = open_orders_df_path, transactions_df_path = transactions_df_path, error_log_df_path = error_log_df_path, cash_flow_df_path = cash_flow_df_path):
+def run_bot(idle_stage, keys_path, config_params_path=config_params_path, last_loop_path=last_loop_path, transfer_path=transfer_path, open_orders_df_path=open_orders_df_path, transactions_df_path=transactions_df_path, error_log_df_path=error_log_df_path, cash_flow_df_path=cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
     symbol, fix_value, min_value = get_config_params(config_params_path)

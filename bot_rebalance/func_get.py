@@ -29,13 +29,13 @@ def get_config_params(config_params_path):
 
 
 def get_time(timezone = 'Asia/Bangkok'):
-    timestamp = dt.datetime.now(tz = tz.gettz(timezone))
+    timestamp = dt.datetime.now(tz=tz.gettz(timezone))
     
     return timestamp
 
 
 def get_date(timezone = 'Asia/Bangkok'):
-    timestamp = dt.datetime.now(tz = tz.gettz(timezone))
+    timestamp = dt.datetime.now(tz=tz.gettz(timezone))
     date = timestamp.date()
     
     return date
@@ -117,7 +117,7 @@ def get_balance(exchange, symbol, last_price):
     return balance
 
 
-def gen_series(n = 18, limit_min = 4):
+def gen_series(n=18, limit_min=4):
     # haxanacci
     def hexa(n) :
         if n in range(6):
@@ -166,7 +166,7 @@ def update_n_loop(n_loop, series, last_loop_dict, last_loop_path):
     last_loop_dict['n_loop'] = n_loop
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
+        json.dump(last_loop_dict, last_loop_file, indent=1)
 
 
 def get_withdraw_flag(last_loop_path):
@@ -188,7 +188,7 @@ def update_withdraw_flag(last_loop_path, enable):
         last_loop_dict['withdraw_flag'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
+        json.dump(last_loop_dict, last_loop_file, indent=1)
 
 
 def get_transfer(transfer_path):
@@ -215,7 +215,7 @@ def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
 
 def append_cash_flow_df(prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path):
     cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw]
-    cash_flow_df.to_csv(cash_flow_df_path, index = False)
+    cash_flow_df.to_csv(cash_flow_df_path, index=False)
 
 
 def update_fix_value(fix_value, deposit, withdraw, config_params_path):
@@ -227,7 +227,7 @@ def update_fix_value(fix_value, deposit, withdraw, config_params_path):
     config_params['fix_value'] = fix_value
 
     with open(config_params_path, 'w') as config_params_path:
-        json.dump(config_params, config_params_path, indent = 1)
+        json.dump(config_params, config_params_path, indent=1)
 
 
 def reset_transfer(transfer_path):
@@ -238,7 +238,7 @@ def reset_transfer(transfer_path):
     transfer_dict['withdraw'] = 0
 
     with open(transfer_path, 'w') as transfer_file:
-        json.dump(transfer_dict, transfer_file, indent = 1)
+        json.dump(transfer_dict, transfer_file, indent=1)
 
 
 def update_budget(exchange, bot_name, symbol, fix_value, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
@@ -258,7 +258,7 @@ def update_budget(exchange, bot_name, symbol, fix_value, config_params_path, tra
         last_date = None
 
     cur_date = get_date()
-    prev_date = cur_date - dt.timedelta(days = 1)
+    prev_date = cur_date - dt.timedelta(days=1)
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
     # skip 1st date
@@ -292,4 +292,4 @@ def reset_n_loop(last_loop_path):
     last_loop_dict['n_loop'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
+        json.dump(last_loop_dict, last_loop_file, indent=1)

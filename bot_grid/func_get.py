@@ -41,13 +41,13 @@ def get_config_params(config_params_path):
 
 
 def get_time(timezone = 'Asia/Bangkok'):
-    timestamp = dt.datetime.now(tz = tz.gettz(timezone))
+    timestamp = dt.datetime.now(tz=tz.gettz(timezone))
     
     return timestamp
 
 
 def get_date(timezone = 'Asia/Bangkok'):
-    timestamp = dt.datetime.now(tz = tz.gettz(timezone))
+    timestamp = dt.datetime.now(tz=tz.gettz(timezone))
     date = timestamp.date()
     
     return date
@@ -134,7 +134,7 @@ def update_last_loop_price(exchange, symbol, last_loop_path):
     last_loop_dict['price'] = last_price
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
+        json.dump(last_loop_dict, last_loop_file, indent=1)
     
 
 def get_loss(last_loop_path):
@@ -155,7 +155,7 @@ def update_loss(loss, last_loop_path):
     last_loop_dict['loss'] = loss
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
+        json.dump(last_loop_dict, last_loop_file, indent=1)
 
 
 def reduce_budget(loss, config_params_path):
@@ -168,10 +168,10 @@ def reduce_budget(loss, config_params_path):
     config_params['budget'] = budget
 
     with open(config_params_path, 'w') as config_file:
-        json.dump(config_params, config_file, indent = 1)
+        json.dump(config_params, config_file, indent=1)
 
 
-def get_greed_index(default_index = 0.5):
+def get_greed_index(default_index=0.5):
     greed_index = default_index
     
     try:
@@ -216,7 +216,7 @@ def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
 
 def append_cash_flow_df(prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw, cash_flow_df, cash_flow_df_path):
     cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw]
-    cash_flow_df.to_csv(cash_flow_df_path, index = False)
+    cash_flow_df.to_csv(cash_flow_df_path, index=False)
 
 
 def update_reinvest(init_budget, new_budget, new_value, config_params_path):
@@ -228,7 +228,7 @@ def update_reinvest(init_budget, new_budget, new_value, config_params_path):
     config_params['value'] = new_value
 
     with open(config_params_path, 'w') as config_file:
-        json.dump(config_params, config_file, indent = 1)
+        json.dump(config_params, config_file, indent=1)
 
 
 def reset_loss(last_loop_path):
@@ -238,7 +238,7 @@ def reset_loss(last_loop_path):
     last_loop_dict['loss'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent = 1)
+        json.dump(last_loop_dict, last_loop_file, indent=1)
 
 
 def reset_transfer(transfer_path):
@@ -268,7 +268,7 @@ def update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, g
         last_date = None
     
     cur_date = get_date()
-    prev_date = cur_date - dt.timedelta(days = 1)
+    prev_date = cur_date - dt.timedelta(days=1)
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
     if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):

@@ -10,8 +10,8 @@ def round_down_amount(amount, decimal):
 
 
 def cal_final_amount(exchange, order_id, symbol, decimal, idle_stage):
-    trades_df = pd.DataFrame(exchange.fetch_my_trades(symbol, limit = 200))
-    order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
+    trades_df = pd.DataFrame(exchange.fetch_my_trades(symbol, limit=200))
+    order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)
     
     amount, fee = 0, 0
     
@@ -23,8 +23,8 @@ def cal_final_amount(exchange, order_id, symbol, decimal, idle_stage):
             print(f'Wating order {order_id} fee to be updated')
             time.sleep(idle_stage)
             
-            trades_df = pd.DataFrame(exchange.fetch_my_trades(symbol, limit = 200))
-            order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop = True)
+            trades_df = pd.DataFrame(exchange.fetch_my_trades(symbol, limit=200))
+            order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)
             
         fee += order_trade['fee'][i]['cost']
 
@@ -89,13 +89,13 @@ def cal_append_orders(free_budget, grid, value, open_buy_orders_df):
     return buy_price_list
 
 
-def cal_buy_price_list(exchange, remain_budget, free_budget, symbol, bid_price, grid, value, start_safety, open_orders_df_path):
+def cal_buy_price_list(remain_budget, free_budget, bid_price, grid, value, start_safety, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     
-    max_open_buy_price = max(open_buy_orders_df['price'], default = 0)
-    min_open_sell_price = min(open_sell_orders_df['price'], default = np.inf)
+    max_open_buy_price = max(open_buy_orders_df['price'], default=0)
+    min_open_sell_price = min(open_sell_orders_df['price'], default=np.inf)
 
     if min(bid_price, min_open_sell_price - grid) - max_open_buy_price > grid:    
         if len(open_sell_orders_df) == 0:

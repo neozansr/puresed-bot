@@ -18,15 +18,15 @@ def append_order(df_path, order, symbol, amount_key):
     value = amount * price
 
     df.loc[len(df)] = [timestamp, order_id, symbol, order_type, order_side, amount, price, value]
-    df.to_csv(df_path, index = False)
+    df.to_csv(df_path, index=False)
 
 
 def remove_order(df_path, order_id):
     df = pd.read_csv(df_path)
 
     df = df[df['order_id'] != order_id]
-    df = df.reset_index(drop = True)
-    df.to_csv(df_path, index = False)
+    df = df.reset_index(drop=True)
+    df.to_csv(df_path, index=False)
 
 
 def append_error_log(error_log, error_log_df_path):
@@ -34,7 +34,7 @@ def append_error_log(error_log, error_log_df_path):
     
     timestamp = get_time()
     df.loc[len(df)] = [timestamp, error_log]
-    df.to_csv(error_log_df_path, index = False)
+    df.to_csv(error_log_df_path, index=False)
 
 
 def append_profit(sell_order, symbol, exe_amount, queue_df, profit_df_path):
@@ -48,7 +48,7 @@ def append_profit(sell_order, symbol, exe_amount, queue_df, profit_df_path):
     profit = (sell_price - buy_price) * exe_amount
 
     df.loc[len(df)] = [timestamp, buy_id, sell_id, symbol, exe_amount, buy_price, sell_price, profit]
-    df.to_csv(profit_df_path, index = False)
+    df.to_csv(profit_df_path, index=False)
 
 
 def cancel_open_order(exchange, order_id, symbol, open_orders_df_path, error_log_df_path):
@@ -104,7 +104,7 @@ def update_queue(sell_order, symbol, queue_df_path, profit_df_path, amount_key, 
         else:
             queue_df.loc[order_index, 'amount'] = remaining_queue
 
-        queue_df.to_csv(queue_df_path, index = False)
+        queue_df.to_csv(queue_df_path, index=False)
         sell_amount -= exe_amount
 
 
@@ -121,13 +121,13 @@ def check_open_orders(exchange, bot_name, symbol, base_currency, quote_currency,
                 cont_flag = clear_open_order(exchange, order_id, symbol, method, open_orders_df_path, error_log_df_path)
         
             if order['side'] == 'buy':
-                append_order(queue_df_path, order, symbol, amount_key = 'filled')
+                append_order(queue_df_path, order, symbol, amount_key='filled')
             elif order['side'] == 'sell':
-                update_queue(order, symbol, queue_df_path, profit_df_path, amount_key = 'filled', method = method)
+                update_queue(order, symbol, queue_df_path, profit_df_path, amount_key='filled', method=method)
 
             remove_order(open_orders_df_path, order_id)
-            append_order(transactions_df_path, order, symbol, amount_key = 'filled')
-            noti_success_order(bot_name, order, symbol, base_currency, quote_currency)
+            append_order(transactions_df_path, order, symbol, amount_key='filled')
+            noti_success_order(bot_name, order, base_currency, quote_currency)
         
         else:
             cont_flag = clear_open_order(exchange, order_id, symbol, method, open_orders_df_path, error_log_df_path)
@@ -158,7 +158,7 @@ def rebalance(exchange, symbol, base_currency, quote_currency, fix_value, curren
             elif order_type == 'market':
                 exchange.create_order(symbol, 'market', side, amount)
 
-            append_order(open_orders_df_path, order, symbol, amount_key = 'amount')
+            append_order(open_orders_df_path, order, symbol, amount_key='amount')
             print(f'Open {side} {amount:.3f} {base_currency} at {price:.2f} {quote_currency}')
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process

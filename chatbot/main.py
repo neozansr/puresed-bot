@@ -24,13 +24,13 @@ x = bot.get_me()
 print(x)
 
 
-@bot.message_handler(commands = ['start', 'help', 'h'])
+@bot.message_handler(commands=['start', 'help', 'h'])
 def send_help(message):
     text = 'type /[bot_name] to get info'
     bot.send_message(message.chat.id, text)
 
 
-@bot.message_handler(commands = ['bot_rebalance'])
+@bot.message_handler(commands=['bot_rebalance'])
 def send_bot_rebalance(message):
     bot_name = 'bot_rebalance'
     bot_type = 'rebalance'
@@ -42,7 +42,7 @@ def send_bot_rebalance(message):
     bot.send_message(message.chat.id, text)
 
 
-@bot.message_handler(commands = ['bot_grid'])
+@bot.message_handler(commands=['bot_grid'])
 def send_bot_grid(message):
     bot_name = 'bot_grid'
     bot_type = 'grid'

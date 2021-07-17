@@ -21,15 +21,15 @@ def append_order(df_path, order, symbol, amount_key):
     value = amount * price
 
     df.loc[len(df)] = [timestamp, order_id, symbol, order_type, order_side, amount, price, value]
-    df.to_csv(df_path, index = False)
+    df.to_csv(df_path, index=False)
 
 
 def remove_order(df_path, order_id):
     df = pd.read_csv(df_path)
 
     df = df[df['order_id'] != order_id]
-    df = df.reset_index(drop = True)
-    df.to_csv(df_path, index = False)
+    df = df.reset_index(drop=True)
+    df.to_csv(df_path, index=False)
 
 
 def append_error_log(error_log, error_log_df_path):
@@ -37,7 +37,7 @@ def append_error_log(error_log, error_log_df_path):
     
     timestamp = get_time()
     df.loc[len(df)] = [timestamp, error_log]
-    df.to_csv(error_log_df_path, index = False)
+    df.to_csv(error_log_df_path, index=False)
 
 
 def open_sell_order(exchange, buy_order, symbol, base_currency, quote_currency, grid, decimal, idle_stage, error_log_df_path):
@@ -75,14 +75,14 @@ def check_orders_status(exchange, bot_name, side, symbol, base_currency, quote_c
         order = exchange.fetch_order(order_id, symbol)
         
         if order['status'] == 'closed':
-            noti_success_order(bot_name, order, symbol, base_currency, quote_currency)
+            noti_success_order(bot_name, order, base_currency, quote_currency)
 
             if side == 'buy':
                 sell_order = open_sell_order(exchange, order, symbol, base_currency, quote_currency, grid, decimal, idle_stage, error_log_df_path)
-                append_order(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
+                append_order(open_orders_df_path, sell_order, symbol, amount_key='amount')
 
             remove_order(open_orders_df_path, order_id)
-            append_order(transactions_df_path, order, symbol, amount_key = 'filled')
+            append_order(transactions_df_path, order, symbol, amount_key='filled')
 
         elif order['status'] == 'canceled':
             # canceld by param PostOnly
@@ -104,9 +104,9 @@ def cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid
                 print(f'Cancel order {order_id}')
                 
                 if filled > 0:
-                    append_order(transactions_df_path, order, symbol, amount_key = 'filled')
+                    append_order(transactions_df_path, order, symbol, amount_key='filled')
                     sell_order = open_sell_order(exchange, order, symbol, base_currency, quote_currency, grid, decimal, idle_stage, error_log_df_path)
-                    append_order(open_orders_df_path, sell_order, symbol, amount_key = 'amount')
+                    append_order(open_orders_df_path, sell_order, symbol, amount_key='amount')
                 
                 remove_order(open_orders_df_path, order_id)
             except ccxt.OrderNotFound:
@@ -120,7 +120,7 @@ def cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid
 
 def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     bid_price = get_bid_price(exchange, symbol)
-    buy_price_list, cancel_flag = cal_buy_price_list(exchange, remain_budget, free_budget, symbol, bid_price, grid, value, start_safety, open_orders_df_path)
+    buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, grid, value, start_safety, open_orders_df_path)
     
     if cancel_flag == 1:
         cancel_open_buy_orders(exchange, symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
@@ -139,8 +139,8 @@ def open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base
         quote_currency_amount = balance[quote_currency]['free']
 
         if quote_currency_amount >= remain_cash_flow_accum + value:
-            buy_order = exchange.create_order(symbol, 'limit', 'buy', floor_amount, price, params = {'postOnly':True})
-            append_order(open_orders_df_path, buy_order, symbol, amount_key = 'amount')
+            buy_order = exchange.create_order(symbol, 'limit', 'buy', floor_amount, price, params={'postOnly':True})
+            append_order(open_orders_df_path, buy_order, symbol, amount_key='amount')
             print(f'Open buy {floor_amount:.3f} {base_currency} at {price} {quote_currency}')
         else:
             # actual buget less than cal_budget (could caused by open_orders match during loop)
@@ -189,42 +189,51 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
         available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
 
         while quote_currency_amount < available_cash_flow + value:
-            cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df, idle_stage)
-            time.sleep(idle_rest)
+            cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df_path, idle_stage, idle_rest)
 
     return cont_flag
             
 
-def cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df, idle_stage):
+def cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df_path, idle_stage, idle_rest):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     max_sell_price = max(open_orders_df['price'])
     canceled_df = open_orders_df[open_orders_df['price'] == max_sell_price]
 
-    canceled_id = canceled_df['order_id'].reset_index(drop = True)[0]
-    buy_amount = canceled_df['amount'].reset_index(drop = True)[0]
+    canceled_id = canceled_df['order_id'].reset_index(drop=True)[0]
+    buy_amount = canceled_df['amount'].reset_index(drop=True)[0]
     buy_price = max_sell_price - grid
     buy_value = buy_price * buy_amount
 
-    exchange.cancel_order(canceled_id, symbol)
-    time.sleep(idle_stage)
-    canceled_order = exchange.fetch_order(canceled_id, symbol)
-
-    while canceled_order['status'] != 'canceled':
-        # cancel orders will be removed from db on the next loop by check_orders_status
+    try:
+        exchange.cancel_order(canceled_id, symbol)
         time.sleep(idle_stage)
         canceled_order = exchange.fetch_order(canceled_id, symbol)
 
-    sell_order = exchange.create_order(symbol, 'market', 'sell', buy_amount)
-    time.sleep(idle_stage)
+        while canceled_order['status'] != 'canceled':
+            # cancel orders will be removed from db on the next loop by check_orders_status
+            time.sleep(idle_stage)
+            canceled_order = exchange.fetch_order(canceled_id, symbol)
 
-    while sell_order['status'] != 'closed':
+        remove_order(open_orders_df_path, canceled_id)
+
+        sell_order = exchange.create_order(symbol, 'market', 'sell', buy_amount)
         time.sleep(idle_stage)
-        sell_order = exchange.fetch_order(sell_order['id'], symbol)
 
-    new_sell_price = sell_order['price']
-    new_sell_amount = sell_order['amount']
-    new_sell_value = new_sell_price * new_sell_amount
-    loss = new_sell_value - buy_value
+        while sell_order['status'] != 'closed':
+            time.sleep(idle_stage)
+            sell_order = exchange.fetch_order(sell_order['id'], symbol)
+
+        new_sell_price = sell_order['price']
+        new_sell_amount = sell_order['amount']
+        new_sell_value = new_sell_price * new_sell_amount
+        loss = new_sell_value - buy_value
+        
+        update_loss(loss, last_loop_path)
+        reduce_budget(loss, config_params_path)
+        noti_warning(bot_name, f'Cut loss {loss:.2f} {quote_currency} at {last_price} {quote_currency}')
+
+        time.sleep(idle_rest)
     
-    update_loss(loss, last_loop_path)
-    reduce_budget(loss, config_params_path)
-    noti_warning(bot_name, f'Cut loss {loss:.2f} {quote_currency} at {last_price} {quote_currency}')
+    except ccxt.InvalidOrder:
+        # order has already been canceled from last loop but failed to update open_orders_df
+        remove_order(open_orders_df_path, canceled_id)

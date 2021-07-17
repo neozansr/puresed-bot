@@ -13,7 +13,7 @@ def get_line_message(payload, noti_type):
     
     headers = {'Authorization':'Bearer ' + token}
     
-    return requests.post(url, headers = headers , data = payload)
+    return requests.post(url, headers=headers , data=payload)
 
 
 def line_send(message, noti_type):
@@ -23,13 +23,13 @@ def line_send(message, noti_type):
     return send_message
 
 
-def noti_success_order(bot_name, order, symbol, base_currency, quote_currency):
+def noti_success_order(bot_name, order, base_currency, quote_currency):
     side = order['side']
     filled = order['filled']
     price = order['price']
 
     message = f'{bot_name}: {side} {filled:.3f} {base_currency} at {price:.2f} {quote_currency}'
-    line_send(message, noti_type = 'order')
+    line_send(message, noti_type='order')
     print(message)
 
 

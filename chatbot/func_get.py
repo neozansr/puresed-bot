@@ -32,8 +32,8 @@ def get_keys_path(config_system_path):
     return keys_path
 
 
-def get_date(timezone = 'Asia/Bangkok'):
-    timestamp = dt.datetime.now(tz = tz.gettz(timezone))
+def get_date(timezone='Asia/Bangkok'):
+    timestamp = dt.datetime.now(tz=tz.gettz(timezone))
     date = timestamp.date()
     
     return date
@@ -103,14 +103,14 @@ def get_hold_assets(grid, last_price, open_orders_df):
     return unrealised, n_open_sell_oders, amount, avg_price
 
 
-def get_pending_order(quote_currency, open_orders_df):
+def get_pending_order(open_orders_df):
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
-    min_buy_price = min(open_buy_orders_df['price'], default = 0)
-    max_buy_price = max(open_buy_orders_df['price'], default = 0)
+    min_buy_price = min(open_buy_orders_df['price'], default=0)
+    max_buy_price = max(open_buy_orders_df['price'], default=0)
 
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    min_sell_price = min(open_sell_orders_df['price'], default = 0)
-    max_sell_price = max(open_sell_orders_df['price'], default = 0)
+    min_sell_price = min(open_sell_orders_df['price'], default=0)
+    max_sell_price = max(open_sell_orders_df['price'], default=0)
 
     return min_buy_price, max_buy_price, min_sell_price, max_sell_price
 
@@ -160,7 +160,7 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
     today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
     cash_flow = sum(today_sell_df['amount'] * grid)
     
-    min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(quote_currency, open_orders_df)
+    min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(open_orders_df)
 
     text += f'\nBalance: {balance:.2f} {quote_currency}'
     text += f'\nHold {amount:.4f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}'
