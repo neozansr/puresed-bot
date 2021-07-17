@@ -180,16 +180,19 @@ def check_cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid,
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     
     min_sell_price = min(open_orders_df['price'])    
-    
-    if (min_sell_price - last_price) >= (grid * 2):
-        # double check budget, in case of last_price shift much higher
-        cont_flag = 0
 
-        _, _, withdraw_cash_flow = get_transfer(transfer_path)
-        available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
+    _, _, withdraw_cash_flow = get_transfer(transfer_path)
+    available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
 
-        while quote_currency_amount < available_cash_flow + value:
-            cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df_path, idle_stage, idle_rest)
+    if quote_currency_amount < available_cash_flow + value:
+        if (min_sell_price - last_price) >= (grid * 2):
+            cont_flag = 0
+            
+            while quote_currency_amount < available_cash_flow + value:
+                cut_loss(exchange, bot_name, symbol, quote_currency, last_price, grid, config_params_path, last_loop_path, open_orders_df_path, idle_stage, idle_rest)
+
+                balance = exchange.fetch_balance()
+                quote_currency_amount = balance[quote_currency]['free']
 
     return cont_flag
             
