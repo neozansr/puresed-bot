@@ -20,7 +20,7 @@ cash_flow_df_path = '../cash_flow/{}.csv'
 def run_bot(idle_stage, idle_rest, keys_path, config_params_path=config_params_path, last_loop_path=last_loop_path, transfer_path=transfer_path, open_orders_df_path=open_orders_df_path, transactions_df_path=transactions_df_path, error_log_df_path=error_log_df_path, cash_flow_df_path=cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(keys_path)
-    symbol, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, start_safety, circuit_limit, decimal = get_config_params(config_params_path)
+    symbol, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, start_safety, circuit_limit, decimal=get_config_params(config_params_path)
     base_currency, quote_currency = get_currency(symbol)
     check_orders_status(exchange, bot_name, 'buy', symbol, base_currency, quote_currency, grid, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path)
     time.sleep(idle_stage)

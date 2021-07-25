@@ -28,13 +28,13 @@ def get_config_params(config_params_path):
     return symbol, fix_value, min_value
 
 
-def get_time(timezone = 'Asia/Bangkok'):
+def get_time(timezone='Asia/Bangkok'):
     timestamp = dt.datetime.now(tz=tz.gettz(timezone))
     
     return timestamp
 
 
-def get_date(timezone = 'Asia/Bangkok'):
+def get_date(timezone='Asia/Bangkok'):
     timestamp = dt.datetime.now(tz=tz.gettz(timezone))
     date = timestamp.date()
     
