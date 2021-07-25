@@ -150,9 +150,9 @@ def update_loss(loss, last_loop_path):
     with open(last_loop_path) as last_loop_file:
         last_loop_dict = json.load(last_loop_file)
 
-    loss = last_loop_dict['loss']
-    loss -= loss
-    last_loop_dict['loss'] = loss
+    total_loss = last_loop_dict['loss']
+    total_loss -= loss
+    last_loop_dict['loss'] = total_loss
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop_dict, last_loop_file, indent=1)
