@@ -7,7 +7,7 @@ import json
 from func_cal import cal_unrealised
 
 
-def get_config_params(bot_type, config_params_path):
+def get_config_bot_params(bot_type, config_params_path):
     with open(config_params_path) as config_file:
         config_params = json.load(config_file)
 
@@ -65,8 +65,9 @@ def get_currency(symbol):
     return base_currency, quote_currency    
 
 
-def get_balance(exchange, base_currency, quote_currency, last_price, config_system_path):
+def get_balance(exchange, symbol, last_price):
     balance = exchange.fetch_balance()
+    base_currency, quote_currency = get_currency(symbol)
 
     try:
         base_currency_amount = balance[base_currency]['total']
@@ -119,7 +120,7 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
-    symbol, _, _ = get_config_params(bot_type, sub_path + config_params_path)
+    symbol, _, _ = get_config_bot_params(bot_type, sub_path + config_params_path)
     base_currency, quote_currency = get_currency(symbol)
     last_price = get_last_price(exchange, symbol)
 
@@ -127,7 +128,7 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
 
-    balance = get_balance(exchange, base_currency, quote_currency, last_price, config_system_path)
+    balance = get_balance(exchange, symbol, last_price)
     current_value = get_current_value(exchange, base_currency, last_price)
     cash = balance - current_value
     cash_flow = sum(today_profit_df['profit'])
@@ -144,7 +145,7 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
-    symbol, grid, init_budget = get_config_params(bot_type, sub_path + config_params_path)
+    symbol, grid, _ = get_config_bot_params(bot_type, sub_path + config_params_path)
     base_currency, quote_currency = get_currency(symbol)
     last_price = get_last_price(exchange, symbol)
     

@@ -75,7 +75,7 @@ def print_hold_assets(base_currency, quote_currency, last_price, grid, open_orde
     print(f'Unrealised: {unrealised:.2f} {quote_currency}')
 
 
-def print_current_balance(exchange, symbol, quote_currency, last_price):
+def print_current_balance_grid(exchange, symbol, quote_currency, last_price):
     balance = get_balance(exchange, symbol, last_price)
 
     print(f'Balance: {balance:.2f} {quote_currency}')

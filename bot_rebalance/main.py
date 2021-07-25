@@ -4,7 +4,7 @@ import os
 
 from func_get import get_config_system, get_config_params, get_time, get_exchange, get_currency, get_last_price, get_current_value, get_idle_loop, update_budget, get_withdraw_flag, update_withdraw_flag, reset_n_loop
 from func_order import check_open_orders, rebalance, append_error_log
-from func_noti import print_current_balance
+from func_noti import print_current_balance_rebalance
 
 
 config_system_path = 'config_system.json'
@@ -43,7 +43,7 @@ def run_bot(idle_stage, keys_path, config_params_path=config_params_path, last_l
             time.sleep(idle_stage)
             last_price = get_last_price(exchange, symbol)
             current_value = get_current_value(exchange, symbol, last_price)
-            print_current_balance(exchange, current_value, symbol, quote_currency, last_price)
+            print_current_balance_rebalance(exchange, current_value, symbol, quote_currency, last_price)
             rebalance(exchange, symbol, base_currency, quote_currency, fix_value, current_value, min_value, order_type, open_orders_df_path, error_log_df_path)
             
             if withdraw_flag == 1:

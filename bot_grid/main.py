@@ -5,7 +5,7 @@ import os
 from func_get import get_config_system, get_config_params, get_exchange, get_currency, get_last_price, update_last_loop_price, update_budget
 from func_cal import cal_budget
 from func_order import check_orders_status, cancel_open_buy_orders, open_buy_orders, append_error_log, check_circuit_breaker, check_cut_loss
-from func_noti import print_pending_order, print_hold_assets, print_current_balance
+from func_noti import print_pending_order, print_hold_assets, print_current_balance_grid
 
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
@@ -38,7 +38,7 @@ def run_bot(idle_stage, idle_rest, keys_path, config_params_path=config_params_p
             remain_budget, free_budget = cal_budget(budget, grid, open_orders_df_path)
             open_buy_orders(exchange, bot_name, remain_budget, free_budget, symbol, base_currency, quote_currency, grid, value, start_safety, decimal, idle_stage, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
             print_hold_assets(base_currency, quote_currency, last_price, grid, open_orders_df_path)
-            print_current_balance(exchange, symbol, quote_currency, last_price)
+            print_current_balance_grid(exchange, symbol, quote_currency, last_price)
 
     change_params_flag = update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
 

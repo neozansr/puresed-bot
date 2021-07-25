@@ -33,7 +33,7 @@ def noti_success_order(bot_name, order, base_currency, quote_currency):
     print(message)
 
 
-def print_current_balance(exchange, current_value, symbol, quote_currency, last_price):
+def print_current_balance_rebalance(exchange, current_value, symbol, quote_currency, last_price):
     balance = get_balance(exchange, symbol, last_price)
     cash = balance - current_value
 
