@@ -141,7 +141,7 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     return text
 
 
-def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path):
+def get_grid_text(text, bot_type, sub_path, config_system_path, config_params_path, open_orders_df_path, transactions_df_path):
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
@@ -154,7 +154,7 @@ def get_grid_text(text, bot_name, bot_type, sub_path, config_system_path, config
 
     cur_date = get_date()
 
-    balance = get_balance(exchange, base_currency, quote_currency, last_price, config_system_path)
+    balance = get_balance(exchange, symbol, last_price)
     unrealised, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, last_price, open_orders_df)
 
     today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
