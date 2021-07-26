@@ -57,7 +57,7 @@ def get_last_price(exchange, config_params, print_flag=True):
     ticker = exchange.fetch_ticker(config_params['symbol'])
     last_price = ticker['last']
 
-    _, quote_currency = get_currency(config_params['symbol'])
+    _, quote_currency = get_currency(config_params)
     
     if print_flag == True:
         print(f'Last price: {last_price:.2f} {quote_currency}')
@@ -81,7 +81,7 @@ def get_ask_price(exchange, config_params):
 
 def get_balance(last_price, exchange, config_params):
     balance = exchange.fetch_balance()
-    base_currency, quote_currency = get_currency(config_params['symbol'])
+    base_currency, quote_currency = get_currency(config_params)
     
     try:
         base_currency_amount = balance[base_currency]['total']

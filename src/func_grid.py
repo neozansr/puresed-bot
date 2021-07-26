@@ -90,7 +90,7 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
     return buy_price_list, cancel_flag
 
 
-def open_sell_orders_grid(buy_order, exchange, base_currency, quote_currency, config_system, config_params, error_log_df_path):
+def open_sell_orders_grid(buy_order, exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, error_log_df_path):
     ask_price = get_ask_price(exchange, config_params)
     sell_price = cal_sell_price(buy_order, ask_price, config_params)
     
@@ -130,7 +130,7 @@ def clear_orders_grid(side, exchange, bot_name, base_currency, quote_currency, c
             noti_success_order(order, bot_name, base_currency, quote_currency)
 
             if side == 'buy':
-                open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, error_log_df_path)
+                open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, error_log_df_path)
 
             remove_order(order_id, open_orders_df_path)
             append_order('filled', order, config_params, transactions_df_path)
@@ -156,7 +156,7 @@ def cancel_open_buy_orders_grid(exchange, base_currency, quote_currency, config_
                 
                 if filled > 0:
                     append_order('filled', order, config_params, transactions_df_path)
-                    open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, error_log_df_path)
+                    open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, error_log_df_path)
                 
                 remove_order(order_id, open_orders_df_path)
             except ccxt.OrderNotFound:
