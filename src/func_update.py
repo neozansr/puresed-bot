@@ -4,7 +4,7 @@ import json
 from func_get import get_time, get_last_price
 
 
-def append_order(order_type, amount_key, order, exchange, config_params, df_path):
+def append_order(amount_key, order, exchange, config_params, df_path):
     df = pd.read_csv(df_path)
 
     timestamp = get_time()

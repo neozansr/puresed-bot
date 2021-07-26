@@ -168,12 +168,12 @@ def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_curr
                 cont_flag = clear_queue(method, order_id, exchange, config_params, open_orders_df_path, error_log_df_path)
         
             if order['side'] == 'buy':
-                append_order('market', 'filled', order, exchange, config_params, queue_df_path)
+                append_order('filled', order, exchange, config_params, queue_df_path)
             elif order['side'] == 'sell':
                 update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
 
             remove_order(order_id, open_orders_df_path)
-            append_order('market', 'filled', order, exchange, config_params, transactions_df_path)
+            append_order('filled', order, exchange, config_params, transactions_df_path)
             noti_success_order(order, bot_name, base_currency, quote_currency)
         
         else:
@@ -201,7 +201,7 @@ def rebalance(current_value, exchange, base_currency, quote_currency, config_par
         amount = diff_value / price
         try:
             order = exchange.create_order(config_params['symbol'], 'market', side, amount)
-            append_order('market', 'amount', order, exchange, config_params, open_orders_df_path)
+            append_order('amount', order, exchange, config_params, open_orders_df_path)
             print(f'Open {side} {amount:.3f} {base_currency} at {price:.2f} {quote_currency}')
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process
