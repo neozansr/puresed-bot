@@ -70,7 +70,6 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     
     max_open_buy_price = max(open_buy_orders_df['price'], default=0)
-    min_open_buy_price = min(open_buy_orders_df['price'])
     min_open_sell_price = min(open_sell_orders_df['price'], default=np.inf)
 
     if min(bid_price, min_open_sell_price - config_params['grid']) - max_open_buy_price > config_params['grid']:    
@@ -84,6 +83,7 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
             
         cancel_flag = 1
     else:
+        min_open_buy_price = min(open_buy_orders_df['price'])
         buy_price_list = cal_append_orders(min_open_buy_price, free_budget, config_params)
         cancel_flag = 0
 
