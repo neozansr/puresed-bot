@@ -7,10 +7,9 @@ src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_config_system, get_config_params, get_exchange, get_currency, get_last_price, check_end_date
-from func_cal import cal_budget
 from func_update import append_error_log
 from func_noti import print_pending_order, print_hold_assets, print_current_balance
-from func_grid import clear_orders_grid, cancel_open_buy_orders_grid, open_buy_orders_grid, check_circuit_breaker, check_cut_loss, update_budget_grid
+from func_grid import cal_budget, clear_orders_grid, cancel_open_buy_orders_grid, open_buy_orders_grid, check_circuit_breaker, check_cut_loss, update_budget_grid
 
 
 def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
