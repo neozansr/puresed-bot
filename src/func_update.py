@@ -4,7 +4,7 @@ import json
 from func_get import get_time, get_last_price
 
 
-def append_order(amount_key, order, config_params, df_path):
+def append_order(order_type, amount_key, order, exchange, config_params, df_path):
     df = pd.read_csv(df_path)
 
     timestamp = get_time()
@@ -12,7 +12,12 @@ def append_order(amount_key, order, config_params, df_path):
     order_type = order['type']
     order_side = order['side']
     amount = order[amount_key]
-    price = order['price']
+
+    if order_type == 'limit':
+        price = order['price']
+    else:
+        price = exchange.fetch_my_trades()[-1]['price']
+    
     value = amount * price
 
     df.loc[len(df)] = [timestamp, order_id, config_params['symbol'], order_type, order_side, amount, price, value]
