@@ -345,7 +345,7 @@ def update_budget_grid(last_price, prev_date, exchange, bot_name, config_params,
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
     if ((len(last_transactions_df) > 0) | (len(cash_flow_df) > 0)):
-        balance = get_balance(last_price, exchange, config_params)
+        balance, _ = get_balance(last_price, exchange, config_params)
         unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
 
         last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
