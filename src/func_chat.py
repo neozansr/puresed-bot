@@ -10,7 +10,7 @@ def get_rebalance_text(text, sub_path, config_system_path, config_params_path, p
 
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params)
-    last_price = get_last_price(exchange, config_params)
+    last_price = get_last_price(exchange, config_params, print_flag=False)
 
     cur_date = get_date()
     profit_df = pd.read_csv(sub_path + profit_df_path)
@@ -34,20 +34,20 @@ def get_grid_text(text, sub_path, config_system_path, config_params_path, open_o
 
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params)
-    last_price = get_last_price(exchange, config_params)
+    last_price = get_last_price(exchange, config_params, print_flag=False)
     
     cur_date = get_date()
     open_orders_df = pd.read_csv(sub_path + open_orders_df_path)
     transactions_df = pd.read_csv(sub_path + transactions_df_path)
 
-    balance = get_balance(last_price, exchange, config_params)
+    balance, _ = get_balance(last_price, exchange, config_params)
     unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, config_params, open_orders_df)
 
     today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
     today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
     cash_flow = sum(today_sell_df['amount'] * config_params['grid'])
     
-    min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(open_orders_df)
+    min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(sub_path + open_orders_df_path)
 
     text += f'\nBalance: {balance:.2f} {quote_currency}'
     text += f'\nHold {amount:.4f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}'
