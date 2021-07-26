@@ -183,7 +183,7 @@ def open_buy_orders_grid(remain_budget, free_budget, exchange, bot_name, base_cu
 
     for price in buy_price_list:
         amount = config_params['value'] / price
-        floor_amount = round_down_amount(amount, config_params['decimal'])
+        floor_amount = round_down_amount(amount, config_params)
         
         balance = exchange.fetch_balance()
         quote_currency_amount = balance[quote_currency]['free']
