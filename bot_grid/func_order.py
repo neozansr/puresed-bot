@@ -159,13 +159,10 @@ def check_circuit_breaker(exchange, bot_name, base_currency, quote_currency, las
     if len(transactions_df) >= config_params['circuit_limit']:
         side_list = transactions_df['side'][-config_params['circuit_limit']:].unique()
         
-        if (len(side_list) == 1) & (side_list[0] == 'buy'):
-            if last_price <= last_loop_price:
-                cont_flag = 0
-
-                cancel_open_buy_orders(exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-                noti_warning(bot_name, f'Circuit breaker at {last_price} {quote_currency}')
-                time.sleep(config_system['idle_rest'])
+        if (len(side_list) == 1) & (side_list[0] == 'buy') & (last_price <= last_loop_price):
+            cancel_open_buy_orders(exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+            noti_warning(bot_name, f'Circuit breaker at {last_price} {quote_currency}')
+            time.sleep(config_system['idle_rest'])
 
     return cont_flag
 
@@ -185,15 +182,14 @@ def check_cut_loss(exchange, bot_name, quote_currency, last_price, config_system
     _, _, withdraw_cash_flow = get_transfer(transfer_path)
     available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
 
-    if quote_currency_amount < available_cash_flow + config_params['value']:
-        if (min_sell_price - last_price) >= (config_params['grid'] * 2):
-            cont_flag = 0
-            
-            while quote_currency_amount < available_cash_flow + config_params['value']:
-                cut_loss(exchange, bot_name, quote_currency, last_price, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path)
+    if (quote_currency_amount < available_cash_flow + config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
+        cont_flag = 0
+        
+        while quote_currency_amount < available_cash_flow + config_params['value']:
+            cut_loss(exchange, bot_name, quote_currency, last_price, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path)
 
-                balance = exchange.fetch_balance()
-                quote_currency_amount = balance[quote_currency]['free']
+            balance = exchange.fetch_balance()
+            quote_currency_amount = balance[quote_currency]['free']
 
     return cont_flag
             

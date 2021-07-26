@@ -239,40 +239,38 @@ def update_budget(exchange, bot_name, last_price, config_params, config_params_p
     prev_date = cur_date - dt.timedelta(days=1)
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
-    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
-        # skip 1st date
-        if last_date != prev_date:
-            change_params_flag = 1
+    if ((len(last_transactions_df) > 0) | (len(cash_flow_df) > 0)) & (last_date != prev_date):
+        change_params_flag = 1
 
-            balance = get_balance(exchange, last_price, config_params)
-            unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
+        balance = get_balance(exchange, last_price, config_params)
+        unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
 
-            last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
-            cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
-            
-            if config_params['reinvest_ratio'] == -1:
-                greed_index = get_greed_index()
-                reinvest_ratio = max(1 - (greed_index / 100), 0)
+        last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
+        cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
+        
+        if config_params['reinvest_ratio'] == -1:
+            greed_index = get_greed_index()
+            reinvest_ratio = max(1 - (greed_index / 100), 0)
 
-            reinvest_amount = cash_flow * reinvest_ratio
-            remain_cash_flow = cash_flow - reinvest_amount
+        reinvest_amount = cash_flow * reinvest_ratio
+        remain_cash_flow = cash_flow - reinvest_amount
 
-            transfer = get_transfer(transfer_path)
-            lower_price = last_price * (1 - config_params['fluctuation_rate'])
-            n_order = int((last_price - lower_price) / config_params['grid'])
+        transfer = get_transfer(transfer_path)
+        lower_price = last_price * (1 - config_params['fluctuation_rate'])
+        n_order = int((last_price - lower_price) / config_params['grid'])
 
-            net_transfer = transfer['deposit'] - transfer['withdraw']
-            new_init_budget = config_params['init_budget'] + net_transfer
-            new_budget = config_params['budget'] + reinvest_amount + net_transfer
-            new_value = new_budget / n_order
-            
-            available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-            available_cash_flow += remain_cash_flow
+        net_transfer = transfer['deposit'] - transfer['withdraw']
+        new_init_budget = config_params['init_budget'] + net_transfer
+        new_budget = config_params['budget'] + reinvest_amount + net_transfer
+        new_value = new_budget / n_order
+        
+        available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+        available_cash_flow += remain_cash_flow
 
-            cash_flow_list = [prev_date, balance, unrealised, config_params['value'], cash_flow, reinvest_amount, remain_cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, last_loop['loss'], transfer['deposit'], transfer['withdraw']]
-            append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-            update_reinvest(new_init_budget, new_budget, new_value, config_params_path)
-            reset_loss(last_loop_path)
-            reset_transfer(transfer_path)
+        cash_flow_list = [prev_date, balance, unrealised, config_params['value'], cash_flow, reinvest_amount, remain_cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, last_loop['loss'], transfer['deposit'], transfer['withdraw']]
+        append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+        update_reinvest(new_init_budget, new_budget, new_value, config_params_path)
+        reset_loss(last_loop_path)
+        reset_transfer(transfer_path)
 
     return change_params_flag

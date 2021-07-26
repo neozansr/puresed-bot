@@ -249,27 +249,25 @@ def update_budget(exchange, bot_name, base_currency, config_params, config_param
     prev_date = cur_date - dt.timedelta(days=1)
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
-    # skip 1st date
-    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
-        if last_date != prev_date:
-            balance = get_balance(last_price, exchange, config_params)
-            cash = balance - current_value
+    if ((len(last_transactions_df) > 0) | (len(cash_flow_df) > 0)) & (last_date != prev_date):
+        balance = get_balance(last_price, exchange, config_params)
+        cash = balance - current_value
 
-            profit_df = pd.read_csv(profit_df_path)
-            last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
-            cash_flow = sum(last_profit_df['profit'])
-            transfer = get_transfer(transfer_path)
-            
-            available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-            available_cash_flow += cash_flow
-            
-            cash_flow_list = [prev_date, balance, cash, config_params['fix_value'], cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, transfer['deposit'], transfer['withdraw']]
-            append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-            update_fix_value(transfer, config_params, config_params_path)
-            reset_transfer(transfer_path)
+        profit_df = pd.read_csv(profit_df_path)
+        last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
+        cash_flow = sum(last_profit_df['profit'])
+        transfer = get_transfer(transfer_path)
+        
+        available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+        available_cash_flow += cash_flow
+        
+        cash_flow_list = [prev_date, balance, cash, config_params['fix_value'], cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, transfer['deposit'], transfer['withdraw']]
+        append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+        update_fix_value(transfer, config_params, config_params_path)
+        reset_transfer(transfer_path)
 
-            if  transfer['withdraw'] > transfer['deposit']:
-                withdraw_flag = 1
+        if  transfer['withdraw'] > transfer['deposit']:
+            withdraw_flag = 1
 
     return withdraw_flag
 
