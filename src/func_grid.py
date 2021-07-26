@@ -97,6 +97,7 @@ def open_sell_orders_grid(buy_order, exchange, base_currency, quote_currency, co
     try:
         final_amount = cal_final_amount(buy_order['id'], exchange, config_system, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
+        append_order('amount', sell_order, config_params, open_orders_df_path)
     except ccxt.InsufficientFunds:
         # not available amount to sell (could caused by decimal), sell free amount
         balance = exchange.fetch_balance()
@@ -106,6 +107,7 @@ def open_sell_orders_grid(buy_order, exchange, base_currency, quote_currency, co
         append_error_log('InsufficientFunds', error_log_df_path)
     except ccxt.InvalidOrder:
         # filled small value than minimum order, ignore
+        sell_order = None
         append_error_log('InvalidOrder', error_log_df_path)
     
     print(f'Open sell {final_amount:.3f} {base_currency} at {sell_price} {quote_currency}')
@@ -128,8 +130,7 @@ def clear_orders_grid(side, exchange, bot_name, base_currency, quote_currency, c
             noti_success_order(order, bot_name, base_currency, quote_currency)
 
             if side == 'buy':
-                sell_order = open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, error_log_df_path)
-                append_order('amount', sell_order, config_params, open_orders_df_path)
+                open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, error_log_df_path)
 
             remove_order(order_id, open_orders_df_path)
             append_order('filled', order, config_params, transactions_df_path)
@@ -155,9 +156,7 @@ def cancel_open_buy_orders_grid(exchange, base_currency, quote_currency, config_
                 
                 if filled > 0:
                     append_order('filled', order, config_params, transactions_df_path)
-                    
-                    sell_order = open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, error_log_df_path)
-                    append_order('amount', sell_order, config_params, open_orders_df_path)
+                    open_sell_orders_grid(order, exchange, base_currency, quote_currency, config_system, config_params, error_log_df_path)
                 
                 remove_order(order_id, open_orders_df_path)
             except ccxt.OrderNotFound:
