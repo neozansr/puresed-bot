@@ -28,8 +28,6 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     update_withdraw_flag(last_loop_path, False)
 
     if cont_flag == 1:
-        update_budget_rebalance(exchange, bot_name, base_currency, config_params, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
-
         time.sleep(config_system['idle_stage'])
         last_price = get_last_price(exchange, config_params)
         current_value = get_current_value(last_price, exchange, base_currency)
@@ -42,7 +40,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path)
 
     if end_date_flag == 1:
-        update_budget_rebalance(last_price, prev_date, exchange, bot_name, quote_currency, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
+        update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
 
 
 if __name__ == "__main__":

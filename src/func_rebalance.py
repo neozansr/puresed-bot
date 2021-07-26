@@ -97,7 +97,7 @@ def append_profit(sell_order, exe_amount, config_params, queue_df, profit_df_pat
     df.to_csv(profit_df_path, index=False)
 
 
-def update_queue(method, sell_order, amount_key, config_params, queue_df_path, profit_df_path):
+def update_queue(method, amount_key, sell_order, config_params, queue_df_path, profit_df_path):
     sell_amount = sell_order[amount_key]
 
     while sell_amount > 0:
@@ -170,7 +170,7 @@ def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_curr
             if order['side'] == 'buy':
                 append_order('filled', order, config_params, queue_df_path)
             elif order['side'] == 'sell':
-                update_queue(method, order, 'filled', config_params, queue_df_path, profit_df_path)
+                update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
 
             remove_order(order_id, open_orders_df_path)
             append_order('filled', order, config_params, transactions_df_path)
@@ -225,7 +225,7 @@ def update_withdraw_flag(last_loop_path, enable):
         json.dump(last_loop, last_loop_file, indent=1)
 
 
-def update_budget_rebalance(last_price, prev_date, exchange, bot_name, quote_currency, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
