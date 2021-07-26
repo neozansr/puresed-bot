@@ -45,11 +45,11 @@ def append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path):
     cash_flow_df.to_csv(cash_flow_df_path, index=False)
 
 
-def update_last_loop_price(exchange, symbol, last_loop_path):
+def update_last_loop_price(exchange, config_params, last_loop_path):
     with open(last_loop_path) as last_loop_file:
         last_loop = json.load(last_loop_file)
 
-    last_price = get_last_price(exchange, symbol)
+    last_price = get_last_price(exchange, config_params)
     last_loop['price'] = last_price
 
     with open(last_loop_path, 'w') as last_loop_file:

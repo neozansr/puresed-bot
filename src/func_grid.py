@@ -203,7 +203,7 @@ def check_circuit_breaker(last_price, exchange, bot_name, base_currency, quote_c
 
     last_loop = get_last_loop(last_loop_path)
     transactions_df = pd.read_csv(transactions_df_path)
-    update_last_loop_price(exchange, config_params['symbol'], last_loop_path)
+    update_last_loop_price(exchange, config_params, last_loop_path)
 
     if len(transactions_df) >= config_params['circuit_limit']:
         side_list = transactions_df['side'][-config_params['circuit_limit']:].unique()
