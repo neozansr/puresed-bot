@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import requests
 
-from func_get import get_time, get_currency, get_balance
+from func_get import get_time, get_balance, get_pending_order
 from func_cal import cal_unrealised
 
 
@@ -30,8 +30,8 @@ def noti_success_order(order, bot_name, base_currency, quote_currency):
     filled = order['filled']
     price = order['price']
     
-    message = f'{bot_name}: {side} {filled:.3f} {base_currency} at {price} {quote_currency}'
-    line_send(message, noti_type = 'order')
+    message = f'{bot_name}: {side} {filled:.3f} {base_currency} at {price:.2f} {quote_currency}'
+    line_send(message, noti_type='order')
     print(message)
 
 
@@ -42,15 +42,7 @@ def noti_warning(warning, bot_name):
 
 
 def print_pending_order(quote_currency, open_orders_df_path):
-    open_orders_df = pd.read_csv(open_orders_df_path)
-    
-    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
-    min_buy_price = min(open_buy_orders_df['price'], default=0)
-    max_buy_price = max(open_buy_orders_df['price'], default=0)
-
-    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    min_sell_price = min(open_sell_orders_df['price'], default=0)
-    max_sell_price = max(open_sell_orders_df['price'], default=0)
+    min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(open_orders_df_path)
 
     print(f'Min buy price: {min_buy_price:.2f} {quote_currency}')
     print(f'Max buy price: {max_buy_price:.2f} {quote_currency}')
@@ -75,7 +67,14 @@ def print_hold_assets(last_price, base_currency, quote_currency, config_params, 
     print(f'Unrealised: {unrealised:.2f} {quote_currency}')
 
 
-def print_current_balance_grid(exchange, last_price, quote_currency, config_params):
-    balance = get_balance(exchange, config_params['symbol'], last_price)
-
+def print_current_balance(last_price, exchange, quote_currency, config_params):
+    balance, _ = get_balance(last_price, exchange, config_params)
+    
     print(f'Balance: {balance:.2f} {quote_currency}')
+
+
+def print_current_value(last_price, current_value, exchange, quote_currency, config_params):
+    _, cash = get_balance(last_price, exchange, config_params)
+
+    print(f'Current value: {current_value:.2f} {quote_currency}')
+    print(f'Cash: {cash:.2f} {quote_currency}')

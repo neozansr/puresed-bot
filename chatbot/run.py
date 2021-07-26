@@ -1,11 +1,13 @@
 import telebot
-import ccxt
-import requests
 import time
 import json
+import os
+import sys
 
+src_path = '../src/'
+sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_grid_text, get_rebalance_text
+from func_chat import get_grid_text, get_rebalance_text
 
 with open('../../_keys/bot_token.json') as token_file:
     token_dict = json.load(token_file)
