@@ -1,8 +1,8 @@
-def cal_unrealised(last_price, grid, open_orders_df):
+def cal_unrealised(last_price, config_params, open_orders_df):
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     n_open_sell_oders = len(open_sell_orders_df)
     
-    price_list = [x - grid for x in open_sell_orders_df['price']]
+    price_list = [x - config_params['grid'] for x in open_sell_orders_df['price']]
     amount_list = open_sell_orders_df['amount'].to_list()
 
     amount = sum(amount_list)

@@ -23,7 +23,7 @@ def line_send(message, noti_type):
     return send_message
 
 
-def noti_success_order(bot_name, order, base_currency, quote_currency):
+def noti_success_order(order, bot_name, base_currency, quote_currency):
     side = order['side']
     filled = order['filled']
     price = order['price']
@@ -33,8 +33,8 @@ def noti_success_order(bot_name, order, base_currency, quote_currency):
     print(message)
 
 
-def print_current_balance_rebalance(exchange, current_value, symbol, quote_currency, last_price):
-    balance = get_balance(exchange, symbol, last_price)
+def print_current_balance_rebalance(current_value, last_price, exchange, quote_currency, config_params):
+    balance = get_balance(last_price, exchange, config_params)
     cash = balance - current_value
 
     print(f'Balance: {balance:.2f} {quote_currency}')

@@ -37,7 +37,7 @@ def send_bot_rebalance(message):
     sub_path = f'../{bot_name}/'
 
     text = f'{bot_name.title()}\n{bot_type.title()}\n'
-    text = get_rebalance_text(text, bot_type, sub_path, config_system_path, config_params_path, profit_df_path)
+    text = get_rebalance_text(text, sub_path, config_system_path, config_params_path, profit_df_path)
     
     bot.send_message(message.chat.id, text)
 
@@ -49,7 +49,7 @@ def send_bot_grid(message):
     sub_path = f'../{bot_name}/'
 
     text = f'{bot_name.title()}\n{bot_type.title()}\n'
-    text = get_grid_text(text, bot_type, sub_path, config_system_path, config_params_path, open_orders_df_path, transactions_df_path)
+    text = get_grid_text(text, sub_path, config_system_path, config_params_path, open_orders_df_path, transactions_df_path)
     
     bot.send_message(message.chat.id, text)
 

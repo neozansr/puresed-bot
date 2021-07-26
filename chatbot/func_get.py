@@ -7,20 +7,11 @@ import json
 from func_cal import cal_unrealised
 
 
-def get_config_bot_params(bot_type, config_params_path):
+def get_config_params(config_params_path):
     with open(config_params_path) as config_file:
         config_params = json.load(config_file)
 
-    symbol = config_params['symbol']
-
-    if bot_type == 'grid':
-        grid = config_params['grid']
-        init_budget = config_params['init_budget']
-    else:
-        grid = None
-        init_budget = None
-
-    return symbol, grid, init_budget
+    return config_params
 
 
 def get_keys_path(config_system_path):
@@ -51,23 +42,23 @@ def get_exchange(keys_path):
     return exchange
     
 
-def get_last_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
+def get_last_price(exchange, config_params):
+    ticker = exchange.fetch_ticker(config_params['symbol'])
     last_price = ticker['last']
 
     return last_price
 
 
-def get_currency(symbol):
-    base_currency = symbol.split('/')[0]
-    quote_currency = symbol.split('/')[1]
+def get_currency(config_params):
+    base_currency = config_params['symbol'].split('/')[0]
+    quote_currency = config_params['symbol'].split('/')[1]
 
     return base_currency, quote_currency    
 
 
-def get_balance(exchange, symbol, last_price):
+def get_balance(last_price, exchange, config_params):
     balance = exchange.fetch_balance()
-    base_currency, quote_currency = get_currency(symbol)
+    base_currency, quote_currency = get_currency(config_params['symbol'])
 
     try:
         base_currency_amount = balance[base_currency]['total']
@@ -86,7 +77,7 @@ def get_balance(exchange, symbol, last_price):
     return balance
 
 
-def get_current_value(exchange, base_currency, last_price):
+def get_current_value(last_price, exchange, base_currency):
     balance = exchange.fetch_balance()
     
     try:
@@ -98,8 +89,8 @@ def get_current_value(exchange, base_currency, last_price):
     return current_value
 
 
-def get_hold_assets(grid, last_price, open_orders_df):
-    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, grid, open_orders_df)
+def get_hold_assets(last_price, config_params, open_orders_df):
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, config_params, open_orders_df)
 
     return unrealised, n_open_sell_oders, amount, avg_price
 
@@ -116,20 +107,20 @@ def get_pending_order(open_orders_df):
     return min_buy_price, max_buy_price, min_sell_price, max_sell_price
 
 
-def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_params_path, profit_df_path):
+def get_rebalance_text(text, sub_path, config_system_path, config_params_path, profit_df_path):
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
-    symbol, _, _ = get_config_bot_params(bot_type, sub_path + config_params_path)
-    base_currency, quote_currency = get_currency(symbol)
-    last_price = get_last_price(exchange, symbol)
+    config_params = get_config_params(sub_path + config_params_path)
+    base_currency, quote_currency = get_currency(config_params)
+    last_price = get_last_price(exchange, config_params)
 
     cur_date = get_date()
     profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
 
-    balance = get_balance(exchange, symbol, last_price)
-    current_value = get_current_value(exchange, base_currency, last_price)
+    balance = get_balance(last_price, exchange, config_params)
+    current_value = get_current_value(last_price, exchange, base_currency)
     cash = balance - current_value
     cash_flow = sum(today_profit_df['profit'])
 
@@ -141,25 +132,25 @@ def get_rebalance_text(text, bot_type, sub_path, config_system_path, config_para
     return text
 
 
-def get_grid_text(text, bot_type, sub_path, config_system_path, config_params_path, open_orders_df_path, transactions_df_path):
+def get_grid_text(text, sub_path, config_system_path, config_params_path, open_orders_df_path, transactions_df_path):
     keys_path = get_keys_path(sub_path + config_system_path)
     exchange = get_exchange(keys_path)
 
-    symbol, grid, _ = get_config_bot_params(bot_type, sub_path + config_params_path)
-    base_currency, quote_currency = get_currency(symbol)
-    last_price = get_last_price(exchange, symbol)
+    config_params = get_config_params(sub_path + config_params_path)
+    base_currency, quote_currency = get_currency(config_params)
+    last_price = get_last_price(exchange, config_params)
     
     open_orders_df = pd.read_csv(sub_path + open_orders_df_path)
     transactions_df = pd.read_csv(sub_path + transactions_df_path)
 
     cur_date = get_date()
 
-    balance = get_balance(exchange, symbol, last_price)
-    unrealised, n_open_sell_oders, amount, avg_price = get_hold_assets(grid, last_price, open_orders_df)
+    balance = get_balance(last_price, exchange, config_params)
+    unrealised, n_open_sell_oders, amount, avg_price = get_hold_assets(last_price, config_params, open_orders_df)
 
     today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
     today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
-    cash_flow = sum(today_sell_df['amount'] * grid)
+    cash_flow = sum(today_sell_df['amount'] * config_params['grid'])
     
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(open_orders_df)
 

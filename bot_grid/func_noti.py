@@ -25,7 +25,7 @@ def line_send(message, noti_type):
     return send_message
 
 
-def noti_success_order(bot_name, order, base_currency, quote_currency):
+def noti_success_order(order, bot_name, base_currency, quote_currency):
     side = order['side']
     filled = order['filled']
     price = order['price']
@@ -35,7 +35,7 @@ def noti_success_order(bot_name, order, base_currency, quote_currency):
     print(message)
 
 
-def noti_warning(bot_name, warning):
+def noti_warning(warning, bot_name):
     message = f'{bot_name}: {warning}!!!!!'
     line_send(message, noti_type='warning')
     print(message)
@@ -58,9 +58,9 @@ def print_pending_order(quote_currency, open_orders_df_path):
     print(f'Max sell price: {max_sell_price:.2f} {quote_currency}')
 
 
-def print_hold_assets(base_currency, quote_currency, last_price, grid, open_orders_df_path):
+def print_hold_assets(last_price, base_currency, quote_currency, config_params, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, grid, open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, config_params, open_orders_df)
 
     assets_dict = {'timestamp': get_time(),
                    'last_price': last_price, 
@@ -75,7 +75,7 @@ def print_hold_assets(base_currency, quote_currency, last_price, grid, open_orde
     print(f'Unrealised: {unrealised:.2f} {quote_currency}')
 
 
-def print_current_balance_grid(exchange, symbol, quote_currency, last_price):
-    balance = get_balance(exchange, symbol, last_price)
+def print_current_balance_grid(exchange, last_price, quote_currency, config_params):
+    balance = get_balance(exchange, config_params['symbol'], last_price)
 
     print(f'Balance: {balance:.2f} {quote_currency}')

@@ -10,22 +10,14 @@ def get_config_system(config_system_path):
     with open(config_system_path) as config_file:
         config_system = json.load(config_file)
 
-    run_flag = config_system['run_flag']
-    idle_stage = config_system['idle_stage']
-    keys_path = config_system['keys_path']
-
-    return run_flag, idle_stage, keys_path
+    return config_system
 
 
 def get_config_params(config_params_path):
     with open(config_params_path) as config_file:
         config_params = json.load(config_file)
 
-    symbol = config_params['symbol']
-    fix_value = config_params['fix_value']
-    min_value = config_params['min_value']
-
-    return symbol, fix_value, min_value
+    return config_params
 
 
 def get_time(timezone='Asia/Bangkok'):
@@ -41,8 +33,8 @@ def get_date(timezone='Asia/Bangkok'):
     return date
 
 
-def get_exchange(keys_path):
-    with open(keys_path) as keys_file:
+def get_exchange(config_system):
+    with open(config_system['keys_path']) as keys_file:
         keys_dict = json.load(keys_file)
     
     exchange = ccxt.ftx({'apiKey': keys_dict['apiKey'],
@@ -53,39 +45,39 @@ def get_exchange(keys_path):
     return exchange
     
 
-def get_currency(symbol):
-    base_currency = symbol.split('/')[0]
-    quote_currency = symbol.split('/')[1]
+def get_currency(config_params):
+    base_currency = config_params['symbol'].split('/')[0]
+    quote_currency = config_params['symbol'].split('/')[1]
 
     return base_currency, quote_currency
 
 
-def get_last_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
+def get_last_price(exchange, config_params):
+    ticker = exchange.fetch_ticker(config_params['symbol'])
     last_price = ticker['last']
 
-    _, quote_currency = get_currency(symbol)
+    _, quote_currency = get_currency(config_params['symbol'])
+
     print(f'Last price: {last_price:.2f} {quote_currency}')
     return last_price
 
 
-def get_bid_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
+def get_bid_price(exchange, config_params):
+    ticker = exchange.fetch_ticker(config_params['symbol'])
     bid_price = ticker['bid']
 
     return bid_price
 
 
-def get_ask_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
+def get_ask_price(exchange, config_params):
+    ticker = exchange.fetch_ticker(config_params['symbol'])
     ask_price = ticker['bid']
 
     return ask_price
     
 
-def get_current_value(exchange, symbol, last_price):
+def get_current_value(last_price, exchange, base_currency):
     balance = exchange.fetch_balance()
-    base_currency, _ = get_currency(symbol)
     
     try:
         amount = balance[base_currency]['total']
@@ -96,9 +88,9 @@ def get_current_value(exchange, symbol, last_price):
     return current_value
 
 
-def get_balance(exchange, symbol, last_price):
+def get_balance(last_price, exchange, config_params):
     balance = exchange.fetch_balance()
-    base_currency, quote_currency = get_currency(symbol)
+    base_currency, quote_currency = get_currency(config_params['symbol'])
     
     try:
         base_currency_amount = balance[base_currency]['total']
@@ -115,6 +107,13 @@ def get_balance(exchange, symbol, last_price):
     balance = base_currency_value + quote_currency_value
     
     return balance
+
+
+def get_last_loop(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop = json.load(last_loop_file)
+
+    return last_loop
 
 
 def gen_series(n=18, limit_min=4):
@@ -146,66 +145,54 @@ def gen_series(n=18, limit_min=4):
 
 
 def get_idle_loop(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
+    last_loop = get_last_loop(last_loop_path)
 
-    n_loop = last_loop_dict['n_loop']
+    n_loop = last_loop['n_loop']
     series = gen_series()
     idle_loop = series[n_loop]
 
-    update_n_loop(n_loop, series, last_loop_dict, last_loop_path)
+    update_n_loop(n_loop, series, last_loop, last_loop_path)
     
     return idle_loop
 
 
-def update_n_loop(n_loop, series, last_loop_dict, last_loop_path):
+def update_n_loop(n_loop, series, last_loop, last_loop_path):
     n_loop += 1
     if n_loop >= len(series):
         n_loop = 0
 
-    last_loop_dict['n_loop'] = n_loop
+    last_loop['n_loop'] = n_loop
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent=1)
-
-
-def get_withdraw_flag(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-
-    withdraw_flag = last_loop_dict['withdraw_flag']
-
-    return withdraw_flag
+        json.dump(last_loop, last_loop_file, indent=1)
 
 
 def update_withdraw_flag(last_loop_path, enable):
     with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
+        last_loop = json.load(last_loop_file)
 
+    # enable flag when withdraw detected
+    # disable flag after sell assets
     if enable == True:
-        last_loop_dict['withdraw_flag'] = 1
+        last_loop['withdraw_flag'] = 1
     else:
-        last_loop_dict['withdraw_flag'] = 0
+        last_loop['withdraw_flag'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent=1)
+        json.dump(last_loop, last_loop_file, indent=1)
 
 
 def get_transfer(transfer_path):
     with open(transfer_path) as transfer_file:
-        transfer_dict = json.load(transfer_file)
+        transfer = json.load(transfer_file)
 
-    deposit = transfer_dict['deposit']
-    withdraw = transfer_dict['withdraw']
-    withdraw_cash_flow = transfer_dict['withdraw_cash_flow']
-
-    return deposit, withdraw, withdraw_cash_flow
+    return transfer
 
 
-def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
+def get_available_cash_flow(transfer, cash_flow_df):
     try:
         avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
-        avaialble_cash_flow -= withdraw_cash_flow
+        avaialble_cash_flow -= transfer['withdraw_cash_flow']
     except IndexError:
         # first date
         avaialble_cash_flow = 0
@@ -213,13 +200,14 @@ def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
     return avaialble_cash_flow
 
 
-def append_cash_flow_df(prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw]
+def append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = cash_flow_list
     cash_flow_df.to_csv(cash_flow_df_path, index=False)
 
 
-def update_fix_value(fix_value, deposit, withdraw, config_params_path):
-    fix_value += ((deposit - withdraw) / 2)
+def update_fix_value(transfer, config_params, config_params_path):
+    fix_value = config_params['fix_value']
+    fix_value += ((transfer['deposit'] - transfer['withdraw']) / 2)
 
     with open(config_params_path) as config_file:
         config_params = json.load(config_file)
@@ -232,20 +220,20 @@ def update_fix_value(fix_value, deposit, withdraw, config_params_path):
 
 def reset_transfer(transfer_path):
     with open(transfer_path) as transfer_file:
-        transfer_dict = json.load(transfer_file)
+        transfer = json.load(transfer_file)
 
-    transfer_dict['deposit'] = 0
-    transfer_dict['withdraw'] = 0
+    for s in transfer.keys():
+        transfer[s] = 0
 
     with open(transfer_path, 'w') as transfer_file:
-        json.dump(transfer_dict, transfer_file, indent=1)
+        json.dump(transfer, transfer_file, indent=1)
 
 
-def update_budget(exchange, bot_name, symbol, fix_value, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def update_budget(exchange, bot_name, base_currency, config_params, config_params_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     withdraw_flag = 0
 
-    last_price = get_last_price(exchange, symbol)
-    current_value = get_current_value(exchange, symbol, last_price)
+    last_price = get_last_price(exchange, config_params)
+    current_value = get_current_value(last_price, exchange, base_currency)
     
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
@@ -264,22 +252,23 @@ def update_budget(exchange, bot_name, symbol, fix_value, config_params_path, tra
     # skip 1st date
     if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
         if last_date != prev_date:
-            balance = get_balance(exchange, symbol, last_price)
+            balance = get_balance(last_price, exchange, config_params)
             cash = balance - current_value
 
             profit_df = pd.read_csv(profit_df_path)
             last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
             cash_flow = sum(last_profit_df['profit'])
-            deposit, withdraw, withdraw_cash_flow = get_transfer(transfer_path)
+            transfer = get_transfer(transfer_path)
             
-            available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
+            available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
             available_cash_flow += cash_flow
             
-            append_cash_flow_df(prev_date, balance, cash, fix_value, cash_flow, withdraw_cash_flow, available_cash_flow, deposit, withdraw, cash_flow_df, cash_flow_df_path)
-            update_fix_value(fix_value, deposit, withdraw, config_params_path)
+            cash_flow_list = [prev_date, balance, cash, config_params['fix_value'], cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, transfer['deposit'], transfer['withdraw']]
+            append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+            update_fix_value(transfer, config_params, config_params_path)
             reset_transfer(transfer_path)
 
-            if  withdraw > deposit:
+            if  transfer['withdraw'] > transfer['deposit']:
                 withdraw_flag = 1
 
     return withdraw_flag
@@ -287,9 +276,9 @@ def update_budget(exchange, bot_name, symbol, fix_value, config_params_path, tra
 
 def reset_n_loop(last_loop_path):
     with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
+        last_loop = json.load(last_loop_file)
 
-    last_loop_dict['n_loop'] = 0
+    last_loop['n_loop'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent=1)
+        json.dump(last_loop, last_loop_file, indent=1)

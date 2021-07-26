@@ -13,31 +13,14 @@ def get_config_system(config_system_path):
     with open(config_system_path) as config_file:
         config_system = json.load(config_file)
 
-    run_flag = config_system['run_flag']
-    idle_stage = config_system['idle_stage']
-    idle_loop = config_system['idle_loop']
-    idle_rest = config_system['idle_rest']
-    keys_path = config_system['keys_path']
-
-    return run_flag, idle_stage, idle_loop, idle_rest, keys_path
+    return config_system
 
 
 def get_config_params(config_params_path):
     with open(config_params_path) as config_file:
         config_params = json.load(config_file)
 
-    symbol = config_params['symbol']
-    init_budget = config_params['init_budget']
-    budget = config_params['budget']
-    grid = config_params['grid']
-    value = config_params['value']
-    fluctuation_rate = config_params['fluctuation_rate']
-    reinvest_ratio = config_params['reinvest_ratio']
-    start_safety = config_params['start_safety']
-    circuit_limit = config_params['circuit_limit']
-    decimal = config_params['decimal']
-
-    return symbol, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, start_safety, circuit_limit, decimal
+    return config_params
 
 
 def get_time(timezone='Asia/Bangkok'):
@@ -53,8 +36,8 @@ def get_date(timezone='Asia/Bangkok'):
     return date
 
 
-def get_exchange(keys_path):
-    with open(keys_path) as keys_file:
+def get_exchange(config_system):
+    with open(config_system['keys_path']) as keys_file:
         keys_dict = json.load(keys_file)
     
     exchange = ccxt.ftx({'apiKey': keys_dict['apiKey'],
@@ -65,40 +48,40 @@ def get_exchange(keys_path):
     return exchange
 
 
-def get_currency(symbol):
-    base_currency = symbol.split('/')[0]
-    quote_currency = symbol.split('/')[1]
+def get_currency(config_params):
+    base_currency = config_params['symbol'].split('/')[0]
+    quote_currency = config_params['symbol'].split('/')[1]
 
     return base_currency, quote_currency
 
 
-def get_last_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
+def get_last_price(exchange, config_params):
+    ticker = exchange.fetch_ticker(config_params['symbol'])
     last_price = ticker['last']
 
-    _, quote_currency = get_currency(symbol)
+    _, quote_currency = get_currency(config_params['symbol'])
     
     print(f'Last price: {last_price} {quote_currency}')
     return last_price
 
 
-def get_bid_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
+def get_bid_price(exchange, config_params):
+    ticker = exchange.fetch_ticker(config_params['symbol'])
     bid_price = ticker['bid']
 
     return bid_price
 
 
-def get_ask_price(exchange, symbol):
-    ticker = exchange.fetch_ticker(symbol)
+def get_ask_price(exchange, config_params):
+    ticker = exchange.fetch_ticker(config_params['symbol'])
     ask_price = ticker['ask']
 
     return ask_price
 
 
-def get_balance(exchange, symbol, last_price):
+def get_balance(exchange, last_price, config_params):
     balance = exchange.fetch_balance()
-    base_currency, quote_currency = get_currency(symbol)
+    base_currency, quote_currency = get_currency(config_params['symbol'])
     
     try:
         base_currency_amount = balance[base_currency]['total']
@@ -117,45 +100,34 @@ def get_balance(exchange, symbol, last_price):
     return balance
 
 
-def get_last_loop_price(last_loop_path):
+def get_last_loop(last_loop_path):
     with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-    
-    last_loop_price = last_loop_dict['price']
+        last_loop = json.load(last_loop_file)
 
-    return last_loop_price
+    return last_loop
 
 
 def update_last_loop_price(exchange, symbol, last_loop_path):
     with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
+        last_loop = json.load(last_loop_file)
 
     last_price = get_last_price(exchange, symbol)
-    last_loop_dict['price'] = last_price
+    last_loop['price'] = last_price
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent=1)
-    
-
-def get_loss(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
-    
-    loss = last_loop_dict['loss']
-
-    return loss
+        json.dump(last_loop, last_loop_file, indent=1)
 
 
 def update_loss(loss, last_loop_path):
     with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
+        last_loop = json.load(last_loop_file)
 
-    total_loss = last_loop_dict['loss']
+    total_loss = last_loop['loss']
     total_loss -= loss
-    last_loop_dict['loss'] = total_loss
+    last_loop['loss'] = total_loss
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent=1)
+        json.dump(last_loop, last_loop_file, indent=1)
 
 
 def reduce_budget(loss, config_params_path):
@@ -194,19 +166,15 @@ def get_greed_index(default_index=0.5):
 
 def get_transfer(transfer_path):
     with open(transfer_path) as transfer_file:
-        transfer_dict = json.load(transfer_file)
+        transfer = json.load(transfer_file)
 
-    deposit = transfer_dict['deposit']
-    withdraw = transfer_dict['withdraw']
-    withdraw_cash_flow = transfer_dict['withdraw_cash_flow']
-
-    return deposit, withdraw, withdraw_cash_flow
+    return transfer
 
 
-def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
+def get_available_cash_flow(transfer, cash_flow_df):
     try:
         avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
-        avaialble_cash_flow -= withdraw_cash_flow
+        avaialble_cash_flow -= transfer['withdraw_cash_flow']
     except IndexError:
         # first date
         avaialble_cash_flow = 0
@@ -214,8 +182,8 @@ def get_available_cash_flow(withdraw_cash_flow, cash_flow_df):
     return avaialble_cash_flow
 
 
-def append_cash_flow_df(prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = [prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw]
+def append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path):
+    cash_flow_df.loc[len(cash_flow_df)] = cash_flow_list
     cash_flow_df.to_csv(cash_flow_df_path, index=False)
 
 
@@ -233,33 +201,33 @@ def update_reinvest(init_budget, new_budget, new_value, config_params_path):
 
 def reset_loss(last_loop_path):
     with open(last_loop_path) as last_loop_file:
-        last_loop_dict = json.load(last_loop_file)
+        last_loop = json.load(last_loop_file)
 
-    last_loop_dict['loss'] = 0
+    last_loop['loss'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop_dict, last_loop_file, indent=1)
+        json.dump(last_loop, last_loop_file, indent=1)
 
 
 def reset_transfer(transfer_path):
     with open(transfer_path) as transfer_file:
-        transfer_dict = json.load(transfer_file)
+        transfer = json.load(transfer_file)
 
-    transfer_dict['deposit'] = 0
-    transfer_dict['withdraw'] = 0
-    transfer_dict['withdraw_cash_flow'] = 0
+    for s in transfer.keys():
+        transfer[s] = 0
 
     with open(transfer_path, 'w') as transfer_file:
-        json.dump(transfer_dict, transfer_file, indent = 1)
+        json.dump(transfer, transfer_file, indent=1)
 
 
-def update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, grid, value, fluctuation_rate, reinvest_ratio, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
+def update_budget(exchange, bot_name, last_price, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
     change_params_flag = 0
 
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
+    last_loop = get_last_loop(last_loop_path)
 
     try:
         last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
@@ -276,33 +244,34 @@ def update_budget(exchange, bot_name, symbol, last_price, init_budget, budget, g
         if last_date != prev_date:
             change_params_flag = 1
 
-            balance = get_balance(exchange, symbol, last_price)
-            unrealised, _, _, _ = cal_unrealised(last_price, grid, open_orders_df)
+            balance = get_balance(exchange, last_price, config_params)
+            unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
 
-            loss = get_loss(last_loop_path)
             last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
-            cash_flow = sum(last_sell_df['amount'] * grid)
+            cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
             
-            if reinvest_ratio == -1:
+            if config_params['reinvest_ratio'] == -1:
                 greed_index = get_greed_index()
                 reinvest_ratio = max(1 - (greed_index / 100), 0)
 
             reinvest_amount = cash_flow * reinvest_ratio
             remain_cash_flow = cash_flow - reinvest_amount
 
-            deposit, withdraw, withdraw_cash_flow = get_transfer(transfer_path)
-            lower_price = last_price * (1 - fluctuation_rate)
-            n_order = int((last_price - lower_price) / grid)
+            transfer = get_transfer(transfer_path)
+            lower_price = last_price * (1 - config_params['fluctuation_rate'])
+            n_order = int((last_price - lower_price) / config_params['grid'])
 
-            init_budget += (deposit - withdraw)
-            new_budget = budget + reinvest_amount + deposit - withdraw
+            net_transfer = transfer['deposit'] - transfer['withdraw']
+            new_init_budget = config_params['init_budget'] + net_transfer
+            new_budget = config_params['budget'] + reinvest_amount + net_transfer
             new_value = new_budget / n_order
             
-            available_cash_flow = get_available_cash_flow(withdraw_cash_flow, cash_flow_df)
+            available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
             available_cash_flow += remain_cash_flow
 
-            append_cash_flow_df(prev_date, balance, unrealised, value, cash_flow, reinvest_amount, remain_cash_flow, withdraw_cash_flow, available_cash_flow, loss, deposit, withdraw, cash_flow_df, cash_flow_df_path)
-            update_reinvest(init_budget, new_budget, new_value, config_params_path)
+            cash_flow_list = [prev_date, balance, unrealised, config_params['value'], cash_flow, reinvest_amount, remain_cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, last_loop['loss'], transfer['deposit'], transfer['withdraw']]
+            append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+            update_reinvest(new_init_budget, new_budget, new_value, config_params_path)
             reset_loss(last_loop_path)
             reset_transfer(transfer_path)
 
