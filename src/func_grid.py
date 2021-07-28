@@ -165,7 +165,7 @@ def cancel_open_buy_orders_grid(exchange, base_currency, quote_currency, config_
                 print(f'Error: Cannot cancel order {order_id} due to unavailable order!!!')
             except ccxt.InvalidOrder:
                 # the order is closed by system (could caused by post_only param for buy orders)
-                remove_order(open_orders_df_path, order_id)
+                remove_order(order_id, open_orders_df_path)
 
 
 def open_buy_orders_grid(remain_budget, free_budget, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
