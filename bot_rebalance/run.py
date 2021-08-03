@@ -17,30 +17,29 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params)
     
-    last_loop = get_last_loop(last_loop_path)
-    if last_loop['withdraw_flag'] == 1:
+    end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path)
+    last_price = get_last_price(exchange, config_params)
+
+    if end_date_flag == 1:    
+        withdraw_flag = update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
+        time.sleep(config_system['idle_stage'])
+
+    if withdraw_flag == 1:
         # force sell from withdrawal
         method = 'fifo'
     else:
         method = 'lifo'
+
+    last_price = get_last_price(exchange, config_params)
+    current_value = get_current_value(last_price, exchange, base_currency)
     
-    cont_flag = clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_currency, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path)
-    update_withdraw_flag(last_loop_path, False)
-
-    if cont_flag == 1:
-        time.sleep(config_system['idle_stage'])
-        last_price = get_last_price(exchange, config_params)
-        current_value = get_current_value(last_price, exchange, base_currency)
-        
-        print_current_balance(last_price, exchange, quote_currency, config_params)
-        print_current_value(last_price, current_value, exchange, quote_currency, config_params)
-        
-        rebalance(current_value, exchange, base_currency, quote_currency, config_params, open_orders_df_path, error_log_df_path)
-
-    end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path)
-
-    if end_date_flag == 1:
-        update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
+    print_current_balance(last_price, exchange, quote_currency, config_params)
+    print_current_value(last_price, current_value, exchange, quote_currency, config_params)
+    
+    rebalance(current_value, exchange, base_currency, quote_currency, config_params, open_orders_df_path, error_log_df_path)
+    
+    time.sleep(config_system['idle_stage'])
+    clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
 
 
 if __name__ == "__main__":

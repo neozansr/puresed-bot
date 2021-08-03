@@ -1,6 +1,6 @@
 import ccxt
 import pandas as pd
-import datetime as dt
+import time
 import json
 import sys
 
@@ -123,64 +123,26 @@ def update_queue(method, amount_key, sell_order, config_params, queue_df_path, p
         sell_amount -= exe_amount
 
 
-def cancel_open_orders_rebalance(order_id, exchange, config_params, open_orders_df_path, error_log_df_path):
-    try:
-        exchange.cancel_order(order_id, config_params['symbol'])
-        remove_order(order_id, open_orders_df_path)
-        print(f'Cancel order {order_id}')
-        cont_flag = 1
-    except ccxt.OrderNotFound:
-        # no order in the system (could casued by the order is queued), skip for the next loop
-        append_error_log('OrderNotFound', error_log_df_path)
-        print(f'Error: Cannot cancel order {order_id}, wait for the next loop')
-        cont_flag = 0
-    except ccxt.InvalidOrder:
-        # the order is closed by system (could caused by post_only param for buy orders)
-        remove_order(open_orders_df_path, order_id)
-        cont_flag = 1
-
-    return cont_flag
-
-
-def clear_queue(method, order_id, exchange, config_params, open_orders_df_path, error_log_df_path):
-    if method == 'lifo':
-        cont_flag = cancel_open_orders_rebalance(order_id, exchange, config_params, open_orders_df_path, error_log_df_path)
-    elif method == 'fifo':
-        # fifo method have to be closed wihtin the loop 
-        while order['status'] != 'closed':
-            order = exchange.fetch_order(order_id, config_params['symbol'])
-        
-        cont_flag = 1
-
-    return cont_flag
-
-
-def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_currency, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path):
-    cont_flag = 1
+def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
 
     if len(open_orders_df) > 0:
         order_id = open_orders_df['order_id'][0]
         order = exchange.fetch_order(order_id, config_params['symbol'])
 
-        if order['filled'] > 0:
-            if order['status'] != 'closed':
-                cont_flag = clear_queue(method, order_id, exchange, config_params, open_orders_df_path, error_log_df_path)
-        
-            if order['side'] == 'buy':
-                append_order('filled', order, exchange, config_params, queue_df_path)
-            elif order['side'] == 'sell':
-                update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
+        while order['status'] != 'closed':
+            order = exchange.fetch_order(order_id, config_params['symbol'])
+            time.sleep(config_system['idle_stage'])
+    
+        if order['side'] == 'buy':
+            append_order('filled', order, exchange, config_params, queue_df_path)
+        elif order['side'] == 'sell':
+            update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
 
-            remove_order(order_id, open_orders_df_path)
-            append_order('filled', order, exchange, config_params, transactions_df_path)
-            noti_success_order(order, bot_name, base_currency, quote_currency)
-        
-        else:
-            cont_flag = clear_queue(method, order_id, exchange, config_params, open_orders_df_path, error_log_df_path)
-
-    return cont_flag
-
+        remove_order(order_id, open_orders_df_path)
+        append_order('filled', order, exchange, config_params, transactions_df_path)
+        noti_success_order(order, bot_name, base_currency, quote_currency)
+    
 
 def rebalance(current_value, exchange, base_currency, quote_currency, config_params, open_orders_df_path, error_log_df_path):
     rebalance_flag = 1
@@ -229,8 +191,9 @@ def update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_pa
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
-
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
+
+    withdraw_flag = 0
 
     if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
         balance, cash = get_balance(last_price, exchange, config_params)
@@ -253,6 +216,8 @@ def update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_pa
             update_fix_value(transfer, config_params, config_params_path)
             
             if net_transfer < 0:
-                update_withdraw_flag(last_loop_path, True)
+                withdraw_flag = 1
 
         reset_transfer(transfer_path)
+
+    return withdraw_flag
