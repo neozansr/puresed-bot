@@ -18,9 +18,9 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     base_currency, quote_currency = get_currency(config_params)
     
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path)
-    last_price = get_last_price(exchange, config_params)
 
-    if end_date_flag == 1:    
+    if end_date_flag == 1:
+        last_price = get_last_price(exchange, config_params)
         withdraw_flag = update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
         time.sleep(config_system['idle_stage'])
     else:
