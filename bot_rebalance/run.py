@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(src_path))
 from func_get import get_config_system, get_config_params, get_time, get_exchange, get_currency, get_last_price, get_current_value, get_last_loop, check_end_date
 from func_update import append_error_log
 from func_noti import print_current_balance, print_current_value
-from func_rebalance import get_series_loop, reset_order_loop, clear_orders_rebalance, rebalance, update_withdraw_flag, update_budget_rebalance
+from func_rebalance import get_series_loop, reset_order_loop, clear_orders_rebalance, rebalance, update_budget_rebalance
 
 
 def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path, cash_flow_df_path):
@@ -23,6 +23,8 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     if end_date_flag == 1:    
         withdraw_flag = update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path)
         time.sleep(config_system['idle_stage'])
+    else:
+        withdraw_flag = 0
 
     if withdraw_flag == 1:
         # force sell from withdrawal
