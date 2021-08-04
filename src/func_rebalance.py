@@ -4,7 +4,7 @@ import time
 import json
 import sys
 
-from func_get import get_time, get_bid_price, get_ask_price, get_balance, get_current_value, get_last_loop, get_transfer, get_available_cash_flow
+from func_get import get_time, get_bid_price, get_ask_price, get_balance, get_last_loop, get_transfer, get_available_cash_flow
 from func_update import append_order, remove_order, append_error_log, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order
 
@@ -61,9 +61,7 @@ def update_order_loop(order_loop, series, last_loop, last_loop_path):
 
 
 def reset_order_loop(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop = json.load(last_loop_file)
-
+    last_loop = get_last_loop(last_loop_path)
     last_loop['order_loop'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
@@ -83,7 +81,7 @@ def update_fix_value(transfer, config_params, config_params_path):
         json.dump(config_params, config_params_path, indent=1)
 
 
-def append_profit(sell_order, exe_amount, config_params, queue_df, profit_df_path):
+def append_profit_rebalance(sell_order, exe_amount, config_params, queue_df, profit_df_path):
     df = pd.read_csv(profit_df_path)
     
     timestamp = get_time()
@@ -112,7 +110,7 @@ def update_queue(method, amount_key, sell_order, config_params, queue_df_path, p
         exe_amount = min(sell_amount, sell_queue)
         remaining_queue = sell_queue - exe_amount
 
-        append_profit(sell_order, exe_amount, config_params, queue_df, profit_df_path)
+        append_profit_rebalance(sell_order, exe_amount, config_params, queue_df, profit_df_path)
         
         if remaining_queue == 0:
             queue_df = queue_df.drop([order_index])
@@ -121,27 +119,6 @@ def update_queue(method, amount_key, sell_order, config_params, queue_df_path, p
 
         queue_df.to_csv(queue_df_path, index=False)
         sell_amount -= exe_amount
-
-
-def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
-    open_orders_df = pd.read_csv(open_orders_df_path)
-
-    if len(open_orders_df) > 0:
-        order_id = open_orders_df['order_id'][0]
-        order = exchange.fetch_order(order_id, config_params['symbol'])
-
-        while order['status'] != 'closed':
-            order = exchange.fetch_order(order_id, config_params['symbol'])
-            time.sleep(config_system['idle_stage'])
-    
-        if order['side'] == 'buy':
-            append_order('filled', order, exchange, config_params, queue_df_path)
-        elif order['side'] == 'sell':
-            update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
-
-        remove_order(order_id, open_orders_df_path)
-        append_order('filled', order, exchange, config_params, transactions_df_path)
-        noti_success_order(order, bot_name, base_currency, quote_currency)
     
 
 def rebalance(current_value, exchange, base_currency, quote_currency, config_params, open_orders_df_path, error_log_df_path):
@@ -163,8 +140,10 @@ def rebalance(current_value, exchange, base_currency, quote_currency, config_par
         amount = diff_value / price
         try:
             order = exchange.create_order(config_params['symbol'], 'market', side, amount)
+            order_price = order['price']
+            
             append_order('amount', order, exchange, config_params, open_orders_df_path)
-            print(f'Open {side} {amount:.3f} {base_currency} at {price:.2f} {quote_currency}')
+            print(f'Open {side} {amount:.3f} {base_currency} at {order_price:.2f} {quote_currency}')
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process
             append_error_log('InsufficientFunds', error_log_df_path)
@@ -172,9 +151,29 @@ def rebalance(current_value, exchange, base_currency, quote_currency, config_par
             sys.exit(1)
 
 
+def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
+
+    if len(open_orders_df) > 0:
+        order_id = open_orders_df['order_id'][0]
+        order = exchange.fetch_order(order_id, config_params['symbol'])
+
+        while order['status'] != 'closed':
+            order = exchange.fetch_order(order_id, config_params['symbol'])
+            time.sleep(config_system['idle_stage'])
+    
+        if order['side'] == 'buy':
+            append_order('filled', order, exchange, config_params, queue_df_path)
+        elif order['side'] == 'sell':
+            update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
+
+        remove_order(order_id, open_orders_df_path)
+        append_order('filled', order, exchange, config_params, transactions_df_path)
+        noti_success_order(order, bot_name, base_currency, quote_currency)
+
+
 def update_withdraw_flag(last_loop_path, enable):
-    with open(last_loop_path) as last_loop_file:
-        last_loop = json.load(last_loop_file)
+    last_loop = get_last_loop(last_loop_path)
 
     # enable flag when withdraw detected
     # disable flag after sell assets

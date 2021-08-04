@@ -17,8 +17,10 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params)
     clear_orders_grid('buy', exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+    
     time.sleep(config_system['idle_stage'])
     clear_orders_grid('sell', exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+    
     time.sleep(config_system['idle_stage'])
     print_pending_order(quote_currency, open_orders_df_path)
     
@@ -64,7 +66,7 @@ if __name__ == "__main__":
                 print('No connection: Skip the loop')
         
             print('End loop')
-            time.sleep(config_system['idle_loop'])
         else:
             print('Stop process')
-            time.sleep(config_system['idle_loop'])
+        
+        time.sleep(config_system['idle_loop'])

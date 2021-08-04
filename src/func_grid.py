@@ -90,6 +90,36 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
     return buy_price_list, cancel_flag
 
 
+def open_buy_orders_grid(remain_budget, free_budget, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
+    bid_price = get_bid_price(exchange, config_params)
+    buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
+    
+    if cancel_flag == 1:
+        cancel_open_buy_orders_grid(exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+
+    print(f'Open {len(buy_price_list)} buy orders')
+
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+    remain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
+
+    for price in buy_price_list:
+        amount = config_params['value'] / price
+        floor_amount = round_down_amount(amount, config_params)
+        
+        balance = exchange.fetch_balance()
+        quote_currency_amount = balance[quote_currency]['free']
+
+        if quote_currency_amount >= remain_cash_flow_accum + config_params['value']:
+            buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', floor_amount, price, params={'postOnly':True})
+            append_order('amount', buy_order, exchange, config_params, open_orders_df_path)
+            print(f'Open buy {floor_amount:.3f} {base_currency} at {price} {quote_currency}')
+        else:
+            # actual buget less than cal_budget (could caused by open_orders match during loop)
+            print(f'Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!')
+            break
+
+        
 def open_sell_orders_grid(buy_order, exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, error_log_df_path):
     ask_price = get_ask_price(exchange, config_params)
     sell_price = cal_sell_price(buy_order, ask_price, config_params)
@@ -166,36 +196,6 @@ def cancel_open_buy_orders_grid(exchange, base_currency, quote_currency, config_
             except ccxt.InvalidOrder:
                 # the order is closed by system (could caused by post_only param for buy orders)
                 remove_order(order_id, open_orders_df_path)
-
-
-def open_buy_orders_grid(remain_budget, free_budget, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
-    bid_price = get_bid_price(exchange, config_params)
-    buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
-    
-    if cancel_flag == 1:
-        cancel_open_buy_orders_grid(exchange, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-
-    print(f'Open {len(buy_price_list)} buy orders')
-
-    cash_flow_df_path = cash_flow_df_path.format(bot_name)
-    cash_flow_df = pd.read_csv(cash_flow_df_path)
-    remain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
-
-    for price in buy_price_list:
-        amount = config_params['value'] / price
-        floor_amount = round_down_amount(amount, config_params)
-        
-        balance = exchange.fetch_balance()
-        quote_currency_amount = balance[quote_currency]['free']
-
-        if quote_currency_amount >= remain_cash_flow_accum + config_params['value']:
-            buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', floor_amount, price, params={'postOnly':True})
-            append_order('amount', buy_order, exchange, config_params, open_orders_df_path)
-            print(f'Open buy {floor_amount:.3f} {base_currency} at {price} {quote_currency}')
-        else:
-            # actual buget less than cal_budget (could caused by open_orders match during loop)
-            print(f'Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!')
-            break
 
 
 def check_circuit_breaker(last_price, exchange, bot_name, base_currency, quote_currency, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
@@ -289,9 +289,7 @@ def cut_loss(last_price, exchange, bot_name, quote_currency, config_system, conf
 
 
 def update_loss(loss, last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop = json.load(last_loop_file)
-
+    last_loop = get_last_loop(last_loop_path)
     total_loss = last_loop['loss']
     total_loss -= loss
     last_loop['loss'] = total_loss
@@ -314,9 +312,7 @@ def reduce_budget(loss, config_params_path):
 
 
 def reset_loss(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop = json.load(last_loop_file)
-
+    last_loop = get_last_loop(last_loop_path)
     last_loop['loss'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:

@@ -34,7 +34,15 @@ def get_date(timezone='Asia/Bangkok'):
     return date
 
 
-def get_exchange(config_system):
+def convert_tz(utc):
+    from_zone = tz.tzutc()
+    to_zone = tz.tzlocal()
+    utc = utc.replace(tzinfo=from_zone).astimezone(to_zone)
+    
+    return utc
+
+
+def get_exchange(config_system, future=False):
     with open(config_system['keys_path']) as keys_file:
         keys_dict = json.load(keys_file)
     
@@ -42,6 +50,9 @@ def get_exchange(config_system):
                          'secret': keys_dict['secret'],
                          'headers': {'FTX-SUBACCOUNT': keys_dict['subaccount']},
                          'enableRateLimit': True})
+
+    if future == True:
+        exchange.options = {'defaultType': 'future'}
 
     return exchange
 
@@ -53,13 +64,19 @@ def get_currency(config_params):
     return base_currency, quote_currency
 
 
+def get_currency_future(config_params):
+    base_currency = config_params['symbol'].split('-')[0]
+    quote_currency = 'USD'
+
+    return base_currency, quote_currency
+
+
 def get_last_price(exchange, config_params, print_flag=True):
     ticker = exchange.fetch_ticker(config_params['symbol'])
     last_price = ticker['last']
-
-    _, quote_currency = get_currency(config_params)
     
     if print_flag == True:
+        _, quote_currency = get_currency(config_params)
         print(f'Last price: {last_price:.2f} {quote_currency}')
     
     return last_price

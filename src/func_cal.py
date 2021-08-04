@@ -9,6 +9,12 @@ def round_down_amount(amount, config_params):
     return floor_amount
 
 
+def round_up_amount(amount, config_params):
+    floor_amount = np.ceil((amount * (10 ** config_params['decimal']))) / (10 ** config_params['decimal'])
+    
+    return floor_amount
+
+
 def cal_final_amount(order_id, exchange, config_system, config_params):
     trades_df = pd.DataFrame(exchange.fetch_my_trades(config_params['symbol'], limit=200))
     order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)

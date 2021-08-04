@@ -6,7 +6,7 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_config_system, get_config_params, get_time, get_exchange, get_currency, get_last_price, get_current_value, get_last_loop, check_end_date
+from func_get import get_config_system, get_config_params, get_time, get_exchange, get_currency, get_last_price, get_current_value, check_end_date
 from func_update import append_error_log
 from func_noti import print_current_balance, print_current_value
 from func_rebalance import get_series_loop, reset_order_loop, clear_orders_rebalance, rebalance, update_withdraw_flag, update_budget_rebalance
