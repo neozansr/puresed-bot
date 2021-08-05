@@ -7,7 +7,7 @@ import json
 from func_get import get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_last_loop, get_transfer
 from func_cal import round_down_amount, round_up_amount
 from func_update import append_order, remove_order, append_cash_flow_df, reset_transfer
-from func_noti import noti_success_order, noti_warning, print_current_value_future, print_position
+from func_noti import noti_success_order, noti_warning, print_position
 
 
 def get_timeframe(config_params):
