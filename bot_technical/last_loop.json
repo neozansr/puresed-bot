@@ -1,4 +1,5 @@
 {
  "timestamp": 0,
- "side": 0
+ "side": 0,
+ "liquidate_percent": 0
 }

@@ -4,9 +4,9 @@ import time
 import json
 import sys
 
-from func_get import get_time, get_bid_price, get_ask_price, get_balance, get_last_loop, get_transfer, get_available_cash_flow
+from func_get import get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_last_loop, get_transfer, get_available_cash_flow
 from func_update import append_order, remove_order, append_error_log, append_cash_flow_df, reset_transfer
-from func_noti import noti_success_order
+from func_noti import noti_success_order, print_current_balance, print_current_value
 
 
 def gen_series(n=18, limit_min=4):
@@ -121,8 +121,15 @@ def update_queue(method, amount_key, sell_order, config_params, queue_df_path, p
         sell_amount -= exe_amount
     
 
-def rebalance(current_value, exchange, base_currency, quote_currency, config_params, open_orders_df_path, error_log_df_path):
+def rebalance(exchange, config_params, open_orders_df_path, error_log_df_path):
     rebalance_flag = 1
+
+    base_currency, quote_currency = get_currency(config_params)
+    last_price = get_last_price(exchange, config_params)
+    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    
+    print(f'Last price: {last_price} {quote_currency}')
+    print_current_value(current_value, exchange, quote_currency)
 
     if current_value < config_params['fix_value'] - config_params['min_value']:
         side = 'buy'
@@ -151,7 +158,7 @@ def rebalance(current_value, exchange, base_currency, quote_currency, config_par
             sys.exit(1)
 
 
-def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
+def clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
 
     if len(open_orders_df) > 0:
@@ -169,7 +176,7 @@ def clear_orders_rebalance(method, exchange, bot_name, base_currency, quote_curr
 
         remove_order(order_id, open_orders_df_path)
         append_order('filled', order, exchange, config_params, transactions_df_path)
-        noti_success_order(order, bot_name, base_currency, quote_currency)
+        noti_success_order(order, bot_name, config_params)
 
 
 def update_withdraw_flag(last_loop_path, enable):
@@ -186,37 +193,48 @@ def update_withdraw_flag(last_loop_path, enable):
         json.dump(last_loop, last_loop_file, indent=1)
 
 
-def update_budget_rebalance(last_price, prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-    transactions_df = pd.read_csv(transactions_df_path)
-    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
     withdraw_flag = 0
 
-    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
-        balance, cash = get_balance(last_price, exchange, config_params)
+    base_currency, quote_currency = get_currency(config_params)
+    last_price = get_last_price(exchange, config_params)
 
-        profit_df = pd.read_csv(profit_df_path)
-        last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
-        cash_flow = sum(last_profit_df['profit'])
+    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    cash = get_quote_currency_value(exchange, quote_currency)
+    balance_value = current_value + cash
+
+    profit_df = pd.read_csv(profit_df_path)
+    last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
+    cash_flow = sum(last_profit_df['profit'])
+    
+    transfer = get_transfer(transfer_path)
+
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_cash_flow += cash_flow
+    
+    cash_flow_list = [prev_date, balance_value, cash, config_params['fix_value'], cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, transfer['deposit'], transfer['withdraw']]
+    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+
+    net_transfer = transfer['deposit'] - transfer['withdraw']
+
+    if net_transfer != 0:
+        update_fix_value(transfer, config_params, config_params_path)
         
-        transfer = get_transfer(transfer_path)
+        if net_transfer < 0:
+            withdraw_flag = 1
 
-        available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-        available_cash_flow += cash_flow
-        
-        cash_flow_list = [prev_date, balance, cash, config_params['fix_value'], cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, transfer['deposit'], transfer['withdraw']]
-        append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-
-        net_transfer = transfer['deposit'] - transfer['withdraw']
-
-        if net_transfer != 0:
-            update_fix_value(transfer, config_params, config_params_path)
-            
-            if net_transfer < 0:
-                withdraw_flag = 1
-
-        reset_transfer(transfer_path)
+    reset_transfer(transfer_path)
 
     return withdraw_flag
+
+
+def print_report_grid(exchange, config_params):
+    base_currency, quote_currency = get_currency(config_params)
+    last_price = get_last_price(exchange, config_params)
+    current_value = get_base_currency_value(last_price, exchange, base_currency)
+
+    print_current_balance(last_price, exchange, base_currency, quote_currency, config_params)
+    print_current_value(current_value, exchange, quote_currency)

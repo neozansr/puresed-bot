@@ -7,7 +7,7 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_chat import get_grid_text, get_rebalance_text
+from func_chat import get_grid_text, get_rebalance_text, get_technical_text
 
 with open('../../_keys/bot_token.json') as token_file:
     token_dict = json.load(token_file)
@@ -52,6 +52,18 @@ def send_bot_grid(message):
 
     text = f'{bot_name.title()}\n{bot_type.title()}\n'
     text = get_grid_text(text, sub_path, config_system_path, config_params_path, open_orders_df_path, transactions_df_path)
+    
+    bot.send_message(message.chat.id, text)
+
+
+@bot.message_handler(commands=['bot_technical'])
+def send_bot_grid(message):
+    bot_name = 'bot_technical'
+    bot_type = 'technical'
+    sub_path = f'../{bot_name}/'
+
+    text = f'{bot_name.title()}\n{bot_type.title()}\n'
+    text = get_technical_text(text, sub_path, config_system_path, config_params_path)
     
     bot.send_message(message.chat.id, text)
 

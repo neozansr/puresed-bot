@@ -71,13 +71,9 @@ def get_currency_future(config_params):
     return base_currency, quote_currency
 
 
-def get_last_price(exchange, config_params, print_flag=True):
+def get_last_price(exchange, config_params):
     ticker = exchange.fetch_ticker(config_params['symbol'])
     last_price = ticker['last']
-    
-    if print_flag == True:
-        _, quote_currency = get_currency(config_params)
-        print(f'Last price: {last_price:.2f} {quote_currency}')
     
     return last_price
 
@@ -96,37 +92,27 @@ def get_ask_price(exchange, config_params):
     return ask_price
 
 
-def get_balance(last_price, exchange, config_params):
+def get_base_currency_value(last_price, exchange, base_currency):
     balance = exchange.fetch_balance()
-    base_currency, quote_currency = get_currency(config_params)
     
     try:
-        base_currency_amount = balance[base_currency]['total']
+        amount = balance[base_currency]['total']
+        base_currency_value = last_price * amount
     except KeyError:
-        base_currency_amount = 0
+        base_currency_value = 0
 
-    base_currency_value = last_price * base_currency_amount
+    return base_currency_value
+
+
+def get_quote_currency_value(exchange, quote_currency):
+    balance = exchange.fetch_balance()
 
     try:
         quote_currency_value = balance[quote_currency]['total']
     except KeyError:
         quote_currency_value = 0
-    
-    balance = base_currency_value + quote_currency_value
-    
-    return balance, quote_currency_value
 
-
-def get_current_value(last_price, exchange, base_currency):
-    balance = exchange.fetch_balance()
-    
-    try:
-        amount = balance[base_currency]['total']
-        current_value = last_price * amount
-    except KeyError:
-        current_value = 0
-
-    return current_value
+    return quote_currency_value
 
 
 def get_pending_order(open_orders_df_path):
@@ -189,22 +175,24 @@ def get_greed_index(default_index=0.5):
     return greed_index
 
 
-def check_end_date(bot_name, cash_flow_df_path):
+def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
+    transactions_df = pd.read_csv(transactions_df_path)
     
-    try:
+    if len(transactions_df) > 0:
         last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
         last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
-    except IndexError:
-        last_date = None
 
-    cur_date = get_date()
-    prev_date = cur_date - dt.timedelta(days=1)
-
-    if last_date != prev_date:
-        end_date_flag = 1
+        cur_date = get_date()
+        prev_date = cur_date - dt.timedelta(days=1)
+        
+        if last_date != prev_date:
+            end_date_flag = 1
+        else:
+            end_date_flag = 0
     else:
         end_date_flag = 0
+        prev_date = None
 
     return end_date_flag, prev_date

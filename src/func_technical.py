@@ -4,10 +4,10 @@ import math
 import time
 import json
 
-from func_get import get_time, convert_tz, get_last_price, get_balance, get_last_loop, get_transfer
+from func_get import get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_last_loop, get_transfer
 from func_cal import round_down_amount, round_up_amount
 from func_update import append_order, remove_order, append_cash_flow_df, reset_transfer
-from func_noti import noti_success_order
+from func_noti import noti_success_order, noti_warning, print_current_value_future, print_position
 
 
 def get_timeframe(config_params):
@@ -24,14 +24,37 @@ def get_timeframe(config_params):
     return min_timeframe, step
 
 
+def group_timeframe(ohlcv_df, step):
+    ohlcv_dict = {'time':[], 'open':[], 'high':[], 'low':[], 'close':[]}
+    
+    mod = len(ohlcv_df) % step
+    if  mod != 0:
+        ohlcv_df = ohlcv_df.iloc[:-mod, :]
+        
+    for i in [x for x in range(0, len(ohlcv_df), step)]:
+        temp_df = ohlcv_df.iloc[i:i + step, :]
+        ohlcv_dict['time'].append(temp_df['time'][i])
+        ohlcv_dict['open'].append(temp_df['open'][i])
+        ohlcv_dict['high'].append(max(temp_df['high']))
+        ohlcv_dict['low'].append(min(temp_df['low']))
+        ohlcv_dict['close'].append(temp_df['close'][i + 1])
+
+    ohlcv_df = pd.DataFrame(ohlcv_dict)
+    
+    return ohlcv_df
+
+
 def get_ohlcv(exchange, config_params):
     min_timeframe, step = get_timeframe(config_params)
 
-    ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=min_timeframe, limit=config_params['window'])
+    ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=min_timeframe, limit=config_params['window'] * step)
     ohlcv_df = pd.DataFrame(ohlcv)
     ohlcv_df.columns = ['time', 'open', 'high', 'low', 'close', 'volume']
     ohlcv_df['time'] = pd.to_datetime(ohlcv_df['time'], unit='ms')
     ohlcv_df['time'] = ohlcv_df['time'].apply(lambda x: convert_tz(x))
+
+    if step > 1:
+        ohlcv_df = group_timeframe(ohlcv_df, step)
 
     last_timestamp = str(ohlcv_df.loc[len(ohlcv_df) - 1, 'time'])
 
@@ -54,6 +77,21 @@ def update_side(side, last_loop_path):
         json.dump(last_loop, last_loop_file, indent=1)
 
 
+def update_liquidate(liquidate_percent, last_loop_path):
+    last_loop = get_last_loop(last_loop_path)
+    last_loop['liquidate_percent'] = liquidate_percent
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop, last_loop_file, indent=1)
+
+
+def signal_ma(ohlcv_df, config_params):
+    ohlcv_df['signal'] = ohlcv_df['close'].rolling(window=int(np.round(config_params['window']))).mean()
+    ohlcv_df = ohlcv_df.dropna().reset_index(drop=True)
+    
+    return ohlcv_df
+
+
 def signal_tma(ohlcv_df, config_params):
     sub_interval = (config_params['window'] + 1) / 2
     
@@ -71,14 +109,14 @@ def signal_tma(ohlcv_df, config_params):
 
 def get_action(ohlcv_df, config_params):
     func_dict = {'tma': signal_tma}
-    ohlcv_df = func_dict[config_params['signal']](ohlcv_df, config_params['window'])
+    ohlcv_df = func_dict[config_params['signal']](ohlcv_df, config_params)
 
-    last_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+    last_timestamp_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
     last_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'signal']
 
-    if last_price < last_signal:
+    if last_timestamp_price < last_signal:
         action = 'sell'
-    elif last_price > last_signal:
+    elif last_timestamp_price > last_signal:
         action = 'buy'
     else:
         action = 'hold'
@@ -94,19 +132,21 @@ def get_current_position(exchange, config_params):
     return position
 
 
-def cal_new_amount(value, last_price, config_params):
+def cal_new_amount(value, exchange, config_params):
     value *= config_params['safety_value']
     leverage_value = value * config_params['leverage']
     
+    last_price = get_last_price(exchange, config_params)
     amount = leverage_value / last_price
     amount = round_down_amount(amount, config_params)
     
     return amount
 
 
-def cal_reduce_amount(value, last_price, config_params):
+def cal_reduce_amount(value, exchange, config_params):
     leverage_value = value * config_params['leverage']
     
+    last_price = get_last_price(exchange, config_params)
     amount = leverage_value / last_price
     amount = round_up_amount(amount, config_params)
 
@@ -114,11 +154,10 @@ def cal_reduce_amount(value, last_price, config_params):
 
 
 def open_position(action, exchange, config_params, open_orders_df_path):
-    last_price = get_last_price(exchange, config_params, print_flag=False)
-    _, cash = get_balance(last_price, exchange, config_params)
+    _, quote_currency = get_currency_future(config_params)
+    balance_value = get_quote_currency_value(exchange, quote_currency)
 
-    last_price = get_last_price(exchange, config_params, print_flag=False)
-    amount = cal_new_amount(cash, last_price , config_params)
+    amount = cal_new_amount(balance_value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
     append_order('amount', order, exchange, config_params, open_orders_df_path)
@@ -136,8 +175,7 @@ def close_position(action, position, exchange, config_params, open_orders_df_pat
 
 
 def reduce_position(value, action, exchange, config_params, open_orders_df_path):
-    last_price = get_last_price(exchange, config_params, print_flag=False)
-    amount = cal_reduce_amount(value, last_price, config_params)
+    amount = cal_reduce_amount(value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
     append_order('amount', order, exchange, config_params, open_orders_df_path)
@@ -145,7 +183,8 @@ def reduce_position(value, action, exchange, config_params, open_orders_df_path)
     return order
 
 
-def clear_orders_technical(order, exchange, bot_name, base_currency, quote_currency, config_system, config_params, open_orders_df_path, transactions_df_path):
+def clear_orders_technical(order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path):
+    base_currency, quote_currency = get_currency_future(config_params)
     order_id = order['id']
     
     while order['status'] != 'closed':
@@ -176,22 +215,45 @@ def append_profit_technical(amount, order, position, profit_df_path):
     df.to_csv(profit_df_path, index=False)
 
 
-def update_budget_technical(last_price, prev_date, position, exchange, bot_name, config_params, transfer_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def update_budget_technical(prev_date, position, exchange, bot_name, config_params, transfer_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-    transactions_df = pd.read_csv(transactions_df_path)
-    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
-    if (len(last_transactions_df) > 0) | (len(cash_flow_df) > 0):
-        balance, cash = get_balance(last_price, exchange, config_params)
+    if position != None:
+        realised = position['realizedPnl']
+    else:
+        realised = 0
 
-        transfer = get_transfer(transfer_path)
+    _, quote_currency = get_currency_future(config_params)
+    balance_value = get_quote_currency_value(exchange, quote_currency)
 
-        cash_flow_list = [prev_date, balance, cash, position['realizedPnl'], transfer['deposit'], transfer['withdraw']]
-        append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    transfer = get_transfer(transfer_path)
 
-        transfer = get_transfer(transfer_path)
-        withdraw_value = transfer['withdraw'] - transfer['deposit']
-        reset_transfer(transfer_path)
+    cash_flow_list = [prev_date, balance_value, realised, transfer['deposit'], transfer['withdraw']]
+    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+
+    transfer = get_transfer(transfer_path)
+    withdraw_value = transfer['withdraw'] - transfer['deposit']
+    reset_transfer(transfer_path)
 
     return withdraw_value
+
+
+def check_liquidate(position, last_loop, bot_name, last_loop_path):
+    if position != None:
+        entry_price = float(position['entryPrice'])
+        liquidate_price = float(position['estimatedLiquidationPrice'])
+
+        liquidate_percent = max((1 - (entry_price / liquidate_price)) * 100, 0)
+        
+        if (liquidate_percent > 50) & (liquidate_percent > last_loop['liquidate_percent']):
+            noti_warning(f'Liquidatation ratio {liquidate_percent:.2f}%', bot_name)
+
+        update_liquidate(liquidate_percent, last_loop_path)
+
+
+def print_report_technical(position, exchange, config_params):
+    _, quote_currency = get_currency_future(config_params)
+    last_price = get_last_price(exchange, config_params)
+
+    print_position(last_price, position, quote_currency)
