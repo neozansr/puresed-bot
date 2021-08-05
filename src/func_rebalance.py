@@ -236,5 +236,5 @@ def print_report_grid(exchange, config_params):
     last_price = get_last_price(exchange, config_params)
     current_value = get_base_currency_value(last_price, exchange, base_currency)
 
-    print_current_balance(last_price, exchange, base_currency, quote_currency, config_params)
+    print_current_balance(last_price, exchange, config_params)
     print_current_value(current_value, exchange, quote_currency)

@@ -184,7 +184,6 @@ def reduce_position(value, action, exchange, config_params, open_orders_df_path)
 
 
 def clear_orders_technical(order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path):
-    base_currency, quote_currency = get_currency_future(config_params)
     order_id = order['id']
     
     while order['status'] != 'closed':
@@ -193,7 +192,7 @@ def clear_orders_technical(order, exchange, bot_name, config_system, config_para
 
     remove_order(order_id, open_orders_df_path)
     append_order('filled', order, exchange, config_params, transactions_df_path)
-    noti_success_order(order, bot_name, base_currency, quote_currency)
+    noti_success_order(order, bot_name, config_params)
 
 
 def append_profit_technical(amount, order, position, profit_df_path):

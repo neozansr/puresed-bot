@@ -245,7 +245,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
         cont_flag = 0
         
         while quote_currency_amount < available_cash_flow + config_params['value']:
-            cut_loss(exchange, bot_name, quote_currency, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path)
+            cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path)
 
             balance = exchange.fetch_balance()
             quote_currency_amount = balance[quote_currency]['free']
@@ -343,7 +343,7 @@ def update_reinvest(init_budget, new_budget, new_value, config_params_path):
         json.dump(config_params, config_file, indent=1)
 
 
-def update_budget_grid(prev_date, exchange, bot_name, base_currency, quote_currency, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
+def update_budget_grid(prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -352,6 +352,7 @@ def update_budget_grid(prev_date, exchange, bot_name, base_currency, quote_curre
 
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
+    base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
 
     current_value = get_base_currency_value(last_price, exchange, base_currency)
@@ -393,7 +394,7 @@ def print_report_grid(exchange, config_params, open_orders_df_path):
     base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
 
-    print_current_balance(last_price, exchange, quote_currency, config_params)
+    print_current_balance(last_price, exchange, config_params)
     print(f'Last price: {last_price} {quote_currency}')
     print_hold_assets(last_price, base_currency, quote_currency, config_params, open_orders_df_path)
     print_pending_order(quote_currency, open_orders_df_path)
