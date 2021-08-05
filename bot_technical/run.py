@@ -17,21 +17,19 @@ def run_bot(config_system, config_params, last_loop_path, transfer_path, open_or
     last_loop = get_last_loop(last_loop_path)
 
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
+    position = get_current_position(exchange, config_params)
 
     if end_date_flag == 1:
-        position = get_current_position(exchange, config_params)
+        withdraw_value = update_budget_technical(prev_date, position, exchange, bot_name, config_params, transfer_path, cash_flow_df_path)
         
-        if position != None:
-            withdraw_value = update_budget_technical(prev_date, position, exchange, bot_name, config_params, transfer_path, cash_flow_df_path)
+        if withdraw_value > 0:    
+            reverse_action = {'buy':'sell', 'sell':'buy'}
+            action = reverse_action[position['side']]
+            reduce_order = reduce_position(withdraw_value, action, exchange, config_params, open_orders_df_path)
             
-            if withdraw_value > 0:    
-                reverse_action = {'buy':'sell', 'sell':'buy'}
-                action = reverse_action[position['side']]
-                reduce_order = reduce_position(withdraw_value, action, exchange, config_params, open_orders_df_path)
-                
-                time.sleep(config_system['idle_stage'])
-                clear_orders_technical(reduce_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-                append_profit_technical(reduce_order['size'], reduce_order, position, profit_df_path)
+            time.sleep(config_system['idle_stage'])
+            clear_orders_technical(reduce_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+            append_profit_technical(reduce_order['size'], reduce_order, position, profit_df_path)
             
 
     ohlcv_df, last_timestamp = get_ohlcv(exchange, config_params)
@@ -40,23 +38,22 @@ def run_bot(config_system, config_params, last_loop_path, transfer_path, open_or
         update_timestamp(last_timestamp, last_loop_path)
         action = get_action(ohlcv_df, config_params)
 
-        if last_loop['side'] != action:
-            if last_loop['side'] != 'start':
-                position = get_current_position(exchange, config_params)
+        if last_loop['side'] not in [action, 'start']:
+            position = get_current_position(exchange, config_params)
 
-                if position != None:    
-                    close_order = close_position(action, position, exchange, config_params, open_orders_df_path)
-                    
-                    time.sleep(config_system['idle_stage'])
-                    clear_orders_technical(close_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-                    append_profit_technical(close_order['size'], close_order, position, profit_df_path)
-
-                open_order = open_position(action, exchange, config_params, open_orders_df_path)
+            if position != None:
+                close_order = close_position(action, position, exchange, config_params, open_orders_df_path)
                 
                 time.sleep(config_system['idle_stage'])
-                clear_orders_technical(open_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+                clear_orders_technical(close_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+                append_profit_technical(close_order['size'], close_order, position, profit_df_path)
 
-            update_side(action, last_loop_path)
+            open_order = open_position(action, exchange, config_params, open_orders_df_path)
+            
+            time.sleep(config_system['idle_stage'])
+            clear_orders_technical(open_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+
+        update_side(action, last_loop_path)
 
     position = get_current_position(exchange, config_params)
     check_liquidate(position, last_loop, bot_name, last_loop_path)
