@@ -90,11 +90,12 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
     return buy_price_list, cancel_flag
 
 
-def open_buy_orders_grid(remain_budget, free_budget, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
+def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     base_currency, quote_currency = get_currency(config_params)
     bid_price = get_bid_price(exchange, config_params)
     print(f'Bid price: {bid_price} {quote_currency}')
     
+    remain_budget, free_budget = cal_budget(config_params, open_orders_df_path)
     buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
     
     if cancel_flag == 1:

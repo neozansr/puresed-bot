@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_config_system, get_config_params, get_time, get_exchange, get_last_loop, check_end_date
 from func_update import append_error_log
-from func_rebalance import get_series_loop, reset_order_loop, clear_orders_rebalance, rebalance, update_withdraw_flag, update_budget_rebalance, print_report_grid
+from func_rebalance import get_series_loop, reset_order_loop, rebalance, update_withdraw_flag, update_budget_rebalance, print_report_rebalance
 
 
 def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path, cash_flow_df_path):
@@ -20,7 +20,6 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     if end_date_flag == 1:
         withdraw_flag = update_budget_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path)
         update_withdraw_flag(last_loop_path, withdraw_flag)
-        time.sleep(config_system['idle_stage'])        
 
     last_loop = get_last_loop(last_loop_path)
     if last_loop['withdraw_flag'] == 1:
@@ -29,13 +28,9 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     else:
         method = 'lifo'
     
-    rebalance(exchange, config_params, open_orders_df_path, error_log_df_path)
-    
-    time.sleep(config_system['idle_stage'])
-    clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
+    rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path)
     update_withdraw_flag(last_loop_path, False)
-
-    print_report_grid(exchange, config_params)    
+    print_report_rebalance(exchange, config_params)    
 
 
 if __name__ == "__main__":

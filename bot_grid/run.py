@@ -16,10 +16,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     exchange = get_exchange(config_system)
     
     clear_orders_grid('buy', exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-    
-    time.sleep(config_system['idle_stage'])
     clear_orders_grid('sell', exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-    
     print_report_grid(exchange, config_params, open_orders_df_path)
     
     cont_flag = check_circuit_breaker(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
@@ -28,8 +25,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
         cont_flag = check_cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, cash_flow_df_path)
 
         if cont_flag == 1:
-            remain_budget, free_budget = cal_budget(config_params, open_orders_df_path)
-            open_buy_orders_grid(remain_budget, free_budget, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
+            open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
 
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
 

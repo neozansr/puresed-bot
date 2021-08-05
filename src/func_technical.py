@@ -85,11 +85,41 @@ def update_liquidate(liquidate_percent, last_loop_path):
         json.dump(last_loop, last_loop_file, indent=1)
 
 
+def action_cross_signal(ohlcv_df):
+    last_timestamp_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+    last_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'signal']
+
+    if last_timestamp_price < last_signal:
+        action = 'sell'
+    elif last_timestamp_price > last_signal:
+        action = 'buy'
+    else:
+        action = 'hold'
+
+    return action
+
+
+def action_bound_signal(ohlcv_df):
+    last_timestamp_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+    last_min_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'min_signal']
+    last_max_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'max_signal']
+
+    if last_timestamp_price < last_min_signal:
+        action = 'buy'
+    elif last_timestamp_price > last_max_signal:
+        action = 'sell'
+    else:
+        action = 'hold'
+
+    return action
+
+
 def signal_ma(ohlcv_df, config_params):
     ohlcv_df['signal'] = ohlcv_df['close'].rolling(window=int(np.round(config_params['window']))).mean()
-    ohlcv_df = ohlcv_df.dropna().reset_index(drop=True)
     
-    return ohlcv_df
+    action = action_cross_signal(ohlcv_df)
+    
+    return action
 
 
 def signal_tma(ohlcv_df, config_params):
@@ -100,26 +130,31 @@ def signal_tma(ohlcv_df, config_params):
     
     # round tma to reach window steps
     ohlcv_df['signal'] = ohlcv_df['ma'].rolling(window=int(np.round(sub_interval))).mean()
+
+    action = action_cross_signal(ohlcv_df)
     
-    ohlcv_df = ohlcv_df.drop(columns=['ma'])
-    ohlcv_df = ohlcv_df.dropna().reset_index(drop=True)
+    return action
+
+
+def signal_bollinger(ohlcv_df, config_params):
+    ohlcv_df['ma'] = ohlcv_df['close'].rolling(window=int(np.round(config_params['window']))).mean()
+    ohlcv_df['std'] = ohlcv_df['close'].rolling(window=int(np.round(config_params['window']))).std()
+
+    ohlcv_df['min_signal'] = ohlcv_df['ma'] - (2 * ohlcv_df['std'])
+    ohlcv_df['max_signal'] = ohlcv_df['ma'] + (2 * ohlcv_df['std'])
     
-    return ohlcv_df
+    action = action_bound_signal(ohlcv_df)
+    
+    return action
 
 
 def get_action(ohlcv_df, config_params):
-    func_dict = {'tma': signal_tma}
-    ohlcv_df = func_dict[config_params['signal']](ohlcv_df, config_params)
-
-    last_timestamp_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
-    last_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'signal']
-
-    if last_timestamp_price < last_signal:
-        action = 'sell'
-    elif last_timestamp_price > last_signal:
-        action = 'buy'
-    else:
-        action = 'hold'
+    func_dict = {
+        'ma':signal_ma, 
+        'tma': signal_tma,
+        'bollinger': signal_bollinger
+        }
+    action = func_dict[config_params['signal']](ohlcv_df, config_params)
     
     return action
 
@@ -193,6 +228,51 @@ def clear_orders_technical(order, exchange, bot_name, config_system, config_para
     remove_order(order_id, open_orders_df_path)
     append_order('filled', order, exchange, config_params, transactions_df_path)
     noti_success_order(order, bot_name, config_params)
+
+
+def withdraw_position(prev_date, exchange, bot_name, config_system, config_params, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+    position = get_current_position(exchange, config_params)
+    withdraw_value = update_budget_technical(prev_date, position, exchange, bot_name, config_params, transfer_path, cash_flow_df_path)
+    
+    if withdraw_value > 0:
+        reverse_action = {'buy':'sell', 'sell':'buy'}
+        action = reverse_action[position['side']]
+        reduce_order = reduce_position(withdraw_value, action, exchange, config_params, open_orders_df_path)
+
+        time.sleep(config_system['idle_stage'])
+        
+        clear_orders_technical(reduce_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+        append_profit_technical(reduce_order['size'], reduce_order, position, profit_df_path)
+
+    return reduce_order
+
+
+def manage_position(ohlcv_df, last_timestamp, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path):
+    last_loop = get_last_loop(last_loop_path)
+    action = get_action(ohlcv_df, config_params)
+
+    if action == 'hold':
+        action = last_loop['side']
+
+    if last_loop['side'] not in [action, 'start']:
+        position = get_current_position(exchange, config_params)
+
+        if position != None:
+            close_order = close_position(action, position, exchange, config_params, open_orders_df_path)
+            time.sleep(config_system['idle_stage'])
+
+            clear_orders_technical(close_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+            append_profit_technical(close_order['size'], close_order, position, profit_df_path)
+
+        open_order = open_position(action, exchange, config_params, open_orders_df_path)
+        time.sleep(config_system['idle_stage'])
+
+        clear_orders_technical(open_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+    else:
+        print('No action')
+
+    update_timestamp(last_timestamp, last_loop_path)
+    update_side(action, last_loop_path)
 
 
 def append_profit_technical(amount, order, position, profit_df_path):

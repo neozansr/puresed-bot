@@ -121,7 +121,7 @@ def update_queue(method, amount_key, sell_order, config_params, queue_df_path, p
         sell_amount -= exe_amount
     
 
-def rebalance(exchange, config_params, open_orders_df_path, error_log_df_path):
+def rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path):
     rebalance_flag = 1
 
     base_currency, quote_currency = get_currency(config_params)
@@ -156,6 +156,9 @@ def rebalance(exchange, config_params, open_orders_df_path, error_log_df_path):
             append_error_log('InsufficientFunds', error_log_df_path)
             print(f'Error: Cannot {side} at price {price:.2f} {quote_currency} due to insufficient fund!!!')
             sys.exit(1)
+
+    time.sleep(config_system['idle_stage'])
+    clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
 
 
 def clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
@@ -231,7 +234,7 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
     return withdraw_flag
 
 
-def print_report_grid(exchange, config_params):
+def print_report_rebalance(exchange, config_params):
     base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
     current_value = get_base_currency_value(last_price, exchange, base_currency)
