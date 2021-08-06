@@ -59,7 +59,7 @@ if __name__ == "__main__":
                 print('No connection: Skip the loop')
         
             print('End loop')
-            print(get_time())
+            print(f'Time: {get_time()}')
             print(f'Wait {idle_loop} seconds')
         else:
             print('Stop process')

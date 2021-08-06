@@ -6,7 +6,7 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_config_system, get_config_params, get_exchange, get_last_loop, check_end_date
+from func_get import get_config_system, get_config_params, get_time, get_exchange, get_last_loop, check_end_date
 from func_update import append_error_log
 from func_technical import get_ohlcv, get_current_position, manage_position, withdraw_position, check_liquidate, print_report_technical
 
@@ -22,6 +22,9 @@ def run_bot(config_system, config_params, last_loop_path, transfer_path, open_or
         withdraw_position(prev_date, exchange, bot_name, config_system, config_params, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
         
     ohlcv_df, last_timestamp = get_ohlcv(exchange, config_params)
+    
+    print(f'Time: {get_time()}')
+    print(f'Last timestamp: {last_timestamp}')
 
     if last_loop['timestamp'] != last_timestamp:
         manage_position(ohlcv_df, last_timestamp, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path)
