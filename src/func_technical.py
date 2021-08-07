@@ -239,7 +239,8 @@ def close_position(action, position, exchange, config_params, open_orders_df_pat
     last_price = get_last_price(exchange, config_params)
     
     append_order('amount', order, exchange, config_params, open_orders_df_path)
-    print(f'Open {action} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
+    # size from future dict is str type
+    print(f'Open {action} {amount} {base_currency} at {last_price} {quote_currency}')
 
     return order
 
