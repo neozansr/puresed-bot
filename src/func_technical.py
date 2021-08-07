@@ -100,13 +100,17 @@ def check_new_timestamp(ohlcv_df, config_params, last_loop):
     signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
     print(f'Signal timestamp: {signal_timestamp}')
 
-    last_signal_timestamp = pd.to_datetime(last_loop['signal_timestamp'])
-    expected_timestamp = last_signal_timestamp + relativedelta(minutes=config_params['interval'])
-    
-    if signal_timestamp >= expected_timestamp:
+    if last_loop['signal_timestamp'] == 0:
+        # One first loop, bypass to manage_position to update last_loop
         new_timestamp_flag = True
     else:
-        new_timestamp_flag = False
+        last_signal_timestamp = pd.to_datetime(last_loop['signal_timestamp'])
+        expected_timestamp = last_signal_timestamp + relativedelta(minutes=config_params['interval'])
+        
+        if signal_timestamp >= expected_timestamp:
+            new_timestamp_flag = True
+        else:
+            new_timestamp_flag = False
 
     return new_timestamp_flag
 

@@ -1,8 +1,8 @@
 {
  "symbol": "ETH-PERP",
  "signal": "ma",
- "interval": 50,
- "window": 15,
+ "interval": 15,
+ "window": 50,
  "leverage": 3,
  "safety_value": 0.9,
  "decimal":3

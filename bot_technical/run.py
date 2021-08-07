@@ -29,8 +29,10 @@ def run_bot(config_system, config_params, last_loop_path, transfer_path, open_or
         manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path)
 
     position = get_current_position(exchange, config_params)
-    check_drawdown(position, exchange, config_params, last_loop, bot_name, last_loop_path)
-    print_report_technical(position, exchange, config_params)
+    
+    if position != None:
+        check_drawdown(position, exchange, config_params, last_loop, bot_name, last_loop_path)
+        print_report_technical(position, exchange, config_params)
 
     update_timestamp(last_loop_path)
     
