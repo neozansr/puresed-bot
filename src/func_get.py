@@ -171,7 +171,7 @@ def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):
             # first date   
             last_date_str = transactions_df['timestamp'][0]
 
-        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
+        last_date = pd.to_datetime(last_date_str).date()
         
         if last_date != prev_date:
             end_date_flag = 1
