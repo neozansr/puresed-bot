@@ -282,8 +282,6 @@ def withdraw_position(prev_date, exchange, bot_name, config_system, config_param
         clear_orders_technical(reduce_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
         append_profit_technical(reduce_order['size'], reduce_order, position, profit_df_path)
 
-    return reduce_order
-
 
 def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path):
     _, quote_currency = get_currency_future(config_params)

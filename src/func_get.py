@@ -1,6 +1,7 @@
 import ccxt
 import pandas as pd
 import datetime as dt
+from dateutil.relativedelta import relativedelta
 from dateutil import tz
 import json
 import requests
@@ -163,15 +164,15 @@ def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):
     
     if len(transactions_df) > 0:
         cur_date = get_date()
-        prev_date = cur_date - dt.timedelta(days=1)
+        prev_date = cur_date - relativedelta(days=1)
 
         if len(cash_flow_df) > 0:
             last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
+            last_date = pd.to_datetime(last_date_str).date()
         else:
             # first date   
             last_date_str = transactions_df['timestamp'][0]
-
-        last_date = pd.to_datetime(last_date_str).date()
+            last_date = pd.to_datetime(last_date_str).date() - relativedelta(days=1)
         
         if last_date != prev_date:
             end_date_flag = 1
