@@ -162,11 +162,16 @@ def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):
     transactions_df = pd.read_csv(transactions_df_path)
     
     if len(transactions_df) > 0:
-        last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
-        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
-
         cur_date = get_date()
         prev_date = cur_date - dt.timedelta(days=1)
+
+        if len(cash_flow_df) > 0:
+            last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
+        else:
+            # first date   
+            last_date_str = transactions_df['timestamp'][0]
+
+        last_date = dt.datetime.strptime(last_date_str, '%Y-%m-%d').date()
         
         if last_date != prev_date:
             end_date_flag = 1
