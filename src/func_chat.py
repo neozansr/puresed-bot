@@ -22,7 +22,7 @@ def get_rebalance_text(text, sub_path, config_system_path, config_params_path, l
     balance_value = current_value + cash
     cash_flow = sum(today_profit_df['profit'])
 
-    last_loop = get_json(last_loop_path)
+    last_loop = get_json(sub_path + last_loop_path)
     last_timestamp = last_loop['signal_timestamp']
 
     text += f'\nBalance: {balance_value:.2f} {quote_currency}'
@@ -59,7 +59,7 @@ def get_grid_text(text, sub_path, config_system_path, config_params_path, last_l
     
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(sub_path + open_orders_df_path)
 
-    last_loop = get_json(last_loop_path)
+    last_loop = get_json(sub_path + last_loop_path)
     last_timestamp = last_loop['signal_timestamp']
 
     text += f'\nBalance: {balance_value:.2f} {quote_currency}'
@@ -88,7 +88,7 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
     cash = get_quote_currency_value(exchange, quote_currency)
     balance_value = current_value + cash
 
-    last_loop = get_json(last_loop_path)
+    last_loop = get_json(sub_path + last_loop_path)
     last_timestamp = last_loop['signal_timestamp']
     last_signal_timestamp = last_loop['signal_timestamp']
     close_price = last_loop['close_price']
