@@ -104,24 +104,27 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
     position = get_current_position(exchange, config_params)
 
     if position != None:
-        side = position['side']
-        realised = float(position['realizedPnl'])
-        entry_price = float(position['entryPrice'])
-        liquidate_price = float(position['estimatedLiquidationPrice'])
-        max_drawdown = last_loop['max_drawdown']
+        if position['size'] != '0.0':
+            side = position['side']
+            realised = float(position['realizedPnl'])
+            entry_price = float(position['entryPrice'])
+            liquidate_price = float(position['estimatedLiquidationPrice'])
+            max_drawdown = last_loop['max_drawdown']
 
-        if position['side'] == 'buy':
-            drawdown = max(1 - (last_price / entry_price), 0)
-        elif position['side'] == 'sell':
-            drawdown = max((last_price / entry_price) - 1, 0)
-        
-        text += f'\nSide: {side}'
-        text += f'\nRealise: {realised}'
-        text += f'\nLast price: {last_price} {quote_currency}'
-        text += f'\nEntry price: {entry_price} {quote_currency}'
-        text += f'\nLiquidate price: {liquidate_price}'
-        text += f'\nDrawdown: {drawdown * 100:.2f}%'
-        text += f'\nMax drawdown: {max_drawdown * 100:.2f}%'
+            if position['side'] == 'buy':
+                drawdown = max(1 - (last_price / entry_price), 0)
+            elif position['side'] == 'sell':
+                drawdown = max((last_price / entry_price) - 1, 0)
+            
+            text += f'\nSide: {side}'
+            text += f'\nRealise: {realised}'
+            text += f'\nLast price: {last_price} {quote_currency}'
+            text += f'\nEntry price: {entry_price} {quote_currency}'
+            text += f'\nLiquidate price: {liquidate_price}'
+            text += f'\nDrawdown: {drawdown * 100:.2f}%'
+            text += f'\nMax drawdown: {max_drawdown * 100:.2f}%'
+        else:
+            text += '\nNo open position'
     else:
         text += '\nNo open position'
 

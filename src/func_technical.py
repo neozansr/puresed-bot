@@ -300,11 +300,12 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, 
         position = get_current_position(exchange, config_params)
 
         if position != None:
-            close_order = close_position(action, position, exchange, config_params, open_orders_df_path)
-            time.sleep(config_system['idle_stage'])
+            if position['size'] != '0.0':
+                close_order = close_position(action, position, exchange, config_params, open_orders_df_path)
+                time.sleep(config_system['idle_stage'])
 
-            clear_orders_technical(close_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-            append_profit_technical(close_order['amount'], close_order, position, profit_df_path)
+                clear_orders_technical(close_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+                append_profit_technical(close_order['amount'], close_order, position, profit_df_path)
 
         open_order = open_position(action, exchange, config_params, open_orders_df_path)
         time.sleep(config_system['idle_stage'])
@@ -343,7 +344,10 @@ def update_budget_technical(prev_date, position, exchange, bot_name, config_para
     cash_flow_df = pd.read_csv(cash_flow_df_path)
 
     if position != None:
-        realised = position['realizedPnl']
+        if position['size'] != '0.0':
+            realised = position['realizedPnl']
+        else:
+            realised = 0
     else:
         realised = 0
 
@@ -363,18 +367,17 @@ def update_budget_technical(prev_date, position, exchange, bot_name, config_para
 
 
 def check_drawdown(position, exchange, config_params, last_loop, bot_name, last_loop_path):
-    if position != None:
-        last_price = get_last_price(exchange, config_params)
-        entry_price = float(position['entryPrice'])
+    last_price = get_last_price(exchange, config_params)
+    entry_price = float(position['entryPrice'])
 
-        if position['side'] == 'buy':
-            drawdown = max(1 - (last_price / entry_price), 0)
-        elif position['side'] == 'sell':
-            drawdown = max((last_price / entry_price) - 1, 0)
-        
-        if drawdown > last_loop['max_drawdown']:
-            noti_warning(f'Drawdown {drawdown * 100:.2f}%', bot_name)
-            update_max_drawdown(drawdown, last_loop_path)
+    if position['side'] == 'buy':
+        drawdown = max(1 - (last_price / entry_price), 0)
+    elif position['side'] == 'sell':
+        drawdown = max((last_price / entry_price) - 1, 0)
+    
+    if drawdown > last_loop['max_drawdown']:
+        noti_warning(f'Drawdown {drawdown * 100:.2f}%', bot_name)
+        update_max_drawdown(drawdown, last_loop_path)
 
 
 def print_report_technical(position, exchange, config_params):

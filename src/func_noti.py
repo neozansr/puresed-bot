@@ -96,22 +96,19 @@ def print_current_value_future(exchange, quote_currency):
 
 
 def print_position(last_price, position, quote_currency):
-    if position != None:
-        side = position['side']
-        realised = float(position['realizedPnl'])
-        entry_price = float(position['entryPrice'])
-        liquidate_price = float(position['estimatedLiquidationPrice'])
+    side = position['side']
+    realised = float(position['realizedPnl'])
+    entry_price = float(position['entryPrice'])
+    liquidate_price = float(position['estimatedLiquidationPrice'])
 
-        if position['side'] == 'buy':
-            drawdown = max(1 - (last_price / entry_price), 0)
-        elif position['side'] == 'sell':
-            drawdown = max((last_price / entry_price) - 1, 0)
-        
-        print(f'Side: {side}')
-        print(f'Realise: {realised}')
-        print(f'Last price: {last_price} {quote_currency}')
-        print(f'Entry price: {entry_price} {quote_currency}')
-        print(f'Liquidate price: {liquidate_price}')
-        print(f'Drawdown: {drawdown * 100:.2f}%')
-    else:
-        print('No open position')
+    if position['side'] == 'buy':
+        drawdown = max(1 - (last_price / entry_price), 0)
+    elif position['side'] == 'sell':
+        drawdown = max((last_price / entry_price) - 1, 0)
+    
+    print(f'Side: {side}')
+    print(f'Realise: {realised}')
+    print(f'Last price: {last_price} {quote_currency}')
+    print(f'Entry price: {entry_price} {quote_currency}')
+    print(f'Liquidate price: {liquidate_price}')
+    print(f'Drawdown: {drawdown * 100:.2f}%')
