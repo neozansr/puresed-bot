@@ -6,9 +6,9 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_json, get_time, get_exchange, check_end_date
+from func_get import get_json, get_time, get_exchange, get_current_position, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_technical import get_ohlcv, check_new_timestamp, get_current_position, manage_position, withdraw_position, check_drawdown, print_report_technical
+from func_technical import get_ohlcv, check_new_timestamp, manage_position, withdraw_position, check_drawdown, print_report_technical
 
 
 def run_bot(config_system, config_params, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):

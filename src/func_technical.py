@@ -5,7 +5,7 @@ import math
 import time
 import json
 
-from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value
+from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_current_position
 from func_cal import round_down_amount, round_up_amount
 from func_update import append_order, remove_order, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_position
@@ -188,14 +188,6 @@ def get_action(ohlcv_df, config_params):
     action, signal_price = func_dict[config_params['signal']](ohlcv_df, config_params)
     
     return action, signal_price
-
-
-def get_current_position(exchange, config_params):
-    positions = exchange.fetch_positions()
-    indexed = exchange.index_by(positions, 'future')
-    position = exchange.safe_value(indexed, config_params['symbol'])
-
-    return position
 
 
 def cal_new_amount(value, exchange, config_params):

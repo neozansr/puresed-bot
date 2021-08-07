@@ -157,6 +157,14 @@ def get_greed_index(default_index=0.5):
     return greed_index
 
 
+def get_current_position(exchange, config_params):
+    positions = exchange.fetch_positions()
+    indexed = exchange.index_by(positions, 'future')
+    position = exchange.safe_value(indexed, config_params['symbol'])
+
+    return position
+    
+
 def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
