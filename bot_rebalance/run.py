@@ -6,8 +6,8 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_json, get_time, get_exchange, get_last_loop, check_end_date
-from func_update import append_error_log
+from func_get import get_json, get_time, get_exchange, check_end_date
+from func_update import append_error_log, update_timestamp
 from func_rebalance import get_series_loop, reset_order_loop, rebalance, update_withdraw_flag, update_budget_rebalance, print_report_rebalance
 
 
@@ -21,7 +21,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
         withdraw_flag = update_budget_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path)
         update_withdraw_flag(last_loop_path, withdraw_flag)
 
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
     if last_loop['withdraw_flag'] == 1:
         # force sell from withdrawal
         method = 'fifo'
@@ -30,7 +30,9 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     
     rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path)
     update_withdraw_flag(last_loop_path, False)
-    print_report_rebalance(exchange, config_params)    
+    print_report_rebalance(exchange, config_params)
+
+    update_timestamp(last_loop_path)
 
 
 if __name__ == "__main__":

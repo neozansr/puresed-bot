@@ -56,6 +56,16 @@ def update_last_loop_price(exchange, config_params, last_loop_path):
         json.dump(last_loop, last_loop_file, indent=1)
 
 
+def update_timestamp(last_loop_path):
+    with open(last_loop_path) as last_loop_file:
+        last_loop = json.load(last_loop_file)
+
+    last_loop['timestamp'] = str(get_time())
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop, last_loop_file, indent=1)
+
+
 def reset_transfer(transfer_path):
     with open(transfer_path) as transfer_file:
         transfer = json.load(transfer_file)
