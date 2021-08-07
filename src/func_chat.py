@@ -1,8 +1,7 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_currency_future, get_last_price, get_base_currency_value, get_quote_currency_value, get_pending_order
+from func_get import get_json, get_date, get_exchange, get_currency, get_currency_future, get_last_price, get_base_currency_value, get_quote_currency_value, get_pending_order, get_current_position
 from func_cal import cal_unrealised
-from func_technical import get_current_position
 
 
 def get_rebalance_text(text, sub_path, config_system_path, config_params_path, last_loop_path, profit_df_path):
