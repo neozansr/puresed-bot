@@ -66,7 +66,7 @@ def update_ohlcv(ohlcv_df, last_loop_path):
 
     last_loop = get_json(last_loop_path)
     last_loop['signal_timestamp'] = str(signal_timestamp)
-    last_loop['close_price'] = str(close_price)
+    last_loop['close_price'] = float(close_price)
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop, last_loop_file, indent=1)
