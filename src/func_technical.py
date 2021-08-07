@@ -46,7 +46,6 @@ def group_timeframe(ohlcv_df, step):
 
 
 def get_ohlcv(exchange, config_params):
-    _, quote_currency = get_currency_future(config_params)
     min_timeframe, step = get_timeframe(config_params)
 
     ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=min_timeframe, limit=config_params['window'] * step)
@@ -57,11 +56,6 @@ def get_ohlcv(exchange, config_params):
 
     if step > 1:
         ohlcv_df = group_timeframe(ohlcv_df, step)
-
-    close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
-    signal_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'signal']
-    print(f'Close price: {close_price:.2f} {quote_currency}')
-    print(f'Signal price: {signal_price:.2f} {quote_currency}')
 
     return ohlcv_df
 
@@ -288,8 +282,13 @@ def withdraw_position(prev_date, exchange, bot_name, config_system, config_param
 
 
 def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path):
+    _, quote_currency = get_currency_future(config_params)
     last_loop = get_json(last_loop_path)
     action, signal_price = get_action(ohlcv_df, config_params)
+    close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+
+    print(f'Close price: {close_price:.2f} {quote_currency}')
+    print(f'Signal price: {signal_price:.2f} {quote_currency}')
 
     if action == 'hold':
         action = last_loop['side']
@@ -311,7 +310,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, 
 
     else:
         print('No action')
-
+    
     update_ohlcv(ohlcv_df, last_loop_path)
     update_signal_price(signal_price, last_loop_path)
     update_side(action, last_loop_path)
