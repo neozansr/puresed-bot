@@ -235,7 +235,7 @@ def open_position(action, exchange, config_params, open_orders_df_path):
 def close_position(action, position, exchange, config_params, open_orders_df_path):
     base_currency, quote_currency = get_currency_future(config_params)
     amount = position['size']
-    order = exchange.create_order(config_params['symbol'], 'market', action, amount)
+    order = exchange.create_order(config_params['symbol'], 'market', action, amount, params={'reduceOnly': True})
     last_price = get_last_price(exchange, config_params)
     
     append_order('amount', order, exchange, config_params, open_orders_df_path)
@@ -281,7 +281,7 @@ def withdraw_position(prev_date, exchange, bot_name, config_system, config_param
         time.sleep(config_system['idle_stage'])
         
         clear_orders_technical(reduce_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-        append_profit_technical(reduce_order['size'], reduce_order, position, profit_df_path)
+        append_profit_technical(reduce_order['amount'], reduce_order, position, profit_df_path)
 
 
 def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path):
@@ -304,7 +304,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, 
             time.sleep(config_system['idle_stage'])
 
             clear_orders_technical(close_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-            append_profit_technical(close_order['size'], close_order, position, profit_df_path)
+            append_profit_technical(close_order['amount'], close_order, position, profit_df_path)
 
         open_order = open_position(action, exchange, config_params, open_orders_df_path)
         time.sleep(config_system['idle_stage'])
