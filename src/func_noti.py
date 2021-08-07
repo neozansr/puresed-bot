@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import requests
 
-from func_get import get_time, get_currency, get_base_currency_value, get_quote_currency_value, get_pending_order
+from func_get import get_time, get_currency, get_currency_future, get_base_currency_value, get_quote_currency_value, get_pending_order
 from func_cal import cal_unrealised
 
 
@@ -25,8 +25,12 @@ def line_send(message, noti_type):
     return send_message
 
 
-def noti_success_order(order, bot_name, config_params):
-    base_currency, quote_currency = get_currency(config_params)
+def noti_success_order(order, bot_name, config_params, future=False):
+    if future == True:
+        base_currency, quote_currency = get_currency_future(config_params)
+    else:
+        base_currency, quote_currency = get_currency(config_params)
+    
     side = order['side']
     filled = order['filled']
     price = order['price']

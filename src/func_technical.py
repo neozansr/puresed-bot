@@ -265,7 +265,7 @@ def clear_orders_technical(order, exchange, bot_name, config_system, config_para
 
     remove_order(order_id, open_orders_df_path)
     append_order('filled', order, exchange, config_params, transactions_df_path)
-    noti_success_order(order, bot_name, config_params)
+    noti_success_order(order, bot_name, config_params, future=True)
 
 
 def withdraw_position(prev_date, exchange, bot_name, config_system, config_params, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
