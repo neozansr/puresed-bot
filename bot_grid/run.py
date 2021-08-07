@@ -6,7 +6,7 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_config_system, get_config_params, get_exchange, check_end_date
+from func_get import get_json, get_exchange, check_end_date
 from func_update import append_error_log
 from func_grid import cal_budget, clear_orders_grid, cancel_open_buy_orders_grid, open_buy_orders_grid, check_circuit_breaker, check_cut_loss, update_budget_grid, print_report_grid
 
@@ -45,8 +45,8 @@ if __name__ == "__main__":
     cash_flow_df_path = '../cash_flow/{}.csv'
 
     while True:
-        config_system = get_config_system(config_system_path)
-        config_params = get_config_params(config_params_path)
+        config_system = get_json(config_system_path)
+        config_params = get_json(config_params_path)
         
         if config_system['run_flag'] == 1:
             print('Start loop')

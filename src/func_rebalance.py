@@ -4,7 +4,7 @@ import time
 import json
 import sys
 
-from func_get import get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_last_loop, get_transfer, get_available_cash_flow
+from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow
 from func_update import append_order, remove_order, append_error_log, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
@@ -38,7 +38,7 @@ def gen_series(n=18, limit_min=4):
 
 
 def get_series_loop(last_loop_path):
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
     series = gen_series()
 
     order_loop = last_loop['order_loop']
@@ -61,7 +61,7 @@ def update_order_loop(order_loop, series, last_loop, last_loop_path):
 
 
 def reset_order_loop(last_loop_path):
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
     last_loop['order_loop'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
@@ -150,11 +150,11 @@ def rebalance(method, exchange, bot_name, config_system, config_params, open_ord
             order = exchange.create_order(config_params['symbol'], 'market', side, amount)
             
             append_order('amount', order, exchange, config_params, open_orders_df_path)
-            print(f'Open {side} {amount:.3f} {base_currency} at {last_price:.2f} {quote_currency}')
+            print(f'Open {side} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process
             append_error_log('InsufficientFunds', error_log_df_path)
-            print(f'Error: Cannot {side} at price {price:.2f} {quote_currency} due to insufficient fund!!!')
+            print(f'Error: Cannot {side} at price {price} {quote_currency} due to insufficient fund!!!')
             sys.exit(1)
 
     time.sleep(config_system['idle_stage'])
@@ -183,7 +183,7 @@ def clear_orders_rebalance(method, exchange, bot_name, config_system, config_par
 
 
 def update_withdraw_flag(last_loop_path, enable):
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
 
     # enable flag when withdraw detected
     # disable flag after sell assets
@@ -213,7 +213,7 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
     last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
     cash_flow = sum(last_profit_df['profit'])
     
-    transfer = get_transfer(transfer_path)
+    transfer = get_json(transfer_path)
 
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
     available_cash_flow += cash_flow

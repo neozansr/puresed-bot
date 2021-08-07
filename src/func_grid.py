@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import time
 
-from func_get import get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_last_loop, get_transfer, get_available_cash_flow, get_greed_index
+from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow, get_greed_index
 from func_cal import round_down_amount, cal_final_amount, cal_unrealised
 from func_update import append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
@@ -207,7 +207,7 @@ def check_circuit_breaker(exchange, bot_name, config_system, config_params, last
     cont_flag = 1
     
     _, quote_currency = get_currency(config_params)
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
     transactions_df = pd.read_csv(transactions_df_path)
     update_last_loop_price(exchange, config_params, last_loop_path)
 
@@ -237,7 +237,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
     
     min_sell_price = min(open_orders_df['price'], default=0)    
 
-    transfer = get_transfer(transfer_path)
+    transfer = get_json(transfer_path)
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
 
     last_price = get_last_price(exchange, config_params)
@@ -302,7 +302,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
 
 
 def update_loss(loss, last_loop_path):
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
     total_loss = last_loop['loss']
     total_loss -= loss
     last_loop['loss'] = total_loss
@@ -325,7 +325,7 @@ def reduce_budget(loss, config_params_path):
 
 
 def reset_loss(last_loop_path):
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
     last_loop['loss'] = 0
 
     with open(last_loop_path, 'w') as last_loop_file:
@@ -349,7 +349,7 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
 
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
 
@@ -372,7 +372,7 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
     reinvest_amount = cash_flow * reinvest_ratio
     remain_cash_flow = cash_flow - reinvest_amount
 
-    transfer = get_transfer(transfer_path)
+    transfer = get_json(transfer_path)
     lower_price = last_price * (1 - config_params['fluctuation_rate'])
     n_order = int((last_price - lower_price) / config_params['grid'])
 

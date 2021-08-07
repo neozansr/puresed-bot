@@ -1,6 +1,6 @@
 {
  "run_flag": 1,
  "idle_stage": 3,
- "idle_loop": 10,
+ "idle_loop": 30,
  "keys_path": "../../_keys/ftx/ftx_test_keys.json"
 }

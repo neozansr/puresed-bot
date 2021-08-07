@@ -1,13 +1,13 @@
 import pandas as pd
 
-from func_get import get_config_system, get_config_params, get_date, get_exchange, get_currency, get_currency_future, get_last_price, get_base_currency_value, get_quote_currency_value, get_pending_order
+from func_get import get_json, get_date, get_exchange, get_currency, get_currency_future, get_last_price, get_base_currency_value, get_quote_currency_value, get_pending_order
 from func_cal import cal_unrealised
 from func_technical import get_current_position
 
 
 def get_rebalance_text(text, sub_path, config_system_path, config_params_path, profit_df_path):
-    config_system = get_config_system(sub_path + config_system_path)
-    config_params = get_config_params(sub_path + config_params_path)
+    config_system = get_json(sub_path + config_system_path)
+    config_params = get_json(sub_path + config_params_path)
 
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params)
@@ -32,8 +32,8 @@ def get_rebalance_text(text, sub_path, config_system_path, config_params_path, p
 
 
 def get_grid_text(text, sub_path, config_system_path, config_params_path, open_orders_df_path, transactions_df_path):
-    config_system = get_config_system(sub_path + config_system_path)
-    config_params = get_config_params(sub_path + config_params_path)
+    config_system = get_json(sub_path + config_system_path)
+    config_params = get_json(sub_path + config_params_path)
 
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params)
@@ -67,9 +67,9 @@ def get_grid_text(text, sub_path, config_system_path, config_params_path, open_o
     return text
 
 
-def get_technical_text(text, sub_path, config_system_path, config_params_path):
-    config_system = get_config_system(sub_path + config_system_path)
-    config_params = get_config_params(sub_path + config_params_path)
+def get_technical_text(text, sub_path, config_system_path, config_params_path, last_loop_path):
+    config_system = get_json(sub_path + config_system_path)
+    config_params = get_json(sub_path + config_params_path)
 
     exchange = get_exchange(config_system, future=True)
     base_currency, quote_currency = get_currency_future(config_params)
@@ -79,9 +79,17 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path):
     cash = get_quote_currency_value(exchange, quote_currency)
     balance_value = current_value + cash
 
+    last_loop = get_json(last_loop_path)
+    last_timestamp = last_loop['timestamp']
+    close_price = last_loop['close_price']
+    signal_price = last_loop['signal_price']
+
     text += f'\nBalance: {balance_value:.2f} {quote_currency}'
     text += f'\nCurrent value: {current_value:.2f} {quote_currency}'
     text += f'\nCash: {cash:.2f} {quote_currency}'
+    text += f'\nLast timestamp: {last_timestamp}'
+    text += f'\nClose price: {close_price:.2f} {quote_currency}'
+    text += f'\nSignal price: {signal_price:.2f} {quote_currency}'
 
     position = get_current_position(exchange, config_params)
 
@@ -90,15 +98,20 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path):
         realised = float(position['realizedPnl'])
         entry_price = float(position['entryPrice'])
         liquidate_price = float(position['estimatedLiquidationPrice'])
+        max_drawdown = last_loop['max_drawdown']
 
-        liquidate_percent = max((1 - (entry_price / liquidate_price)) * 100, 0)
+        if position['side'] == 'buy':
+            drawdown = max(1 - (last_price / entry_price), 0)
+        elif position['side'] == 'sell':
+            drawdown = max((last_price / entry_price) - 1, 0)
         
         text += f'\nSide: {side}'
         text += f'\nRealise: {realised}'
         text += f'\nLast price: {last_price} {quote_currency}'
         text += f'\nEntry price: {entry_price} {quote_currency}'
         text += f'\nLiquidate price: {liquidate_price}'
-        text += f'\nLiquidate percent: {liquidate_percent:.2f}%'
+        text += f'\nDrawdown: {drawdown * 100:.2f}%'
+        text += f'\nMax drawdown: {max_drawdown * 100:.2f}%'
     else:
         text += '\nNo open position'
     

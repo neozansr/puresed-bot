@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 import math
 import time
 import json
 
-from func_get import get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_last_loop, get_transfer
+from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value
 from func_cal import round_down_amount, round_up_amount
 from func_update import append_order, remove_order, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_position
@@ -45,6 +46,7 @@ def group_timeframe(ohlcv_df, step):
 
 
 def get_ohlcv(exchange, config_params):
+    _, quote_currency = get_currency_future(config_params)
     min_timeframe, step = get_timeframe(config_params)
 
     ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=min_timeframe, limit=config_params['window'] * step)
@@ -56,70 +58,101 @@ def get_ohlcv(exchange, config_params):
     if step > 1:
         ohlcv_df = group_timeframe(ohlcv_df, step)
 
-    last_timestamp = str(ohlcv_df.loc[len(ohlcv_df) - 1, 'time'])
+    close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+    signal_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'signal']
+    print(f'Close price: {close_price:.2f} {quote_currency}')
+    print(f'Signal price: {signal_price:.2f} {quote_currency}')
 
-    return ohlcv_df, last_timestamp
+    return ohlcv_df
 
 
-def update_timestamp(last_timestamp, last_loop_path):
-    last_loop = get_last_loop(last_loop_path)
-    last_loop['timestamp'] = last_timestamp
+def update_ohlcv(ohlcv_df, last_loop_path):
+    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
+    close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+
+    last_loop = get_json(last_loop_path)
+    last_loop['signal_timestamp'] = str(signal_timestamp)
+    last_loop['close_price'] = str(close_price)
+
+    with open(last_loop_path, 'w') as last_loop_file:
+        json.dump(last_loop, last_loop_file, indent=1)
+
+
+def update_signal_price(signal_price, last_loop_path):
+    last_loop = get_json(last_loop_path)
+    last_loop['signal_price'] = signal_price
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop, last_loop_file, indent=1)
 
 
 def update_side(side, last_loop_path):
-    last_loop = get_last_loop(last_loop_path)
+    last_loop = get_json(last_loop_path)
     last_loop['side'] = side
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop, last_loop_file, indent=1)
 
 
-def update_liquidate(liquidate_percent, last_loop_path):
-    last_loop = get_last_loop(last_loop_path)
-    last_loop['liquidate_percent'] = liquidate_percent
+def update_max_drawdown(drawdown, last_loop_path):
+    last_loop = get_json(last_loop_path)
+    last_loop['max_drawdown'] = drawdown
 
     with open(last_loop_path, 'w') as last_loop_file:
         json.dump(last_loop, last_loop_file, indent=1)
 
 
-def action_cross_signal(ohlcv_df):
-    last_timestamp_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
-    last_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'signal']
+def check_new_timestamp(ohlcv_df, config_params, last_loop):
+    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
+    print(f'Signal timestamp: {signal_timestamp}')
 
-    if last_timestamp_price < last_signal:
+    last_signal_timestamp = pd.to_datetime(last_loop['signal_timestamp'])
+    expected_timestamp = last_signal_timestamp + relativedelta(minutes=config_params['interval'])
+    
+    if signal_timestamp >= expected_timestamp:
+        new_timestamp_flag = True
+    else:
+        new_timestamp_flag = False
+
+    return new_timestamp_flag
+
+
+def action_cross_signal(ohlcv_df):
+    close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+    signal_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'signal']
+
+    if close_price < signal_price:
         action = 'sell'
-    elif last_timestamp_price > last_signal:
+    elif close_price > signal_price:
         action = 'buy'
     else:
         action = 'hold'
 
-    return action
+    return action, signal_price
 
 
 def action_bound_signal(ohlcv_df):
-    last_timestamp_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
+    close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
     last_min_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'min_signal']
     last_max_signal = ohlcv_df.loc[len(ohlcv_df) - 1, 'max_signal']
+    signal_price = {'min':last_min_signal, 'max':last_max_signal}
 
-    if last_timestamp_price < last_min_signal:
+    if close_price < last_min_signal:
         action = 'buy'
-    elif last_timestamp_price > last_max_signal:
+    elif close_price > last_max_signal:
         action = 'sell'
     else:
         action = 'hold'
 
-    return action
+    return action, signal_price
 
 
 def signal_ma(ohlcv_df, config_params):
     ohlcv_df['signal'] = ohlcv_df['close'].rolling(window=int(np.round(config_params['window']))).mean()
     
-    action = action_cross_signal(ohlcv_df)
+    action, signal_price = action_cross_signal(ohlcv_df)
     
-    return action
+    return action, signal_price
 
 
 def signal_tma(ohlcv_df, config_params):
@@ -131,9 +164,9 @@ def signal_tma(ohlcv_df, config_params):
     # round tma to reach window steps
     ohlcv_df['signal'] = ohlcv_df['ma'].rolling(window=int(np.round(sub_interval))).mean()
 
-    action = action_cross_signal(ohlcv_df)
+    action, signal_price = action_cross_signal(ohlcv_df)
     
-    return action
+    return action, signal_price
 
 
 def signal_bollinger(ohlcv_df, config_params):
@@ -143,9 +176,9 @@ def signal_bollinger(ohlcv_df, config_params):
     ohlcv_df['min_signal'] = ohlcv_df['ma'] - (2 * ohlcv_df['std'])
     ohlcv_df['max_signal'] = ohlcv_df['ma'] + (2 * ohlcv_df['std'])
     
-    action = action_bound_signal(ohlcv_df)
+    action, signal_price = action_bound_signal(ohlcv_df)
     
-    return action
+    return action, signal_price
 
 
 def get_action(ohlcv_df, config_params):
@@ -154,9 +187,9 @@ def get_action(ohlcv_df, config_params):
         'tma': signal_tma,
         'bollinger': signal_bollinger
         }
-    action = func_dict[config_params['signal']](ohlcv_df, config_params)
+    action, signal_price = func_dict[config_params['signal']](ohlcv_df, config_params)
     
-    return action
+    return action, signal_price
 
 
 def get_current_position(exchange, config_params):
@@ -175,7 +208,7 @@ def cal_new_amount(value, exchange, config_params):
     amount = leverage_value / last_price
     amount = round_down_amount(amount, config_params)
     
-    return amount
+    return amount, last_price
 
 
 def cal_reduce_amount(value, exchange, config_params):
@@ -185,35 +218,42 @@ def cal_reduce_amount(value, exchange, config_params):
     amount = leverage_value / last_price
     amount = round_up_amount(amount, config_params)
 
-    return amount
+    return amount, last_price
 
 
 def open_position(action, exchange, config_params, open_orders_df_path):
-    _, quote_currency = get_currency_future(config_params)
+    base_currency, quote_currency = get_currency_future(config_params)
     balance_value = get_quote_currency_value(exchange, quote_currency)
 
-    amount = cal_new_amount(balance_value, exchange, config_params)
+    amount, last_price = cal_new_amount(balance_value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
     append_order('amount', order, exchange, config_params, open_orders_df_path)
+    print(f'Open {action} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
 
     return order
 
 
 def close_position(action, position, exchange, config_params, open_orders_df_path):
+    base_currency, quote_currency = get_currency_future(config_params)
     amount = position['size']
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
+    last_price = get_last_price(exchange, config_params)
     
     append_order('amount', order, exchange, config_params, open_orders_df_path)
+    print(f'Open {action} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
 
     return order
 
 
 def reduce_position(value, action, exchange, config_params, open_orders_df_path):
-    amount = cal_reduce_amount(value, exchange, config_params)
+    base_currency, quote_currency = get_currency_future(config_params)
+    
+    amount, last_price = cal_reduce_amount(value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
     append_order('amount', order, exchange, config_params, open_orders_df_path)
+    print(f'Open {action} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
 
     return order
 
@@ -247,9 +287,9 @@ def withdraw_position(prev_date, exchange, bot_name, config_system, config_param
     return reduce_order
 
 
-def manage_position(ohlcv_df, last_timestamp, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path):
-    last_loop = get_last_loop(last_loop_path)
-    action = get_action(ohlcv_df, config_params)
+def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path):
+    last_loop = get_json(last_loop_path)
+    action, signal_price = get_action(ohlcv_df, config_params)
 
     if action == 'hold':
         action = last_loop['side']
@@ -268,10 +308,12 @@ def manage_position(ohlcv_df, last_timestamp, exchange, bot_name, config_system,
         time.sleep(config_system['idle_stage'])
 
         clear_orders_technical(open_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+
     else:
         print('No action')
 
-    update_timestamp(last_timestamp, last_loop_path)
+    update_ohlcv(ohlcv_df, last_loop_path)
+    update_signal_price(signal_price, last_loop_path)
     update_side(action, last_loop_path)
 
 
@@ -306,29 +348,31 @@ def update_budget_technical(prev_date, position, exchange, bot_name, config_para
     _, quote_currency = get_currency_future(config_params)
     balance_value = get_quote_currency_value(exchange, quote_currency)
 
-    transfer = get_transfer(transfer_path)
+    transfer = get_json(transfer_path)
 
     cash_flow_list = [prev_date, balance_value, realised, transfer['deposit'], transfer['withdraw']]
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
 
-    transfer = get_transfer(transfer_path)
+    transfer = get_json(transfer_path)
     withdraw_value = transfer['withdraw'] - transfer['deposit']
     reset_transfer(transfer_path)
 
     return withdraw_value
 
 
-def check_liquidate(position, last_loop, bot_name, last_loop_path):
+def check_drawdown(position, exchange, config_params, last_loop, bot_name, last_loop_path):
     if position != None:
+        last_price = get_last_price(exchange, config_params)
         entry_price = float(position['entryPrice'])
-        liquidate_price = float(position['estimatedLiquidationPrice'])
 
-        liquidate_percent = max((1 - (entry_price / liquidate_price)) * 100, 0)
+        if position['side'] == 'buy':
+            drawdown = max(1 - (last_price / entry_price), 0)
+        elif position['side'] == 'sell':
+            drawdown = max((last_price / entry_price) - 1, 0)
         
-        if (liquidate_percent > 50) & (liquidate_percent > last_loop['liquidate_percent']):
-            noti_warning(f'Liquidatation ratio {liquidate_percent:.2f}%', bot_name)
-
-        update_liquidate(liquidate_percent, last_loop_path)
+        if drawdown > last_loop['max_drawdown']:
+            noti_warning(f'Drawdown {drawdown * 100:.2f}%', bot_name)
+            update_max_drawdown(drawdown, last_loop_path)
 
 
 def print_report_technical(position, exchange, config_params):

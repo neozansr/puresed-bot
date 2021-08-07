@@ -6,7 +6,7 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_config_system, get_config_params, get_time, get_exchange, get_last_loop, check_end_date
+from func_get import get_json, get_time, get_exchange, get_last_loop, check_end_date
 from func_update import append_error_log
 from func_rebalance import get_series_loop, reset_order_loop, rebalance, update_withdraw_flag, update_budget_rebalance, print_report_rebalance
 
@@ -46,8 +46,8 @@ if __name__ == "__main__":
     cash_flow_df_path = '../cash_flow/{}.csv'
 
     while True:
-        config_system = get_config_system(config_system_path)
-        config_params = get_config_params(config_params_path)
+        config_system = get_json(config_system_path)
+        config_params = get_json(config_params_path)
         idle_loop = get_series_loop(last_loop_path)
 
         if config_system['run_flag'] == 1:

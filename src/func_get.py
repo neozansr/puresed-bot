@@ -7,18 +7,11 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def get_config_system(config_system_path):
-    with open(config_system_path) as config_file:
-        config_system = json.load(config_file)
+def get_json(file_path):
+    with open(file_path) as file:
+        json_dict = json.load(file)
 
-    return config_system
-
-
-def get_config_params(config_params_path):
-    with open(config_params_path) as config_file:
-        config_params = json.load(config_file)
-
-    return config_params
+    return json_dict
 
 
 def get_time(timezone='Asia/Bangkok'):
@@ -46,10 +39,12 @@ def get_exchange(config_system, future=False):
     with open(config_system['keys_path']) as keys_file:
         keys_dict = json.load(keys_file)
     
-    exchange = ccxt.ftx({'apiKey': keys_dict['apiKey'],
-                         'secret': keys_dict['secret'],
-                         'headers': {'FTX-SUBACCOUNT': keys_dict['subaccount']},
-                         'enableRateLimit': True})
+    exchange = ccxt.ftx({
+        'apiKey': keys_dict['apiKey'],
+        'secret': keys_dict['secret'],
+        'headers': {'FTX-SUBACCOUNT': keys_dict['subaccount']},
+        'enableRateLimit': True
+        })
 
     if future == True:
         exchange.options = {'defaultType': 'future'}
@@ -127,20 +122,6 @@ def get_pending_order(open_orders_df_path):
     max_sell_price = max(open_sell_orders_df['price'], default=0)
 
     return min_buy_price, max_buy_price, min_sell_price, max_sell_price
-
-
-def get_last_loop(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop = json.load(last_loop_file)
-
-    return last_loop
-
-
-def get_transfer(transfer_path):
-    with open(transfer_path) as transfer_file:
-        transfer = json.load(transfer_file)
-
-    return transfer
 
 
 def get_available_cash_flow(transfer, cash_flow_df):
