@@ -234,9 +234,10 @@ def cal_reduce_amount(value, exchange, config_params):
     return amount
 
 
-def append_profit_technical(amount, order, position, last_loop_path, profit_df_path):
+def append_profit_technical(order, last_loop_path, position_path, profit_df_path):
     profit_df = pd.read_csv(profit_df_path)
     last_loop = get_json(last_loop_path)
+    position = get_json(position_path)
     
     timestamp = get_time()
     close_id = order['id']
@@ -248,9 +249,9 @@ def append_profit_technical(amount, order, position, last_loop_path, profit_df_p
     elif position['side'] == 'sell':
         margin = open_price - close_price
 
-    profit = margin * amount
+    profit = margin * order['amount']
 
-    profit_df.loc[len(profit_df)] = [timestamp, close_id, position['symbol'], position['side'], amount, open_price, close_price, profit]
+    profit_df.loc[len(profit_df)] = [timestamp, close_id, position['symbol'], position['side'], order['amount'], open_price, close_price, profit]
     profit_df.to_csv(profit_df_path, index=False)
 
 
@@ -297,7 +298,6 @@ def clear_orders_technical(exchange, bot_name, config_system, config_params, ope
 
 
 def withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path):
-    last_loop = get_json(last_loop_path)
     position = get_json(position_path)
     
     reverse_action = {'buy':'sell', 'sell':'buy'}
@@ -307,7 +307,7 @@ def withdraw_position(withdraw_value, exchange, bot_name, config_system, config_
     time.sleep(config_system['idle_stage'])
     
     reduce_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-    append_profit_technical(reduce_order['amount'], reduce_order, position, last_loop, profit_df_path)
+    append_profit_technical(reduce_order, last_loop_path, position_path, profit_df_path)
     update_reduce_position(reduce_order, position_path)
 
 
@@ -331,7 +331,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, 
             time.sleep(config_system['idle_stage'])
 
             close_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-            append_profit_technical(close_order['amount'], close_order, position, last_loop, profit_df_path)
+            append_profit_technical(close_order, last_loop_path, position_path, profit_df_path)
             update_reduce_position(close_order, position_path)
 
         open_position(action, exchange, config_params, open_orders_df_path)
