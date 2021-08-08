@@ -16,6 +16,7 @@ token = token_dict['telegram']
 config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
 last_loop_path = 'last_loop.json'
+position_path = 'position.json'
 open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
 profit_df_path = 'profit.csv'

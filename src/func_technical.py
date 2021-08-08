@@ -348,8 +348,6 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, 
     update_side(action, last_loop_path)
 
 
-
-
 def update_budget_technical(prev_date, exchange, bot_name, config_params, position_path, transfer_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
