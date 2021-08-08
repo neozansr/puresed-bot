@@ -388,8 +388,8 @@ def check_drawdown(exchange, bot_name, config_params, last_loop_path, position_p
 def print_report_technical(exchange, config_params, position_path):
     _, quote_currency = get_currency_future(config_params)
     last_price = get_last_price(exchange, config_params)
-    
     position = get_json(position_path)
-    position_api = get_position_api(exchange, config_params)
 
-    print_position(last_price, position, position_api, quote_currency)
+    if position['amount'] > 0:
+        position_api = get_position_api(exchange, config_params)
+        print_position(last_price, position, position_api, quote_currency)
