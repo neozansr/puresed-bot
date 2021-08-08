@@ -372,15 +372,17 @@ def update_budget_technical(prev_date, exchange, bot_name, config_params, positi
 
 
 def check_drawdown(exchange, bot_name, config_params, last_loop_path, position_path):
-    last_loop = get_json(last_loop_path)
     position = get_json(position_path)
-    last_price = get_last_price(exchange, config_params)
-
-    drawdown = cal_drawdown_future(last_price, position)
     
-    if drawdown > last_loop['max_drawdown']:
-        noti_warning(f"Drawdown {drawdown * 100:.2f}%", bot_name)
-        update_max_drawdown(drawdown, last_loop_path)
+    if position['amount'] > 0:
+        last_loop = get_json(last_loop_path)
+        last_price = get_last_price(exchange, config_params)
+
+        drawdown = cal_drawdown_future(last_price, position)
+        
+        if drawdown > last_loop['max_drawdown']:
+            noti_warning(f"Drawdown {drawdown * 100:.2f}%", bot_name)
+            update_max_drawdown(drawdown, last_loop_path)
 
 
 def print_report_technical(exchange, config_params, position_path):
