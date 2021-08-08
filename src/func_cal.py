@@ -66,7 +66,7 @@ def cal_unrealised_future(last_price, position):
     elif position['side'] == 'sell':
         margin = position['entry_price'] - last_price
     
-    unrealised = margin * float(position['size'])
+    unrealised = margin * float(position['amount'])
 
     return unrealised
 

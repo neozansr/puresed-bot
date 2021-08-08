@@ -265,7 +265,7 @@ def open_position(action, exchange, config_params, open_orders_df_path):
 
 
 def close_position(action, position, exchange, config_params, open_orders_df_path):
-    amount = position['size']
+    amount = position['amount']
     order = exchange.create_order(config_params['symbol'], 'market', action, amount, params={'reduceOnly': True})
     
     append_order(order, 'amount', config_params, open_orders_df_path)
