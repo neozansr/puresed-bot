@@ -63,7 +63,7 @@ def send_bot_grid(message):
     sub_path = f'../{bot_name}/'
 
     text = f"{bot_name.title()}\n{bot_type.title()}\n"
-    text = get_technical_text(text, sub_path, config_system_path, config_params_path, last_loop_path)
+    text = get_technical_text(text, sub_path, config_system_path, config_params_path, last_loop_path, position_path)
     
     bot.send_message(message.chat.id, text)
 

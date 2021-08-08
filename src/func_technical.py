@@ -103,6 +103,8 @@ def update_reduce_position(order, position_path):
     amount = position['amount']
     amount -= order['amount']
 
+    position['amount'] = amount
+
     with open(position_path, 'w') as position_file:
         json.dump(position, position_file, indent=1)
 
