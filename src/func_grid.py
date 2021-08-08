@@ -11,8 +11,7 @@ from func_noti import noti_success_order, noti_warning, print_current_balance, p
 
 
 def cal_sell_price(order, ask_price, config_params):
-    buy_price = order['price']
-    sell_price = max(buy_price + config_params['grid'], ask_price)
+    sell_price = max(order['price'] + config_params['grid'], ask_price)
 
     return sell_price
 
@@ -93,7 +92,7 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
 def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     base_currency, quote_currency = get_currency(config_params)
     bid_price = get_bid_price(exchange, config_params)
-    print(f'Bid price: {bid_price} {quote_currency}')
+    print(f"Bid price: {bid_price} {quote_currency}")
     
     remain_budget, free_budget = cal_budget(config_params, open_orders_df_path)
     buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
@@ -101,7 +100,7 @@ def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_
     if cancel_flag == 1:
         cancel_open_buy_orders_grid(exchange, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
 
-    print(f'Open {len(buy_price_list)} buy orders')
+    print(f"Open {len(buy_price_list)} buy orders")
 
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
@@ -116,11 +115,11 @@ def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_
 
         if quote_currency_amount >= remain_cash_flow_accum + config_params['value']:
             buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', floor_amount, price, params={'postOnly':True})
-            append_order('amount', buy_order, exchange, config_params, open_orders_df_path)
-            print(f'Open buy {floor_amount:.3f} {base_currency} at {price} {quote_currency}')
+            append_order(buy_order, 'amount', config_params, open_orders_df_path)
+            print(f"Open buy {floor_amount:.3f} {base_currency} at {price} {quote_currency}")
         else:
             # actual buget less than cal_budget (could caused by open_orders match during loop)
-            print(f'Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!')
+            print(f"Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!")
             break
 
         
@@ -132,7 +131,7 @@ def open_sell_orders_grid(buy_order, exchange, config_system, config_params, ope
     try:
         final_amount = cal_final_amount(buy_order['id'], exchange, config_system, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
-        append_order('amount', sell_order, exchange, config_params, open_orders_df_path)
+        append_order(sell_order, 'amount', config_params, open_orders_df_path)
     except ccxt.InsufficientFunds:
         # not available amount to sell (could caused by decimal), sell free amount
         balance = exchange.fetch_balance()
@@ -145,7 +144,7 @@ def open_sell_orders_grid(buy_order, exchange, config_system, config_params, ope
         sell_order = None
         append_error_log('InvalidOrder', error_log_df_path)
     
-    print(f'Open sell {final_amount:.3f} {base_currency} at {sell_price} {quote_currency}')
+    print(f"Open sell {final_amount:.3f} {base_currency} at {sell_price} {quote_currency}")
     return sell_order
 
 
@@ -168,7 +167,7 @@ def clear_orders_grid(side, exchange, bot_name, config_system, config_params, op
                 open_sell_orders_grid(order, exchange, config_system, config_params, open_orders_df_path, error_log_df_path)
 
             remove_order(order_id, open_orders_df_path)
-            append_order('filled', order, exchange, config_params, transactions_df_path)
+            append_order(order, 'filled', config_params, transactions_df_path)
 
         elif order['status'] == 'canceled':
             # canceld by param PostOnly
@@ -183,21 +182,20 @@ def cancel_open_buy_orders_grid(exchange, config_system, config_params, open_ord
     if len(open_buy_orders_list) > 0:
         for order_id in open_buy_orders_list:
             order = exchange.fetch_order(order_id, config_params['symbol'])
-            filled = order['filled']
             
             try:
                 exchange.cancel_order(order_id, config_params['symbol'])
-                print(f'Cancel order {order_id}')
+                print(f"Cancel order {order_id}")
                 
-                if filled > 0:
-                    append_order('filled', order, exchange, config_params, transactions_df_path)
+                if order['filled'] > 0:
+                    append_order(order, 'filled', config_params, transactions_df_path)
                     open_sell_orders_grid(order, exchange, config_system, config_params, open_orders_df_path, error_log_df_path)
                 
                 remove_order(order_id, open_orders_df_path)
             except ccxt.OrderNotFound:
                 # no order in the system (could casued by the order is queued), skip for the next loop
                 append_error_log('OrderNotFound', error_log_df_path)
-                print(f'Error: Cannot cancel order {order_id} due to unavailable order!!!')
+                print(f"Error: Cannot cancel order {order_id} due to unavailable order!!!")
             except ccxt.InvalidOrder:
                 # the order is closed by system (could caused by post_only param for buy orders)
                 remove_order(order_id, open_orders_df_path)
@@ -218,7 +216,7 @@ def check_circuit_breaker(exchange, bot_name, config_system, config_params, last
 
         if (len(side_list) == 1) & (side_list[0] == 'buy') & (last_price <= last_loop['price']):
             cancel_open_buy_orders_grid(exchange, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-            noti_warning(f'Circuit breaker at {last_price} {quote_currency}', bot_name)
+            noti_warning(f"Circuit breaker at {last_price} {quote_currency}", bot_name)
             time.sleep(config_system['idle_rest'])
 
     return cont_flag
@@ -292,7 +290,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
         
         update_loss(loss, last_loop_path)
         reduce_budget(loss, config_params_path)
-        noti_warning(f'Cut loss {loss:.2f} {quote_currency} at {new_sell_price} {quote_currency}', bot_name)
+        noti_warning(f"Cut loss {loss:.2f} {quote_currency} at {new_sell_price} {quote_currency}", bot_name)
 
         time.sleep(config_system['idle_rest'])
     
@@ -396,6 +394,6 @@ def print_report_grid(exchange, config_params, open_orders_df_path):
     last_price = get_last_price(exchange, config_params)
 
     print_current_balance(last_price, exchange, config_params)
-    print(f'Last price: {last_price} {quote_currency}')
+    print(f"Last price: {last_price} {quote_currency}")
     print_hold_assets(last_price, base_currency, quote_currency, config_params, open_orders_df_path)
     print_pending_order(quote_currency, open_orders_df_path)

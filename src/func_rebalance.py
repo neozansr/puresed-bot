@@ -31,7 +31,7 @@ def gen_series(n=18, limit_min=4):
     series = [x for x in series if x >= limit_min]
     
     if len(series) == 0:
-        print('No series generated, increase n size')
+        print("No series generated, increase n size")
         sys.exit(1)
         
     return series
@@ -121,46 +121,6 @@ def update_queue(method, amount_key, sell_order, config_params, queue_df_path, p
         sell_amount -= exe_amount
     
 
-def rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path):
-    rebalance_flag = 1
-
-    base_currency, quote_currency = get_currency(config_params)
-    last_price = get_last_price(exchange, config_params)
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    
-    print(f'Last price: {last_price} {quote_currency}')
-    print_current_value(current_value, exchange, quote_currency)
-
-    if current_value < config_params['fix_value'] - config_params['min_value']:
-        side = 'buy'
-        diff_value = config_params['fix_value'] - current_value
-        price = get_bid_price(exchange, config_params)
-    elif current_value > config_params['fix_value'] + config_params['min_value']:
-        side = 'sell'
-        diff_value = current_value - config_params['fix_value']
-        price = get_ask_price(exchange, config_params)
-    else:
-        rebalance_flag = 0
-        print('No action')
-        
-    if rebalance_flag == 1:
-        amount = diff_value / price
-        try:
-            last_price = get_last_price(exchange, config_params)
-            order = exchange.create_order(config_params['symbol'], 'market', side, amount)
-            
-            append_order('amount', order, exchange, config_params, open_orders_df_path)
-            print(f'Open {side} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
-        except ccxt.InsufficientFunds: 
-            # not enough fund (could caused by wrong account), stop the process
-            append_error_log('InsufficientFunds', error_log_df_path)
-            print(f'Error: Cannot {side} at price {price} {quote_currency} due to insufficient fund!!!')
-            sys.exit(1)
-
-    time.sleep(config_system['idle_stage'])
-    clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
-
-
 def clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
 
@@ -173,13 +133,50 @@ def clear_orders_rebalance(method, exchange, bot_name, config_system, config_par
             time.sleep(config_system['idle_stage'])
     
         if order['side'] == 'buy':
-            append_order('filled', order, exchange, config_params, queue_df_path)
+            append_order(order, 'filled', config_params, queue_df_path)
         elif order['side'] == 'sell':
             update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
 
         remove_order(order_id, open_orders_df_path)
-        append_order('filled', order, exchange, config_params, transactions_df_path)
+        append_order(order, 'filled', config_params, transactions_df_path)
         noti_success_order(order, bot_name, config_params)
+
+
+def rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path):
+    rebalance_flag = 1
+
+    base_currency, quote_currency = get_currency(config_params)
+    last_price = get_last_price(exchange, config_params)
+    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    
+    print(f"Last price: {last_price} {quote_currency}")
+    print_current_value(current_value, exchange, quote_currency)
+
+    if current_value < config_params['fix_value'] - config_params['min_value']:
+        side = 'buy'
+        diff_value = config_params['fix_value'] - current_value
+        price = get_bid_price(exchange, config_params)
+    elif current_value > config_params['fix_value'] + config_params['min_value']:
+        side = 'sell'
+        diff_value = current_value - config_params['fix_value']
+        price = get_ask_price(exchange, config_params)
+    else:
+        rebalance_flag = 0
+        print("No action")
+        
+    if rebalance_flag == 1:
+        amount = diff_value / price
+        try:
+            order = exchange.create_order(config_params['symbol'], 'market', side, amount)
+            append_order(order, 'amount', config_params, open_orders_df_path)
+        except ccxt.InsufficientFunds: 
+            # not enough fund (could caused by wrong account), stop the process
+            append_error_log('InsufficientFunds', error_log_df_path)
+            print(f"Error: Cannot {side} at price {last_price} {quote_currency} due to insufficient fund!!!")
+            sys.exit(1)
+
+    time.sleep(config_system['idle_stage'])
+    clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
 
 
 def update_withdraw_flag(last_loop_path, enable):

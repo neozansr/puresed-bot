@@ -28,7 +28,7 @@ print(x)
 
 @bot.message_handler(commands=['start', 'help', 'h'])
 def send_help(message):
-    text = 'type /[bot_name] to get info'
+    text = "type /[bot_name] to get info"
     bot.send_message(message.chat.id, text)
 
 
@@ -38,7 +38,7 @@ def send_bot_rebalance(message):
     bot_type = 'rebalance'
     sub_path = f'../{bot_name}/'
 
-    text = f'{bot_name.title()}\n{bot_type.title()}\n'
+    text = f"{bot_name.title()}\n{bot_type.title()}\n"
     text = get_rebalance_text(text, sub_path, config_system_path, config_params_path, last_loop_path, profit_df_path)
     
     bot.send_message(message.chat.id, text)
@@ -50,7 +50,7 @@ def send_bot_grid(message):
     bot_type = 'grid'
     sub_path = f'../{bot_name}/'
 
-    text = f'{bot_name.title()}\n{bot_type.title()}\n'
+    text = f"{bot_name.title()}\n{bot_type.title()}\n"
     text = get_grid_text(text, sub_path, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path)
     
     bot.send_message(message.chat.id, text)
@@ -62,7 +62,7 @@ def send_bot_grid(message):
     bot_type = 'technical'
     sub_path = f'../{bot_name}/'
 
-    text = f'{bot_name.title()}\n{bot_type.title()}\n'
+    text = f"{bot_name.title()}\n{bot_type.title()}\n"
     text = get_technical_text(text, sub_path, config_system_path, config_params_path, last_loop_path)
     
     bot.send_message(message.chat.id, text)

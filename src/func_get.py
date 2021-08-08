@@ -157,7 +157,8 @@ def get_greed_index(default_index=0.5):
     return greed_index
 
 
-def get_current_position(exchange, config_params):
+def get_position_api(exchange, config_params):
+    # entry_price and pnl from api are not accurate
     positions = exchange.fetch_positions()
     indexed = exchange.index_by(positions, 'future')
     position = exchange.safe_value(indexed, config_params['symbol'])

@@ -5,8 +5,8 @@ import math
 import time
 import json
 
-from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_current_position
-from func_cal import round_down_amount, round_up_amount
+from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_position_api
+from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future
 from func_update import append_order, remove_order, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_position
 
@@ -88,6 +88,25 @@ def update_side(side, last_loop_path):
         json.dump(last_loop, last_loop_file, indent=1)
 
 
+def update_open_position(order, position_path):
+    position = get_json(position_path)
+    position['side'] = order['side']
+    position['entry_price'] = order['price']
+    position['amount'] = order['amount']
+
+    with open(position_path, 'w') as position_file:
+        json.dump(position, position_file, indent=1)
+
+
+def update_reduce_position(order, position_path):
+    position = get_json(position_path)
+    amount = position['amount']
+    amount -= order['amount']
+
+    with open(position_path, 'w') as position_file:
+        json.dump(position, position_file, indent=1)
+
+
 def update_max_drawdown(drawdown, last_loop_path):
     last_loop = get_json(last_loop_path)
     last_loop['max_drawdown'] = drawdown
@@ -96,9 +115,11 @@ def update_max_drawdown(drawdown, last_loop_path):
         json.dump(last_loop, last_loop_file, indent=1)
 
 
-def check_new_timestamp(ohlcv_df, config_params, last_loop):
+def check_new_timestamp(ohlcv_df, config_params, last_loop_path):
     signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
     print(f'Signal timestamp: {signal_timestamp}')
+
+    last_loop = get_json(last_loop_path)
 
     if last_loop['signal_timestamp'] == 0:
         # One first loop, bypass to manage_position to update last_loop
@@ -198,7 +219,7 @@ def cal_new_amount(value, exchange, config_params):
     amount = leverage_value / last_price
     amount = round_down_amount(amount, config_params)
     
-    return amount, last_price
+    return amount
 
 
 def cal_reduce_amount(value, exchange, config_params):
@@ -208,75 +229,87 @@ def cal_reduce_amount(value, exchange, config_params):
     amount = leverage_value / last_price
     amount = round_up_amount(amount, config_params)
 
-    return amount, last_price
+    return amount
+
+
+def append_profit_technical(amount, order, position, last_loop_path, profit_df_path):
+    profit_df = pd.read_csv(profit_df_path)
+    last_loop = get_json(last_loop_path)
+    
+    timestamp = get_time()
+    close_id = order['id']
+    open_price = last_loop['entry_price']
+    close_price = order['price']
+
+    if position['side'] == 'buy':
+        margin = close_price - open_price
+    elif position['side'] == 'sell':
+        margin = open_price - close_price
+
+    profit = margin * amount
+
+    profit_df.loc[len(profit_df)] = [timestamp, close_id, position['symbol'], position['side'], amount, open_price, close_price, profit]
+    profit_df.to_csv(profit_df_path, index=False)
 
 
 def open_position(action, exchange, config_params, open_orders_df_path):
-    base_currency, quote_currency = get_currency_future(config_params)
+    _, quote_currency = get_currency_future(config_params)
     balance_value = get_quote_currency_value(exchange, quote_currency)
 
-    amount, last_price = cal_new_amount(balance_value, exchange, config_params)
+    amount = cal_new_amount(balance_value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
-    append_order('amount', order, exchange, config_params, open_orders_df_path)
-    print(f'Open {action} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
-
-    return order
+    append_order(order, 'amount', config_params, open_orders_df_path)
 
 
 def close_position(action, position, exchange, config_params, open_orders_df_path):
-    base_currency, quote_currency = get_currency_future(config_params)
     amount = position['size']
     order = exchange.create_order(config_params['symbol'], 'market', action, amount, params={'reduceOnly': True})
-    last_price = get_last_price(exchange, config_params)
     
-    append_order('amount', order, exchange, config_params, open_orders_df_path)
-    # size from future dict is str type
-    print(f'Open {action} {amount} {base_currency} at {last_price} {quote_currency}')
-
-    return order
+    append_order(order, 'amount', config_params, open_orders_df_path)
 
 
 def reduce_position(value, action, exchange, config_params, open_orders_df_path):
-    base_currency, quote_currency = get_currency_future(config_params)
-    
-    amount, last_price = cal_reduce_amount(value, exchange, config_params)
+    amount = cal_reduce_amount(value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
-    append_order('amount', order, exchange, config_params, open_orders_df_path)
-    print(f'Open {action} {amount:.3f} {base_currency} at {last_price} {quote_currency}')
+    append_order(order, 'amount', config_params, open_orders_df_path)
+
+
+def clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
+
+    if len(open_orders_df) > 0:
+        order_id = open_orders_df['order_id'][0]
+        order = exchange.fetch_order(order_id, config_params['symbol'])
+
+        while order['status'] != 'closed':
+            order = exchange.fetch_order(order_id, config_params['symbol'])
+            time.sleep(config_system['idle_stage'])
+
+        remove_order(order_id, open_orders_df_path)
+        append_order(order, 'filled', config_params, transactions_df_path)
+        noti_success_order(order, bot_name, config_params, future=True)
 
     return order
 
 
-def clear_orders_technical(order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path):
-    order_id = order['id']
+def withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path):
+    last_loop = get_json(last_loop_path)
+    position = get_json(position_path)
     
-    while order['status'] != 'closed':
-        order = exchange.fetch_order(order_id, config_params['symbol'])
-        time.sleep(config_system['idle_stage'])
+    reverse_action = {'buy':'sell', 'sell':'buy'}
+    action = reverse_action[position['side']]
+    reduce_position(withdraw_value, action, exchange, config_params, open_orders_df_path)
 
-    remove_order(order_id, open_orders_df_path)
-    append_order('filled', order, exchange, config_params, transactions_df_path)
-    noti_success_order(order, bot_name, config_params, future=True)
-
-
-def withdraw_position(prev_date, exchange, bot_name, config_system, config_params, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
-    position = get_current_position(exchange, config_params)
-    withdraw_value = update_budget_technical(prev_date, position, exchange, bot_name, config_params, transfer_path, cash_flow_df_path)
+    time.sleep(config_system['idle_stage'])
     
-    if withdraw_value > 0:
-        reverse_action = {'buy':'sell', 'sell':'buy'}
-        action = reverse_action[position['side']]
-        reduce_order = reduce_position(withdraw_value, action, exchange, config_params, open_orders_df_path)
-
-        time.sleep(config_system['idle_stage'])
-        
-        clear_orders_technical(reduce_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-        append_profit_technical(reduce_order['amount'], reduce_order, position, profit_df_path)
+    reduce_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+    append_profit_technical(reduce_order['amount'], reduce_order, position, last_loop, profit_df_path)
+    update_reduce_position(reduce_order, position_path)
 
 
-def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, profit_df_path):
+def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path):
     _, quote_currency = get_currency_future(config_params)
     last_loop = get_json(last_loop_path)
     action, signal_price = get_action(ohlcv_df, config_params)
@@ -289,66 +322,46 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, 
         action = last_loop['side']
 
     if last_loop['side'] not in [action, 'start']:
-        position = get_current_position(exchange, config_params)
+        position = get_json(position_path)
 
-        if position != None:
-            if position['size'] != '0.0':
-                close_order = close_position(action, position, exchange, config_params, open_orders_df_path)
-                time.sleep(config_system['idle_stage'])
+        if position['amount'] > 0:
+            close_position(action, position, exchange, config_params, open_orders_df_path)
+            time.sleep(config_system['idle_stage'])
 
-                clear_orders_technical(close_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-                append_profit_technical(close_order['amount'], close_order, position, profit_df_path)
+            close_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+            append_profit_technical(close_order['amount'], close_order, position, last_loop, profit_df_path)
+            update_reduce_position(close_order, position_path)
 
-        open_order = open_position(action, exchange, config_params, open_orders_df_path)
+        open_position(action, exchange, config_params, open_orders_df_path)
         time.sleep(config_system['idle_stage'])
 
-        clear_orders_technical(open_order, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+        open_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
+        update_open_position(open_order, position_path)
 
     else:
-        print('No action')
+        print("No action")
     
     update_ohlcv(ohlcv_df, last_loop_path)
     update_signal_price(signal_price, last_loop_path)
     update_side(action, last_loop_path)
 
 
-def append_profit_technical(amount, order, position, profit_df_path):
-    df = pd.read_csv(profit_df_path)
-    
-    timestamp = get_time()
-    close_id = order['id']
-    open_price = position['entryPrice']
-    close_price = order['price']
-
-    if position['side'] == 'buy':
-        margin = close_price - open_price
-    elif position['side'] == 'sell':
-        margin = open_price - close_price
-
-    profit = margin * amount
-
-    df.loc[len(df)] = [timestamp, close_id, position['symbol'], position['side'], amount, open_price, close_price, profit]
-    df.to_csv(profit_df_path, index=False)
 
 
-def update_budget_technical(prev_date, position, exchange, bot_name, config_params, transfer_path, cash_flow_df_path):
+def update_budget_technical(prev_date, exchange, bot_name, config_params, position_path, transfer_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-
-    if position != None:
-        if position['size'] != '0.0':
-            realised = position['realizedPnl']
-        else:
-            realised = 0
-    else:
-        realised = 0
+    
+    last_price = get_last_price(exchange, config_params)
+    position = get_json(position_path)
 
     _, quote_currency = get_currency_future(config_params)
     balance_value = get_quote_currency_value(exchange, quote_currency)
 
+    unrealised = cal_unrealised_future(last_price, position)
     transfer = get_json(transfer_path)
 
-    cash_flow_list = [prev_date, balance_value, realised, transfer['deposit'], transfer['withdraw']]
+    cash_flow_list = [prev_date, balance_value, unrealised, transfer['deposit'], transfer['withdraw']]
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
 
     transfer = get_json(transfer_path)
@@ -358,22 +371,23 @@ def update_budget_technical(prev_date, position, exchange, bot_name, config_para
     return withdraw_value
 
 
-def check_drawdown(position, exchange, config_params, last_loop, bot_name, last_loop_path):
+def check_drawdown(exchange, bot_name, config_params, last_loop_path, position_path):
+    last_loop = get_json(last_loop_path)
+    position = get_json(position_path)
     last_price = get_last_price(exchange, config_params)
-    entry_price = float(position['entryPrice'])
 
-    if position['side'] == 'buy':
-        drawdown = max(1 - (last_price / entry_price), 0)
-    elif position['side'] == 'sell':
-        drawdown = max((last_price / entry_price) - 1, 0)
+    drawdown = cal_drawdown_future(last_price, position)
     
     if drawdown > last_loop['max_drawdown']:
-        noti_warning(f'Drawdown {drawdown * 100:.2f}%', bot_name)
+        noti_warning(f"Drawdown {drawdown * 100:.2f}%", bot_name)
         update_max_drawdown(drawdown, last_loop_path)
 
 
-def print_report_technical(position, exchange, config_params):
+def print_report_technical(exchange, config_params, position_path):
     _, quote_currency = get_currency_future(config_params)
     last_price = get_last_price(exchange, config_params)
+    
+    position = get_json(position_path)
+    position_api = get_position_api(exchange, config_params)
 
-    print_position(last_price, position, quote_currency)
+    print_position(last_price, position, position_api, quote_currency)

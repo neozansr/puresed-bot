@@ -1,7 +1,7 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_currency_future, get_last_price, get_base_currency_value, get_quote_currency_value, get_pending_order, get_current_position
-from func_cal import cal_unrealised
+from func_get import get_json, get_date, get_exchange, get_currency, get_currency_future, get_last_price, get_base_currency_value, get_quote_currency_value, get_pending_order, get_position_api
+from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
 def get_rebalance_text(text, sub_path, config_system_path, config_params_path, last_loop_path, profit_df_path):
@@ -24,12 +24,12 @@ def get_rebalance_text(text, sub_path, config_system_path, config_params_path, l
     last_loop = get_json(sub_path + last_loop_path)
     last_timestamp = last_loop['timestamp']
 
-    text += f'\nBalance: {balance_value:.2f} {quote_currency}'
-    text += f'\nCurrent value: {current_value:.2f} {quote_currency}'
-    text += f'\nCash: {cash:.2f} {quote_currency}'
-    text += f'\nToday cash flow: {cash_flow:.2f} {quote_currency}'
+    text += f"\nBalance: {balance_value:.2f} {quote_currency}"
+    text += f"\nCurrent value: {current_value:.2f} {quote_currency}"
+    text += f"\nCash: {cash:.2f} {quote_currency}"
+    text += f"\nToday cash flow: {cash_flow:.2f} {quote_currency}"
 
-    text += f'\n\nLast active: {last_timestamp}'
+    text += f"\n\nLast active: {last_timestamp}"
 
     return text
 
@@ -61,21 +61,21 @@ def get_grid_text(text, sub_path, config_system_path, config_params_path, last_l
     last_loop = get_json(sub_path + last_loop_path)
     last_timestamp = last_loop['timestamp']
 
-    text += f'\nBalance: {balance_value:.2f} {quote_currency}'
-    text += f'\nHold {amount:.4f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}'
-    text += f'\nUnrealised: {unrealised:.2f} {quote_currency}'
-    text += f'\nToday cash flow: {cash_flow:.2f} {quote_currency}'
-    text += f'\nMin buy price: {min_buy_price:.2f} {quote_currency}'
-    text += f'\nMax buy price: {max_buy_price:.2f} {quote_currency}'
-    text += f'\nMin sell price: {min_sell_price:.2f} {quote_currency}'
-    text += f'\nMax sell price: {max_sell_price:.2f} {quote_currency}'
+    text += f"\nBalance: {balance_value:.2f} {quote_currency}"
+    text += f"\nHold {amount:.4f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}"
+    text += f"\nUnrealised: {unrealised:.2f} {quote_currency}"
+    text += f"\nToday cash flow: {cash_flow:.2f} {quote_currency}"
+    text += f"\nMin buy price: {min_buy_price:.2f} {quote_currency}"
+    text += f"\nMax buy price: {max_buy_price:.2f} {quote_currency}"
+    text += f"\nMin sell price: {min_sell_price:.2f} {quote_currency}"
+    text += f"\nMax sell price: {max_sell_price:.2f} {quote_currency}"
 
-    text += f'\n\nLast active: {last_timestamp}'
+    text += f"\n\nLast active: {last_timestamp}"
 
     return text
 
 
-def get_technical_text(text, sub_path, config_system_path, config_params_path, last_loop_path):
+def get_technical_text(text, sub_path, config_system_path, config_params_path, last_loop_path, position_path):
     config_system = get_json(sub_path + config_system_path)
     config_params = get_json(sub_path + config_params_path)
 
@@ -93,40 +93,33 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
     close_price = last_loop['close_price']
     signal_price = last_loop['signal_price']
 
-    text += f'\nBalance: {balance_value:.2f} {quote_currency}'
-    text += f'\nCurrent value: {current_value:.2f} {quote_currency}'
-    text += f'\nCash: {cash:.2f} {quote_currency}'
-    text += f'\nLast timestamp: {last_signal_timestamp}'
-    text += f'\nClose price: {close_price:.2f} {quote_currency}'
-    text += f'\nSignal price: {signal_price:.2f} {quote_currency}'
+    text += f"\nBalance: {balance_value:.2f} {quote_currency}"
+    text += f"\nCurrent value: {current_value:.2f} {quote_currency}"
+    text += f"\nCash: {cash:.2f} {quote_currency}"
+    text += f"\nLast timestamp: {last_signal_timestamp}"
+    text += f"\nClose price: {close_price:.2f} {quote_currency}"
+    text += f"\nSignal price: {signal_price:.2f} {quote_currency}"
 
-    position = get_current_position(exchange, config_params)
+    position = get_json(sub_path + position_path)
 
-    if position != None:
-        if position['size'] != '0.0':
-            side = position['side']
-            realised = float(position['realizedPnl'])
-            entry_price = float(position['entryPrice'])
-            liquidate_price = float(position['estimatedLiquidationPrice'])
-            max_drawdown = last_loop['max_drawdown']
-
-            if position['side'] == 'buy':
-                drawdown = max(1 - (last_price / entry_price), 0)
-            elif position['side'] == 'sell':
-                drawdown = max((last_price / entry_price) - 1, 0)
-            
-            text += f'\nSide: {side}'
-            text += f'\nRealise: {realised}'
-            text += f'\nLast price: {last_price} {quote_currency}'
-            text += f'\nEntry price: {entry_price} {quote_currency}'
-            text += f'\nLiquidate price: {liquidate_price}'
-            text += f'\nDrawdown: {drawdown * 100:.2f}%'
-            text += f'\nMax drawdown: {max_drawdown * 100:.2f}%'
-        else:
-            text += '\nNo open position'
+    if position['amount'] > 0:
+        position_api = get_position_api(exchange, config_params)
+        liquidate_price = float(position_api['estimatedLiquidationPrice'])
+        
+        unrealised = cal_unrealised_future(last_price, position)
+        drawdown = cal_drawdown_future(last_price, position)
+        max_drawdown = last_loop['max_drawdown']
+        
+        text += f"\nSide: {position['side']}"
+        text += f"\nUnrealise: {unrealised}"
+        text += f"\nLast price: {last_price} {quote_currency}"
+        text += f"\nEntry price: {position['entry_price']} {quote_currency}"
+        text += f"\nLiquidate price: {liquidate_price}"
+        text += f"\nDrawdown: {drawdown * 100:.2f}%"
+        text += f"\nMax drawdown: {max_drawdown * 100:.2f}%"
     else:
-        text += '\nNo open position'
+        text += "\nNo open position"
 
-    text += f'\n\nLast active: {last_timestamp}'
+    text += f"\n\nLast active: {last_timestamp}"
     
     return text

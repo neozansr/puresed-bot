@@ -3,7 +3,7 @@ import json
 import requests
 
 from func_get import get_time, get_currency, get_currency_future, get_base_currency_value, get_quote_currency_value, get_pending_order
-from func_cal import cal_unrealised
+from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
 def get_line_message(payload, noti_type):
@@ -53,7 +53,7 @@ def print_current_balance(last_price, exchange, config_params):
     cash = get_quote_currency_value(exchange, quote_currency)
     balance_value = current_value + cash
     
-    print(f'Balance: {balance_value:.2f} {quote_currency}')
+    print(f"Balance: {balance_value:.2f} {quote_currency}")
 
 
 def print_hold_assets(last_price, base_currency, quote_currency, config_params, open_orders_df_path):
@@ -69,46 +69,40 @@ def print_hold_assets(last_price, base_currency, quote_currency, config_params, 
     assets_df = pd.DataFrame(assets_dict, index=[0])
     assets_df.to_csv('assets.csv', index=False)
     
-    print(f'Hold {amount:.3f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}')
-    print(f'Unrealised: {unrealised:.2f} {quote_currency}')
+    print(f"Hold {amount:.3f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}")
+    print(f"Unrealised: {unrealised:.2f} {quote_currency}")
 
 
 def print_pending_order(quote_currency, open_orders_df_path):
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(open_orders_df_path)
 
-    print(f'Min buy price: {min_buy_price:.2f} {quote_currency}')
-    print(f'Max buy price: {max_buy_price:.2f} {quote_currency}')
-    print(f'Min sell price: {min_sell_price:.2f} {quote_currency}')
-    print(f'Max sell price: {max_sell_price:.2f} {quote_currency}')
+    print(f"Min buy price: {min_buy_price:.2f} {quote_currency}")
+    print(f"Max buy price: {max_buy_price:.2f} {quote_currency}")
+    print(f"Min sell price: {min_sell_price:.2f} {quote_currency}")
+    print(f"Max sell price: {max_sell_price:.2f} {quote_currency}")
 
 
 def print_current_value(current_value, exchange, quote_currency):
     quote_currency_value = get_quote_currency_value(exchange, quote_currency)
 
-    print(f'Current value: {current_value:.2f} {quote_currency}')
-    print(f'Cash: {quote_currency_value:.2f} {quote_currency}')
+    print(f"Current value: {current_value:.2f} {quote_currency}")
+    print(f"Cash: {quote_currency_value:.2f} {quote_currency}")
 
 
 def print_current_value_future(exchange, quote_currency):
     quote_currency_value = get_quote_currency_value(exchange, quote_currency)
 
-    print(f'Balance: {quote_currency_value:.2f} {quote_currency}')
+    print(f"Balance: {quote_currency_value:.2f} {quote_currency}")
 
 
-def print_position(last_price, position, quote_currency):
-    side = position['side']
-    realised = float(position['realizedPnl'])
-    entry_price = float(position['entryPrice'])
-    liquidate_price = float(position['estimatedLiquidationPrice'])
-
-    if position['side'] == 'buy':
-        drawdown = max(1 - (last_price / entry_price), 0)
-    elif position['side'] == 'sell':
-        drawdown = max((last_price / entry_price) - 1, 0)
+def print_position(last_price, position, position_api, quote_currency):
+    liquidate_price = float(position_api['estimatedLiquidationPrice'])
+    unrealised = cal_unrealised_future(last_price, position)
+    drawdown = cal_drawdown_future(last_price, position)
     
-    print(f'Side: {side}')
-    print(f'Realise: {realised}')
-    print(f'Last price: {last_price} {quote_currency}')
-    print(f'Entry price: {entry_price} {quote_currency}')
-    print(f'Liquidate price: {liquidate_price}')
-    print(f'Drawdown: {drawdown * 100:.2f}%')
+    print(f"Side: {position['side']}")
+    print(f"Unrealise: {unrealised}")
+    print(f"Last price: {last_price} {quote_currency}")
+    print(f"Entry price: {position['entry_price']} {quote_currency}")
+    print(f"Liquidate price: {liquidate_price}")
+    print(f"Drawdown: {drawdown * 100:.2f}%")

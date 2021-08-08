@@ -58,3 +58,23 @@ def cal_unrealised(last_price, config_params, open_orders_df):
     unrealised = (last_price - avg_price) * amount
 
     return unrealised, n_open_sell_oders, amount, avg_price
+
+
+def cal_unrealised_future(last_price, position):
+    if position['side'] == 'buy':
+        margin = last_price - position['entry_price']
+    elif position['side'] == 'sell':
+        margin = position['entry_price'] - last_price
+    
+    unrealised = margin * float(position['size'])
+
+    return unrealised
+
+
+def cal_drawdown_future(last_price, position):
+    if position['side'] == 'buy':
+        drawdown = max(1 - (last_price / position['entry_price']), 0)
+    elif position['side'] == 'sell':
+        drawdown = max((last_price / position['entry_price']) - 1, 0)
+
+    return drawdown

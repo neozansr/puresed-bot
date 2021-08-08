@@ -36,7 +36,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     update_timestamp(last_loop_path)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     config_system_path = 'config_system.json'
     config_params_path = 'config_params.json'
     last_loop_path = 'last_loop.json'
@@ -51,15 +51,15 @@ if __name__ == "__main__":
         config_params = get_json(config_params_path)
         
         if config_system['run_flag'] == 1:
-            print('Start loop')
+            print("Start loop")
             try:
                 run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError):
                 append_error_log('ConnectionError', error_log_df_path)
-                print('No connection: Skip the loop')
+                print("No connection: Skip the loop")
         
-            print('End loop')
+            print("End loop")
         else:
-            print('Stop process')
+            print("Stop process")
         
         time.sleep(config_system['idle_loop'])
