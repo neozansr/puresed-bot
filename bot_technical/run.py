@@ -19,7 +19,7 @@ def run_bot(config_system, config_params, last_loop_path, position_path, transfe
     
     if end_date_flag == 1:
         withdraw_value = update_budget_technical(prev_date, exchange, bot_name, config_params, position_path, transfer_path, cash_flow_df_path)
-        withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
+        withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
         
     timestamp = get_time()
     print(f"Time: {timestamp}")

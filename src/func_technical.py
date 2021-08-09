@@ -234,14 +234,13 @@ def cal_reduce_amount(value, exchange, config_params):
     return amount
 
 
-def append_profit_technical(order, last_loop_path, position_path, profit_df_path):
+def append_profit_technical(order, position_path, profit_df_path):
     profit_df = pd.read_csv(profit_df_path)
-    last_loop = get_json(last_loop_path)
     position = get_json(position_path)
     
     timestamp = get_time()
     close_id = order['id']
-    open_price = last_loop['entry_price']
+    open_price = position['entry_price']
     close_price = order['price']
 
     if position['side'] == 'buy':
@@ -297,7 +296,7 @@ def clear_orders_technical(exchange, bot_name, config_system, config_params, ope
     return order
 
 
-def withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path):
+def withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params, position_path, open_orders_df_path, transactions_df_path, profit_df_path):
     position = get_json(position_path)
     
     reverse_action = {'buy':'sell', 'sell':'buy'}
@@ -307,7 +306,7 @@ def withdraw_position(withdraw_value, exchange, bot_name, config_system, config_
     time.sleep(config_system['idle_stage'])
     
     reduce_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-    append_profit_technical(reduce_order, last_loop_path, position_path, profit_df_path)
+    append_profit_technical(reduce_order, position_path, profit_df_path)
     update_reduce_position(reduce_order, position_path)
 
 
@@ -331,7 +330,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, 
             time.sleep(config_system['idle_stage'])
 
             close_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-            append_profit_technical(close_order, last_loop_path, position_path, profit_df_path)
+            append_profit_technical(close_order, position_path, profit_df_path)
             update_reduce_position(close_order, position_path)
 
         open_position(action, exchange, config_params, open_orders_df_path)
