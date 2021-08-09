@@ -239,18 +239,15 @@ def append_profit_technical(order, position_path, profit_df_path):
     position = get_json(position_path)
     
     timestamp = get_time()
-    close_id = order['id']
-    open_price = position['entry_price']
-    close_price = order['price']
 
     if position['side'] == 'buy':
-        margin = close_price - open_price
+        margin = order['price'] - position['entry_price']
     elif position['side'] == 'sell':
-        margin = open_price - close_price
+        margin = position['entry_price'] - order['price']
 
     profit = margin * order['amount']
 
-    profit_df.loc[len(profit_df)] = [timestamp, close_id, position['symbol'], position['side'], order['amount'], open_price, close_price, profit]
+    profit_df.loc[len(profit_df)] = [timestamp, order['id'], order['symbol'], order['side'], order['amount'], position['entry_price'], order['price'], profit]
     profit_df.to_csv(profit_df_path, index=False)
 
 
@@ -261,21 +258,21 @@ def open_position(action, exchange, config_params, open_orders_df_path):
     amount = cal_new_amount(balance_value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
-    append_order(order, 'amount', config_params, open_orders_df_path)
+    append_order(order, 'amount', open_orders_df_path)
 
 
 def close_position(action, position, exchange, config_params, open_orders_df_path):
     amount = position['amount']
     order = exchange.create_order(config_params['symbol'], 'market', action, amount, params={'reduceOnly': True})
     
-    append_order(order, 'amount', config_params, open_orders_df_path)
+    append_order(order, 'amount', open_orders_df_path)
 
 
 def reduce_position(value, action, exchange, config_params, open_orders_df_path):
     amount = cal_reduce_amount(value, exchange, config_params)
     order = exchange.create_order(config_params['symbol'], 'market', action, amount)
     
-    append_order(order, 'amount', config_params, open_orders_df_path)
+    append_order(order, 'amount', open_orders_df_path)
 
 
 def clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path):
@@ -290,7 +287,7 @@ def clear_orders_technical(exchange, bot_name, config_system, config_params, ope
             time.sleep(config_system['idle_stage'])
 
         remove_order(order_id, open_orders_df_path)
-        append_order(order, 'filled', config_params, transactions_df_path)
+        append_order(order, 'filled', transactions_df_path)
         noti_success_order(order, bot_name, config_params, future=True)
 
     return order

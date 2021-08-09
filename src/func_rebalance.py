@@ -133,12 +133,12 @@ def clear_orders_rebalance(method, exchange, bot_name, config_system, config_par
             time.sleep(config_system['idle_stage'])
     
         if order['side'] == 'buy':
-            append_order(order, 'filled', config_params, queue_df_path)
+            append_order(order, 'filled', queue_df_path)
         elif order['side'] == 'sell':
             update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
 
         remove_order(order_id, open_orders_df_path)
-        append_order(order, 'filled', config_params, transactions_df_path)
+        append_order(order, 'filled', transactions_df_path)
         noti_success_order(order, bot_name, config_params)
 
 
@@ -168,7 +168,7 @@ def rebalance(method, exchange, bot_name, config_system, config_params, open_ord
         amount = diff_value / price
         try:
             order = exchange.create_order(config_params['symbol'], 'market', side, amount)
-            append_order(order, 'amount', config_params, open_orders_df_path)
+            append_order(order, 'amount', open_orders_df_path)
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process
             append_error_log('InsufficientFunds', error_log_df_path)

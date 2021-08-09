@@ -4,7 +4,7 @@ import json
 from func_get import get_time, get_last_price
 
 
-def append_order(order, amount_key, config_params, df_path):
+def append_order(order, amount_key, df_path):
     df = pd.read_csv(df_path)
 
     timestamp = get_time()
@@ -16,7 +16,7 @@ def append_order(order, amount_key, config_params, df_path):
     else:
         value = order['amount'] * order['price']
 
-    df.loc[len(df)] = [timestamp, order['id'], config_params['symbol'], order['type'], order['side'], order[amount_key], order['price'], value]
+    df.loc[len(df)] = [timestamp, order['id'], order['symbol'], order['type'], order['side'], order[amount_key], order['price'], value]
     df.to_csv(df_path, index=False)
 
 

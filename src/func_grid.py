@@ -115,7 +115,7 @@ def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_
 
         if quote_currency_amount >= remain_cash_flow_accum + config_params['value']:
             buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', floor_amount, price, params={'postOnly':True})
-            append_order(buy_order, 'amount', config_params, open_orders_df_path)
+            append_order(buy_order, 'amount', open_orders_df_path)
             print(f"Open buy {floor_amount:.3f} {base_currency} at {price} {quote_currency}")
         else:
             # actual buget less than cal_budget (could caused by open_orders match during loop)
@@ -131,7 +131,7 @@ def open_sell_orders_grid(buy_order, exchange, config_system, config_params, ope
     try:
         final_amount = cal_final_amount(buy_order['id'], exchange, config_system, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
-        append_order(sell_order, 'amount', config_params, open_orders_df_path)
+        append_order(sell_order, 'amount', open_orders_df_path)
     except ccxt.InsufficientFunds:
         # not available amount to sell (could caused by decimal), sell free amount
         balance = exchange.fetch_balance()
@@ -167,7 +167,7 @@ def clear_orders_grid(side, exchange, bot_name, config_system, config_params, op
                 open_sell_orders_grid(order, exchange, config_system, config_params, open_orders_df_path, error_log_df_path)
 
             remove_order(order_id, open_orders_df_path)
-            append_order(order, 'filled', config_params, transactions_df_path)
+            append_order(order, 'filled', transactions_df_path)
 
         elif order['status'] == 'canceled':
             # canceld by param PostOnly
@@ -188,7 +188,7 @@ def cancel_open_buy_orders_grid(exchange, config_system, config_params, open_ord
                 print(f"Cancel order {order_id}")
                 
                 if order['filled'] > 0:
-                    append_order(order, 'filled', config_params, transactions_df_path)
+                    append_order(order, 'filled', transactions_df_path)
                     open_sell_orders_grid(order, exchange, config_system, config_params, open_orders_df_path, error_log_df_path)
                 
                 remove_order(order_id, open_orders_df_path)
