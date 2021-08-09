@@ -27,10 +27,6 @@ def get_timeframe(config_params):
 
 def group_timeframe(ohlcv_df, step):
     ohlcv_dict = {'time':[], 'open':[], 'high':[], 'low':[], 'close':[]}
-    
-    mod = len(ohlcv_df) % step
-    if  mod != 0:
-        ohlcv_df = ohlcv_df.iloc[:-mod, :]
         
     for i in [x for x in range(0, len(ohlcv_df), step)]:
         temp_df = ohlcv_df.iloc[i:i + step, :]
@@ -38,7 +34,7 @@ def group_timeframe(ohlcv_df, step):
         ohlcv_dict['open'].append(temp_df['open'][i])
         ohlcv_dict['high'].append(max(temp_df['high']))
         ohlcv_dict['low'].append(min(temp_df['low']))
-        ohlcv_dict['close'].append(temp_df['close'][i + 1])
+        ohlcv_dict['close'].append(temp_df['close'][i + (step - 1)])
 
     ohlcv_df = pd.DataFrame(ohlcv_dict)
     
