@@ -96,6 +96,7 @@ def print_current_value_future(exchange, quote_currency):
 
 def print_position(last_price, position, position_api, quote_currency):
     liquidate_price = float(position_api['estimatedLiquidationPrice'])
+    notional_value = float(position_api['cost'])
     unrealised = cal_unrealised_future(last_price, position)
     drawdown = cal_drawdown_future(last_price, position)
     
@@ -104,4 +105,5 @@ def print_position(last_price, position, position_api, quote_currency):
     print(f"Last price: {last_price:.2f} {quote_currency}")
     print(f"Entry price: {position['entry_price']:.2f} {quote_currency}")
     print(f"Liquidate price: {liquidate_price:.2f} {quote_currency}")
+    print(f"Notional value: {notional_value:.2f} {quote_currency}")
     print(f"Drawdown: {drawdown * 100:.2f}%")

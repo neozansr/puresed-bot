@@ -105,6 +105,7 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
     if position['amount'] > 0:
         position_api = get_position_api(exchange, config_params)
         liquidate_price = float(position_api['estimatedLiquidationPrice'])
+        notional_value = float(position_api['cost'])
         
         unrealised = cal_unrealised_future(last_price, position)
         drawdown = cal_drawdown_future(last_price, position)
@@ -115,6 +116,7 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
         text += f"\nLast price: {last_price:.2f} {quote_currency}"
         text += f"\nEntry price: {position['entry_price']:.2f} {quote_currency}"
         text += f"\nLiquidate price: {liquidate_price:.2f}  {quote_currency}"
+        text += f"\nNotional value: {notional_value:.2f} {quote_currency}"
         text += f"\nDrawdown: {drawdown * 100:.2f}%"
         text += f"\nMax drawdown: {max_drawdown * 100:.2f}%"
     else:
