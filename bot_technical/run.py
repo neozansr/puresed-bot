@@ -18,9 +18,7 @@ def run_bot(config_system, config_params_path, last_loop_path, position_path, tr
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
     
     if end_date_flag == 1:
-        net_transfer = update_transfer_technical(prev_date, exchange, bot_name, config_params_path, position_path, transfer_path, cash_flow_df_path)
-        if net_transfer < 0:
-            withdraw_position(net_transfer, exchange, bot_name, config_system, config_params_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
+        update_transfer_technical(prev_date, exchange, bot_name, config_params_path, position_path, transfer_path, cash_flow_df_path)
         
     timestamp = get_time()
     print(f"Time: {timestamp}")

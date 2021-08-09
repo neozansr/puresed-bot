@@ -302,7 +302,7 @@ def withdraw_position(net_transfer, exchange, bot_name, config_system, config_pa
     
     reverse_action = {'buy':'sell', 'sell':'buy'}
     action = reverse_action[position['side']]
-    reduce_position(net_transfer, action, exchange, config_params_path, open_orders_df_path)
+    reduce_position(-net_transfer, action, exchange, config_params_path, open_orders_df_path)
 
     time.sleep(config_system['idle_stage'])
     
@@ -350,7 +350,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
     update_side(action, last_loop_path)
 
 
-def update_transfer_technical(prev_date, exchange, bot_name, config_params_path, position_path, transfer_path, cash_flow_df_path):
+def update_transfer_technical(prev_date, exchange, bot_name, config_system, config_params_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     config_params = get_json(config_params_path)
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
@@ -363,19 +363,16 @@ def update_transfer_technical(prev_date, exchange, bot_name, config_params_path,
 
     unrealised = cal_unrealised_future(last_price, position)
     transfer = get_json(transfer_path)
+    net_transfer = transfer['deposit'] - transfer['withdraw']
+
+    if net_transfer < 0:
+        withdraw_position(net_transfer, exchange, bot_name, config_system, config_params_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
 
     cash_flow_list = [prev_date, balance_value, unrealised, transfer['deposit'], transfer['withdraw']]
+
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-
-    transfer = get_json(transfer_path)
-    net_transfer = transfer['deposit'] - transfer['withdraw']
+    update_budget_technical(net_transfer, config_params_path)
     reset_transfer(transfer_path)
-
-    budget = config_params['budget']
-    budget += net_transfer
-    update_budget_technical(budget, config_params_path)
-
-    return net_transfer
 
 
 def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path):
