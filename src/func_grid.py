@@ -50,11 +50,10 @@ def cal_new_orders(start_price, remain_budget, config_params):
     return buy_price_list
 
 
-def cal_append_orders(min_open_buy_price, free_budget, config_params, open_orders_df_path):
-    open_orders_df = pd.read_csv(open_orders_df_path)
+def cal_append_orders(min_open_buy_price, free_budget, config_params, open_buy_orders_df):
     buy_price_list = []
 
-    free_slot_order = config_params['circuit_limit'] - len(open_orders_df)
+    free_slot_order = config_params['circuit_limit'] - len(open_buy_orders_df)
     free_n_order = int(free_budget / np.ceil(config_params['value']))
     buy_price = min_open_buy_price - config_params['grid']
 
@@ -85,7 +84,7 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
         cancel_flag = 1
     else:
         min_open_buy_price = min(open_buy_orders_df['price'])
-        buy_price_list = cal_append_orders(min_open_buy_price, free_budget, config_params, open_orders_df_path)
+        buy_price_list = cal_append_orders(min_open_buy_price, free_budget, config_params, open_buy_orders_df)
         cancel_flag = 0
 
     return buy_price_list, cancel_flag
