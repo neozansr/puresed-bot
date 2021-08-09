@@ -111,10 +111,10 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
         max_drawdown = last_loop['max_drawdown']
         
         text += f"\nSide: {position['side']}"
-        text += f"\nUnrealise: {unrealised}"
-        text += f"\nLast price: {last_price} {quote_currency}"
-        text += f"\nEntry price: {position['entry_price']} {quote_currency}"
-        text += f"\nLiquidate price: {liquidate_price}"
+        text += f"\nUnrealise: {unrealised:.2f} {quote_currency}"
+        text += f"\nLast price: {last_price:.2f} {quote_currency}"
+        text += f"\nEntry price: {position['entry_price']:.2f} {quote_currency}"
+        text += f"\nLiquidate price: {liquidate_price:.2f}  {quote_currency}"
         text += f"\nDrawdown: {drawdown * 100:.2f}%"
         text += f"\nMax drawdown: {max_drawdown * 100:.2f}%"
     else:

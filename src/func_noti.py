@@ -101,8 +101,8 @@ def print_position(last_price, position, position_api, quote_currency):
     drawdown = cal_drawdown_future(last_price, position)
     
     print(f"Side: {position['side']}")
-    print(f"Unrealise: {unrealised}")
-    print(f"Last price: {last_price} {quote_currency}")
-    print(f"Entry price: {position['entry_price']} {quote_currency}")
-    print(f"Liquidate price: {liquidate_price}")
+    print(f"Unrealise: {unrealised:.2f} {quote_currency}")
+    print(f"Last price: {last_price:.2f} {quote_currency}")
+    print(f"Entry price: {position['entry_price']:.2f} {quote_currency}")
+    print(f"Liquidate price: {liquidate_price:.2f} {quote_currency}")
     print(f"Drawdown: {drawdown * 100:.2f}%")

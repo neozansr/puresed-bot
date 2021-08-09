@@ -149,7 +149,7 @@ def rebalance(method, exchange, bot_name, config_system, config_params, open_ord
     last_price = get_last_price(exchange, config_params)
     current_value = get_base_currency_value(last_price, exchange, base_currency)
     
-    print(f"Last price: {last_price} {quote_currency}")
+    print(f"Last price: {last_price:.2f} {quote_currency}")
     print_current_value(current_value, exchange, quote_currency)
 
     if current_value < config_params['fix_value'] - config_params['min_value']:
@@ -172,7 +172,7 @@ def rebalance(method, exchange, bot_name, config_system, config_params, open_ord
         except ccxt.InsufficientFunds: 
             # not enough fund (could caused by wrong account), stop the process
             append_error_log('InsufficientFunds', error_log_df_path)
-            print(f"Error: Cannot {side} at price {last_price} {quote_currency} due to insufficient fund!!!")
+            print(f"Error: Cannot {side} at price {last_price:.2f} {quote_currency} due to insufficient fund!!!")
             sys.exit(1)
 
     time.sleep(config_system['idle_stage'])
