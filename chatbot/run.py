@@ -7,10 +7,11 @@ import sys
 src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
+from func_get import get_json
 from func_chat import get_grid_text, get_rebalance_text, get_technical_text
 
-with open('../../_keys/bot_token.json') as token_file:
-    token_dict = json.load(token_file)
+token_path = '../../_keys/bot_token.json'
+token_dict = get_json(token_path)
 token = token_dict['telegram']
 
 config_system_path = 'config_system.json'

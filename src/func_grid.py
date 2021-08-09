@@ -6,7 +6,7 @@ import time
 
 from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow, get_greed_index
 from func_cal import round_down_amount, cal_final_amount, cal_unrealised
-from func_update import append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, reset_transfer
+from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
 
 
@@ -305,41 +305,34 @@ def update_loss(loss, last_loop_path):
     total_loss -= loss
     last_loop['loss'] = total_loss
 
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop, last_loop_file, indent=1)
+    update_json(last_loop, last_loop_path)
 
 
 def reduce_budget(loss, config_params_path):
-    with open(config_params_path) as config_file:
-        config_params = json.load(config_file)
+    config_params = get_json(config_params_path)
     
     budget = config_params['budget']
     # loss is negative
     budget += loss
     config_params['budget'] = budget
 
-    with open(config_params_path, 'w') as config_file:
-        json.dump(config_params, config_file, indent=1)
+    update_json(config_params, config_params_path)
 
 
 def reset_loss(last_loop_path):
     last_loop = get_json(last_loop_path)
     last_loop['loss'] = 0
 
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop, last_loop_file, indent=1)
+    update_json(last_loop, last_loop_path)
 
 
 def update_reinvest(init_budget, new_budget, new_value, config_params_path):
-    with open(config_params_path) as config_file:
-        config_params = json.load(config_file)
-
+    config_params = get_json(config_params_path)
     config_params['init_budget'] = init_budget
     config_params['budget'] = new_budget
     config_params['value'] = new_value
 
-    with open(config_params_path, 'w') as config_file:
-        json.dump(config_params, config_file, indent=1)
+    update_json(config_params, config_params_path)
 
 
 def update_budget_grid(prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):

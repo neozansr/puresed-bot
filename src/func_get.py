@@ -37,8 +37,7 @@ def convert_tz(utc):
 
 
 def get_exchange(config_system, future=False):
-    with open(config_system['keys_path']) as keys_file:
-        keys_dict = json.load(keys_file)
+    keys_dict = get_json(config_system['keys_path'])
     
     exchange = ccxt.ftx({
         'apiKey': keys_dict['apiKey'],

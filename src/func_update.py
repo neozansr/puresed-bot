@@ -1,7 +1,12 @@
 import pandas as pd
 import json
 
-from func_get import get_time, get_last_price
+from func_get import get_json, get_time, get_last_price
+
+
+def update_json(input_dict, file_path):
+    with open(file_path, 'w') as file:
+        json.dump(input_dict, file, indent=1)
 
 
 def append_order(order, amount_key, df_path):
@@ -42,32 +47,24 @@ def append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path):
 
 
 def update_last_loop_price(exchange, config_params, last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop = json.load(last_loop_file)
-
+    last_loop = get_json(last_loop_path)
     last_price = get_last_price(exchange, config_params)
     last_loop['price'] = last_price
 
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop, last_loop_file, indent=1)
+    update_json(last_loop, last_loop_path)
 
 
 def update_timestamp(last_loop_path):
-    with open(last_loop_path) as last_loop_file:
-        last_loop = json.load(last_loop_file)
-
+    last_loop = get_json(last_loop_path)
     last_loop['timestamp'] = str(get_time())
 
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop, last_loop_file, indent=1)
+    update_json(last_loop, last_loop_path)
 
 
 def reset_transfer(transfer_path):
-    with open(transfer_path) as transfer_file:
-        transfer = json.load(transfer_file)
+    transfer = get_json(transfer_path)
 
     for s in transfer.keys():
         transfer[s] = 0
 
-    with open(transfer_path, 'w') as transfer_file:
-        json.dump(transfer, transfer_file, indent=1)
+    update_json(transfer, transfer_path)

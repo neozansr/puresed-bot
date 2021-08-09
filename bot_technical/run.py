@@ -8,30 +8,30 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_time, get_exchange, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_technical import get_ohlcv, check_new_timestamp, manage_position, withdraw_position, update_budget_technical, check_drawdown, print_report_technical
+from func_technical import get_ohlcv, check_new_timestamp, manage_position, withdraw_position, update_transfer_technical, check_drawdown, print_report_technical
 
 
-def run_bot(config_system, config_params, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def run_bot(config_system, config_params_path, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(config_system, future=True)
 
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
     
     if end_date_flag == 1:
-        withdraw_value = update_budget_technical(prev_date, exchange, bot_name, config_params, position_path, transfer_path, cash_flow_df_path)
-        withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
+        withdraw_value = update_transfer_technical(prev_date, exchange, bot_name, config_params_path, position_path, transfer_path, cash_flow_df_path)
+        withdraw_position(withdraw_value, exchange, bot_name, config_system, config_params_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
         
     timestamp = get_time()
     print(f"Time: {timestamp}")
     
-    ohlcv_df = get_ohlcv(exchange, config_params)
-    new_timestamp_flag = check_new_timestamp(ohlcv_df, config_params, last_loop_path)
+    ohlcv_df = get_ohlcv(exchange, config_params_path)
+    new_timestamp_flag = check_new_timestamp(ohlcv_df, config_params_path, last_loop_path)
     
     if new_timestamp_flag == True:
-        manage_position(ohlcv_df, exchange, bot_name, config_system, config_params, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
+        manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
 
-    check_drawdown(exchange, bot_name, config_params, last_loop_path, position_path)
-    print_report_technical(exchange, config_params, position_path)
+    check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path)
+    print_report_technical(exchange, config_params_path, position_path)
     update_timestamp(last_loop_path)
     
     
@@ -49,12 +49,11 @@ if __name__ == '__main__':
 
     while True:
         config_system = get_json(config_system_path)
-        config_params = get_json(config_params_path)
 
         if config_system['run_flag'] == 1:
             print("Start loop")
             try:
-                run_bot(config_system, config_params, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
+                run_bot(config_system, config_params_path, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError):
                 append_error_log('ConnectionError', error_log_df_path)
                 print("No connection: Skip the loop")

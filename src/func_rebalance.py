@@ -5,7 +5,7 @@ import json
 import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow
-from func_update import append_order, remove_order, append_error_log, append_cash_flow_df, reset_transfer
+from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
 
@@ -56,29 +56,24 @@ def update_order_loop(order_loop, series, last_loop, last_loop_path):
 
     last_loop['order_loop'] = order_loop
 
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop, last_loop_file, indent=1)
+    update_json(last_loop, last_loop_path)
 
 
 def reset_order_loop(last_loop_path):
     last_loop = get_json(last_loop_path)
     last_loop['order_loop'] = 0
 
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop, last_loop_file, indent=1)
+    update_json(last_loop, last_loop_path)
 
 
 def update_fix_value(transfer, config_params, config_params_path):
     fix_value = config_params['fix_value']
     fix_value += ((transfer['deposit'] - transfer['withdraw']) / 2)
-
-    with open(config_params_path) as config_file:
-        config_params = json.load(config_file)
-
+    
+    config_params = get_json(config_params_path)
     config_params['fix_value'] = fix_value
 
-    with open(config_params_path, 'w') as config_params_path:
-        json.dump(config_params, config_params_path, indent=1)
+    update_json(config_params, config_params_path)
 
 
 def append_profit_rebalance(sell_order, exe_amount, config_params, queue_df, profit_df_path):
@@ -189,8 +184,7 @@ def update_withdraw_flag(last_loop_path, enable):
     else:
         last_loop['withdraw_flag'] = 0
 
-    with open(last_loop_path, 'w') as last_loop_file:
-        json.dump(last_loop, last_loop_file, indent=1)
+    update_json(last_loop, last_loop_path)
 
 
 def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):

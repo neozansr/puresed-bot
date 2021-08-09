@@ -2,15 +2,14 @@ import pandas as pd
 import json
 import requests
 
-from func_get import get_time, get_currency, get_currency_future, get_base_currency_value, get_quote_currency_value, get_pending_order
+from func_get import get_json, get_time, get_currency, get_currency_future, get_base_currency_value, get_quote_currency_value, get_pending_order
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
 def get_line_message(payload, noti_type):
     url = 'https://notify-api.line.me/api/notify'
-    
-    with open('../../_keys/bot_token.json') as token_file:
-        token_dict = json.load(token_file)
+    token_path = '../../_keys/bot_token.json'
+    token_dict = get_json(token_path)
     token = token_dict['line'][noti_type]
     
     headers = {'Authorization':'Bearer ' + token}
