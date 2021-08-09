@@ -96,6 +96,7 @@ def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_
     
     remain_budget, free_budget = cal_budget(config_params, open_orders_df_path)
     buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
+    buy_price_list = buy_price_list[:config_params['circuit_limit']]
     
     if cancel_flag == 1:
         cancel_open_buy_orders_grid(exchange, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
