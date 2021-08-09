@@ -41,22 +41,24 @@ def cal_new_orders(start_price, remain_budget, config_params):
     buy_price = start_price
     remain_n_order = int(remain_budget / np.ceil(config_params['value']))
 
-    buy_price_list = []    
+    buy_price_list = []
     
-    for _ in range(remain_n_order):
+    for _ in range(min(remain_n_order, config_params['circuit_limit'])):
         buy_price_list.append(buy_price)
         buy_price -= config_params['grid']
 
     return buy_price_list
 
 
-def cal_append_orders(min_open_buy_price, free_budget, config_params):
+def cal_append_orders(min_open_buy_price, free_budget, config_params, open_orders_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
     buy_price_list = []
-    
+
+    free_slot_order = config_params['circuit_limit'] - len(open_orders_df)
     free_n_order = int(free_budget / np.ceil(config_params['value']))
     buy_price = min_open_buy_price - config_params['grid']
 
-    for _ in range(free_n_order):
+    for _ in range(min(free_n_order, free_slot_order)):
         buy_price_list.append(buy_price)
         buy_price -= config_params['grid']
 
@@ -83,7 +85,7 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
         cancel_flag = 1
     else:
         min_open_buy_price = min(open_buy_orders_df['price'])
-        buy_price_list = cal_append_orders(min_open_buy_price, free_budget, config_params)
+        buy_price_list = cal_append_orders(min_open_buy_price, free_budget, config_params, open_orders_df_path)
         cancel_flag = 0
 
     return buy_price_list, cancel_flag
@@ -96,7 +98,6 @@ def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_
     
     remain_budget, free_budget = cal_budget(config_params, open_orders_df_path)
     buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
-    buy_price_list = buy_price_list[:config_params['circuit_limit']]
     
     if cancel_flag == 1:
         cancel_open_buy_orders_grid(exchange, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
