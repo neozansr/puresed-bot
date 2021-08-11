@@ -58,7 +58,7 @@ def get_inverval_lag(ohlcv_df, config_params):
     i = 1
     signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - step, 'time'] - relativedelta(minutes=config_params['interval'] * i)
 
-    while signal_timestamp > ref_time + relativedelta(minutes=config_params['interval']):
+    while signal_timestamp >= ref_time + relativedelta(minutes=config_params['interval']):
         signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - step, 'time'] - relativedelta(minutes=config_params['interval'] * i)
         i += 1
 
@@ -92,8 +92,10 @@ def get_ohlcv(exchange, config_params_path):
     # Add one more -1 as .loc includ stop as slice
     ohlcv_df = ohlcv_df.loc[:len(ohlcv_df) - 1 - 1, :]
 
-    interval_lag = get_inverval_lag(ohlcv_df, config_params)
-    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - interval_lag, 'time']
+    if step > 1:
+        interval_lag = get_inverval_lag(ohlcv_df, config_params)
+    
+    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - interval_lag - step, 'time'] + relativedelta(minutes=config_params['interval'])
 
     if step > 1:
         ohlcv_df = group_timeframe(ohlcv_df, step)
