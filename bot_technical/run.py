@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_time, get_exchange, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_technical import get_ohlcv, check_new_timestamp, manage_position, withdraw_position, update_transfer_technical, check_drawdown, print_report_technical
+from func_technical import get_ohlcv, check_new_timestamp, manage_position, update_signal_timestamp, update_transfer_technical, check_drawdown, print_report_technical
 
 
 def run_bot(config_system, config_params_path, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
@@ -23,11 +23,14 @@ def run_bot(config_system, config_params_path, last_loop_path, position_path, tr
     timestamp = get_time()
     print(f"Time: {timestamp}")
     
-    ohlcv_df = get_ohlcv(exchange, config_params_path)
-    new_timestamp_flag = check_new_timestamp(ohlcv_df, config_params_path, last_loop_path)
+    ohlcv_df, signal_timestamp = get_ohlcv(exchange, config_params_path)
+    print(f'Signal timestamp: {signal_timestamp}')
+
+    new_timestamp_flag = check_new_timestamp(signal_timestamp, config_params_path, last_loop_path)
     
     if new_timestamp_flag == True:
         manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
+        update_signal_timestamp(signal_timestamp, last_loop_path)
 
     check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path)
     print_report_technical(exchange, config_params_path, position_path)

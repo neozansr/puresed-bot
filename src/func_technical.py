@@ -3,7 +3,7 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 import math
 import time
-import json
+import sys
 
 from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_position_api
 from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future
@@ -12,23 +12,23 @@ from func_noti import noti_success_order, noti_warning, print_position
 
 
 def get_timeframe(config_params):
-    timeframe_dict = {1440:'1d', 240:'4h', 60:'1h', 30:'30m', 15:'15m'}
+    timeframe_dict = {1440:'1d', 240:'4h', 60:'1h', 15:'15m'}
     
     for i in timeframe_dict.keys():
         if config_params['interval'] % i == 0:
-            min_interval = i
+            base_interval = i
             break
             
-    min_timeframe = timeframe_dict[min_interval]
-    step = int(config_params['interval'] / min_interval)
+    base_timeframe = timeframe_dict[base_interval]
+    step = int(config_params['interval'] / base_interval)
             
-    return min_timeframe, step
+    return step, base_timeframe, base_interval
 
 
 def group_timeframe(ohlcv_df, step):
     ohlcv_dict = {'time':[], 'open':[], 'high':[], 'low':[], 'close':[]}
-        
-    for i in [x for x in range(0, len(ohlcv_df), step)]:
+    
+    for i in [x for x in range(0, len(ohlcv_df) - 1, step)]:
         temp_df = ohlcv_df.iloc[i:i + step, :]
         ohlcv_dict['time'].append(temp_df['time'][i])
         ohlcv_dict['open'].append(temp_df['open'][i])
@@ -41,35 +41,69 @@ def group_timeframe(ohlcv_df, step):
     return ohlcv_df
 
 
+def get_ref_time(ohlcv_df):
+    ref_time = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
+    ref_time -=  relativedelta(hours=ref_time.hour)
+    ref_time -=  relativedelta(minutes=ref_time.minute)
+    
+    return ref_time
+
+
+def get_inverval_lag(ohlcv_df, config_params):
+    step, _, base_interval = get_timeframe(config_params)
+
+    # Signal start at 00:00 of each day as simulation
+    ref_time = get_ref_time(ohlcv_df)
+
+    i = 1
+    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - step, 'time'] - relativedelta(minutes=config_params['interval'] * i)
+
+    while signal_timestamp > ref_time + relativedelta(minutes=config_params['interval']):
+        signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - step, 'time'] - relativedelta(minutes=config_params['interval'] * i)
+        i += 1
+
+    if config_params['interval'] < 60:
+        interval_lag = int(relativedelta(signal_timestamp, ref_time).minutes / base_interval)
+    elif config_params['interval'] < (60 * 24):
+        interval_lag = int(relativedelta(signal_timestamp, ref_time).hours / (base_interval / 60))
+    else:
+        print('Inverval not supported')
+        sys.exit(1)
+        
+    return interval_lag
+
+    
 def get_ohlcv(exchange, config_params_path):
     config_params = get_json(config_params_path)
-    min_timeframe, step = get_timeframe(config_params)
+    step, base_timeframe, _ = get_timeframe(config_params)
 
-    ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=min_timeframe, limit=config_params['window'] * step)
+    # Last timstamp is cureent internal, not finalized
+    ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=base_timeframe, limit=(config_params['window'] * step) + 1)
+
+    while len(ohlcv) != ((config_params['window'] * step) + 1):
+        # Error from exchange, fetch until get limit
+        ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=base_timeframe, limit=(config_params['window'] * step) + 1)
+
     ohlcv_df = pd.DataFrame(ohlcv)
     ohlcv_df.columns = ['time', 'open', 'high', 'low', 'close', 'volume']
     ohlcv_df['time'] = pd.to_datetime(ohlcv_df['time'], unit='ms')
     ohlcv_df['time'] = ohlcv_df['time'].apply(lambda x: convert_tz(x))
 
+    # Add one more -1 as .loc includ stop as slice
+    ohlcv_df = ohlcv_df.loc[:len(ohlcv_df) - 1 - 1, :]
+
+    interval_lag = get_inverval_lag(ohlcv_df, config_params)
+    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - interval_lag, 'time']
+
     if step > 1:
         ohlcv_df = group_timeframe(ohlcv_df, step)
 
-    return ohlcv_df
+    return ohlcv_df, signal_timestamp
 
 
-def update_ohlcv(ohlcv_df, last_loop_path):
-    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
-    close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
-
+def update_price(close_price, signal_price, last_loop_path):
     last_loop = get_json(last_loop_path)
-    last_loop['signal_timestamp'] = str(signal_timestamp)
     last_loop['close_price'] = float(close_price)
-
-    update_json(last_loop, last_loop_path)
-
-
-def update_signal_price(signal_price, last_loop_path):
-    last_loop = get_json(last_loop_path)
     last_loop['signal_price'] = signal_price
 
     update_json(last_loop, last_loop_path)
@@ -79,6 +113,13 @@ def update_side(side, last_loop_path):
     last_loop = get_json(last_loop_path)
     last_loop['side'] = side
 
+    update_json(last_loop, last_loop_path)
+
+
+def update_signal_timestamp(signal_timestamp, last_loop_path):
+    last_loop = get_json(last_loop_path)
+    last_loop['signal_timestamp'] = str(signal_timestamp)
+    
     update_json(last_loop, last_loop_path)
 
 
@@ -108,9 +149,8 @@ def update_max_drawdown(drawdown, last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def check_new_timestamp(ohlcv_df, config_params_path, last_loop_path):
+def check_new_timestamp(signal_timestamp, config_params_path, last_loop_path):
     config_params = get_json(config_params_path)
-    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
     print(f'Signal timestamp: {signal_timestamp}')
 
     last_loop = get_json(last_loop_path)
@@ -345,8 +385,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
     else:
         print("No action")
     
-    update_ohlcv(ohlcv_df, last_loop_path)
-    update_signal_price(signal_price, last_loop_path)
+    update_price(close_price, signal_price, last_loop_path)
     update_side(action, last_loop_path)
 
 

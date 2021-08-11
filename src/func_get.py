@@ -22,7 +22,7 @@ def get_time(timezone='Asia/Bangkok'):
 
 
 def get_date(timezone='Asia/Bangkok'):
-    timestamp = dt.datetime.now(tz=tz.gettz(timezone))
+    timestamp = get_time(timezone=timezone)
     date = timestamp.date()
     
     return date

@@ -161,14 +161,8 @@ def rebalance(method, exchange, bot_name, config_system, config_params, open_ord
         
     if rebalance_flag == 1:
         amount = diff_value / price
-        try:
-            order = exchange.create_order(config_params['symbol'], 'market', side, amount)
-            append_order(order, 'amount', open_orders_df_path)
-        except ccxt.InsufficientFunds: 
-            # not enough fund (could caused by wrong account), stop the process
-            append_error_log('InsufficientFunds', error_log_df_path)
-            print(f"Error: Cannot {side} at price {last_price:.2f} {quote_currency} due to insufficient fund!!!")
-            sys.exit(1)
+        order = exchange.create_order(config_params['symbol'], 'market', side, amount)
+        append_order(order, 'amount', open_orders_df_path)
 
     time.sleep(config_system['idle_stage'])
     clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)

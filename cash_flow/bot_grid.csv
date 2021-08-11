@@ -1,1 +1,1 @@
-date,balance,unrealised,value,cash_flow,reinvest_amount,remain_cash_flow,withdraw_cash_flow,available_cash_flow,loss,deposit,withdraw
+date,balance,unrealised,value,cash_flow,commission_fee,net_cash_flow,reinvest_amount,remain_cash_flow,withdraw_cash_flow,available_cash_flow,withdraw_yield,available_yield,loss,deposit,withdraw
