@@ -43,6 +43,7 @@ def group_timeframe(ohlcv_df, step):
 
 def get_ref_time(ohlcv_df):
     ref_time = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
+    ref_time -=  relativedelta(days=1)
     ref_time -=  relativedelta(hours=ref_time.hour)
     ref_time -=  relativedelta(minutes=ref_time.minute)
     
