@@ -151,8 +151,6 @@ def update_max_drawdown(drawdown, last_loop_path):
 
 def check_new_timestamp(signal_timestamp, config_params_path, last_loop_path):
     config_params = get_json(config_params_path)
-    print(f'Signal timestamp: {signal_timestamp}')
-
     last_loop = get_json(last_loop_path)
 
     if last_loop['signal_timestamp'] == 0:
