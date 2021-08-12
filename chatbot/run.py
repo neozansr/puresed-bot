@@ -31,7 +31,7 @@ print(x)
 @bot.message_handler(commands=['start', 'help', 'h'])
 def send_help(message):
     text = "type /balance to get balance info"
-    text = "type /[bot_name] to get bot status"
+    text += "\ntype /[bot_name] to get bot status"
     
     bot.send_message(message.chat.id, text)
 
