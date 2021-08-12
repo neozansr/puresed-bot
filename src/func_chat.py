@@ -4,6 +4,41 @@ from func_get import get_json, get_date, get_exchange, get_currency, get_currenc
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
+def get_balance_text(text, config_system_path):
+    config_system = get_json(config_system_path)
+    
+    exchange = get_exchange(config_system)
+    wallet = exchange.private_get_wallet_all_balances()['result']
+    
+    subaccounts = list(wallet.keys())
+    subaccounts.sort()
+
+    balance_dict = {'account':[], 'asset':[], 'value':[]}
+
+    for s in subaccounts:
+        for asset in wallet[s]:
+            if float(asset['usdValue']) >= 1:
+                balance_dict['account'].append(s)
+                balance_dict['asset'].append(asset['coin'])
+                balance_dict['value'].append(float(asset['usdValue']))
+
+    balance_df = pd.DataFrame(balance_dict)
+
+    balance_value = balance_df['value'].sum()
+    text += f"\nAll Balance: {balance_value:.2f} USD"
+
+    for sub_account in balance_df['account'].unique():
+        sub_account_df = balance_df[balance_df['account'] == sub_account]
+        sub_account_value = sub_account_df['value'].sum()
+        text += f"\n\nBalance {sub_account}: {sub_account_value:.2f} USD"
+        
+        for asset in sub_account_df['asset'].unique():
+            asset_value = sub_account_df[sub_account_df['asset'] == asset]['value'].sum()
+            text += f"\n{sub_account} {asset}: {asset_value:.2f} USD"
+
+    return text
+
+
 def get_rebalance_text(text, sub_path, config_system_path, config_params_path, last_loop_path, profit_df_path):
     config_system = get_json(sub_path + config_system_path)
     config_params = get_json(sub_path + config_params_path)

@@ -8,7 +8,7 @@ src_path = '../src/'
 sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json
-from func_chat import get_grid_text, get_rebalance_text, get_technical_text
+from func_chat import get_balance_text, get_rebalance_text, get_grid_text, get_technical_text
 
 token_path = '../../_keys/bot_token.json'
 token_dict = get_json(token_path)
@@ -30,7 +30,17 @@ print(x)
 
 @bot.message_handler(commands=['start', 'help', 'h'])
 def send_help(message):
-    text = "type /[bot_name] to get info"
+    text = "type /balance to get balance info"
+    text = "type /[bot_name] to get bot status"
+    
+    bot.send_message(message.chat.id, text)
+
+
+@bot.message_handler(commands=['balance'])
+def send_bot_rebalance(message):
+    text = "Balance\n"
+    text = get_balance_text(text, config_system_path)
+    
     bot.send_message(message.chat.id, text)
 
 
@@ -38,7 +48,7 @@ def send_help(message):
 def send_bot_rebalance(message):
     bot_name = 'bot_rebalance'
     bot_type = 'rebalance'
-    sub_path = f'../{bot_name}/'
+    sub_path = f"../{bot_name}/"
 
     text = f"{bot_name.title()}\n{bot_type.title()}\n"
     text = get_rebalance_text(text, sub_path, config_system_path, config_params_path, last_loop_path, profit_df_path)
@@ -50,7 +60,7 @@ def send_bot_rebalance(message):
 def send_bot_grid(message):
     bot_name = 'bot_grid'
     bot_type = 'grid'
-    sub_path = f'../{bot_name}/'
+    sub_path = f"../{bot_name}/"
 
     text = f"{bot_name.title()}\n{bot_type.title()}\n"
     text = get_grid_text(text, sub_path, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path)
@@ -62,7 +72,7 @@ def send_bot_grid(message):
 def send_bot_grid(message):
     bot_name = 'bot_technical'
     bot_type = 'technical'
-    sub_path = f'../{bot_name}/'
+    sub_path = f"../{bot_name}/"
 
     text = f"{bot_name.title()}\n{bot_type.title()}\n"
     text = get_technical_text(text, sub_path, config_system_path, config_params_path, last_loop_path, position_path)

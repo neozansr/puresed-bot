@@ -42,9 +42,11 @@ def get_exchange(config_system, future=False):
     exchange = ccxt.ftx({
         'apiKey': keys_dict['apiKey'],
         'secret': keys_dict['secret'],
-        'headers': {'FTX-SUBACCOUNT': keys_dict['subaccount']},
         'enableRateLimit': True
         })
+
+    if 'subaccount' in keys_dict.key():
+        exchange.headers = {'FTX-SUBACCOUNT': keys_dict['subaccount'],}
 
     if future == True:
         exchange.options = {'defaultType': 'future'}
