@@ -45,7 +45,7 @@ def get_exchange(config_system, future=False):
         'enableRateLimit': True
         })
 
-    if 'subaccount' in list(keys_dict.key()):
+    if 'subaccount' in list(keys_dict.keys()):
         exchange.headers = {'FTX-SUBACCOUNT': keys_dict['subaccount'],}
 
     if future == True:
