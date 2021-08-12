@@ -1,5 +1,7 @@
 {
  "side": 0,
  "entry_price": 0,
- "amount": 0
+ "amount": 0,
+ "today_profit": 0,
+ "today_commission": 0
 }

@@ -4,7 +4,7 @@ import time
 import json
 import sys
 
-from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow
+from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow, get_available_yield
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
@@ -198,14 +198,10 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
     last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
     cash_flow = sum(last_profit_df['profit'])
     
+    commission = max(cash_flow * config_params['commission_rate'], 0)
+    net_cash_flow = cash_flow - commission
+
     transfer = get_json(transfer_path)
-
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_cash_flow += cash_flow
-    
-    cash_flow_list = [prev_date, balance_value, cash, config_params['fix_value'], cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, transfer['deposit'], transfer['withdraw']]
-    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-
     net_transfer = transfer['deposit'] - transfer['withdraw']
 
     if net_transfer != 0:
@@ -214,6 +210,28 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
         if net_transfer < 0:
             withdraw_flag = 1
 
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_cash_flow += (net_cash_flow - transfer['withdraw_cash_flow'])
+    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield += (commission - transfer['withdraw_yield'])
+
+    cash_flow_list = [
+        prev_date,
+        balance_value,
+        cash,
+        config_params['fix_value'],
+        cash_flow,
+        commission,
+        net_cash_flow,
+        transfer['deposit'],
+        transfer['withdraw'],
+        transfer['withdraw_cash_flow'],
+        transfer['withdraw_yield'],
+        available_cash_flow,
+        available_yield
+        ]
+
+    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     reset_transfer(transfer_path)
 
     return withdraw_flag

@@ -5,7 +5,7 @@ import math
 import time
 import sys
 
-from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_position_api
+from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_position_api, get_available_yield
 from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_position
@@ -296,6 +296,33 @@ def update_budget_technical(change_value, config_params_path):
     update_json(config_params, config_params_path)
 
 
+def update_profit_technical(profit, config_params_path, position_path):
+    config_params = get_json(config_params_path)
+    position = get_json(position_path)
+
+    commission = max(profit * config_params['commission_rate'], 0)
+    net_profit = profit - commission
+    
+    today_profit = position['today_profit']
+    today_profit += net_profit
+    position['today_profit'] = today_profit
+
+    today_commission = position['today_commission']
+    today_commission += commission
+    position['today_commission'] = today_commission
+
+    update_budget_technical(net_profit, config_params_path)
+    update_json(position, position_path)
+
+
+def reset_profit_technical(position_path):
+    position = get_json(position_path)
+    position['today_profit'] = 0
+    position['today_commission'] = 0
+    
+    update_json(position, position_path)
+
+
 def open_position(action, exchange, config_params_path, open_orders_df_path):
     config_params = get_json(config_params_path)
     amount = cal_new_amount(config_params['budget'], exchange, config_params)
@@ -375,8 +402,8 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
             close_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
             profit = append_profit_technical(close_order, position_path, profit_df_path)
             update_reduce_position(close_order, position_path)
-            update_budget_technical(profit, config_params_path)
-
+            update_profit_technical(profit, config_params_path, position_path)
+            
         open_position(action, exchange, config_params_path, open_orders_df_path)
         time.sleep(config_system['idle_stage'])
 
@@ -408,11 +435,26 @@ def update_transfer_technical(prev_date, exchange, bot_name, config_system, conf
     if net_transfer < 0:
         withdraw_position(net_transfer, exchange, bot_name, config_system, config_params_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
 
-    cash_flow_list = [prev_date, balance_value, unrealised, transfer['deposit'], transfer['withdraw']]
+    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield += (position['today_commission'] - transfer['withdraw_yield'])
 
-    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    cash_flow_list = [
+        prev_date,
+        balance_value,
+        unrealised,
+        position['today_profit'],
+        position['today_commission'],
+        position['today_profit'] - position['today_commission'],
+        transfer['deposit'],
+        transfer['withdraw'],
+        transfer['withdraw_yield'],
+        available_yield
+        ]
+
     update_budget_technical(net_transfer, config_params_path)
+    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     reset_transfer(transfer_path)
+    reset_profit_technical(position_path)
 
 
 def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path):

@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import time
 
-from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow, get_greed_index
+from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
 from func_cal import round_down_amount, cal_final_amount, cal_unrealised
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
@@ -356,13 +356,16 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
 
     last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
     cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
+
+    commission = max(cash_flow * config_params['commission_rate'], 0)
+    net_cash_flow = cash_flow - commission
     
     if config_params['reinvest_ratio'] == -1:
         greed_index = get_greed_index()
         reinvest_ratio = max(1 - (greed_index / 100), 0)
 
-    reinvest_amount = cash_flow * reinvest_ratio
-    remain_cash_flow = cash_flow - reinvest_amount
+    reinvest_amount = net_cash_flow * reinvest_ratio
+    remain_cash_flow = net_cash_flow - reinvest_amount
 
     transfer = get_json(transfer_path)
     lower_price = last_price * (1 - config_params['fluctuation_rate'])
@@ -374,9 +377,29 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
     new_value = new_budget / n_order
     
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_cash_flow += remain_cash_flow
+    available_cash_flow += (remain_cash_flow - transfer['withdraw_cash_flow'])
+    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield += (commission - transfer['withdraw_yield'])
 
-    cash_flow_list = [prev_date, balance_value, unrealised, config_params['value'], cash_flow, reinvest_amount, remain_cash_flow, transfer['withdraw_cash_flow'], available_cash_flow, last_loop['loss'], transfer['deposit'], transfer['withdraw']]
+    cash_flow_list = [
+        prev_date,
+        balance_value,
+        unrealised,
+        last_loop['loss'],
+        config_params['value'],
+        cash_flow,
+        commission,
+        net_cash_flow,
+        reinvest_amount,
+        remain_cash_flow,
+        transfer['deposit'],
+        transfer['withdraw'],
+        transfer['withdraw_cash_flow'],
+        transfer['withdraw_yield'],
+        available_cash_flow,
+        available_yield
+        ]
+
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_reinvest(new_init_budget, new_budget, new_value, config_params_path)
     reset_loss(last_loop_path)
