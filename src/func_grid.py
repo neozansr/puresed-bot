@@ -237,14 +237,14 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
     min_sell_price = min(open_orders_df['price'], default=0)    
 
     transfer = get_json(transfer_path)
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_cash_flow = get_available_cash_flow(cash_flow_df)
 
     last_price = get_last_price(exchange, config_params)
 
-    if (quote_currency_amount < available_cash_flow + config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
+    if (quote_currency_amount - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
         cont_flag = 0
         
-        while quote_currency_amount < available_cash_flow + config_params['value']:
+        while quote_currency_amount - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']:
             cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path)
 
             balance = exchange.fetch_balance()

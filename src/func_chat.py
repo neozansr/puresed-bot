@@ -118,9 +118,7 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
     base_currency, quote_currency = get_currency_future(config_params)
     last_price = get_last_price(exchange, config_params)
 
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
-    balance_value = current_value + cash
+    balance_value = get_quote_currency_value(exchange, quote_currency)
 
     last_loop = get_json(sub_path + last_loop_path)
     last_timestamp = last_loop['timestamp']
@@ -129,8 +127,6 @@ def get_technical_text(text, sub_path, config_system_path, config_params_path, l
     signal_price = last_loop['signal_price']
 
     text += f"\nBalance: {balance_value:.2f} {quote_currency}"
-    text += f"\nCurrent value: {current_value:.2f} {quote_currency}"
-    text += f"\nCash: {cash:.2f} {quote_currency}"
     text += f"\nLast timestamp: {last_signal_timestamp}"
     text += f"\nClose price: {close_price:.2f} {quote_currency}"
     text += f"\nSignal price: {signal_price:.2f} {quote_currency}"

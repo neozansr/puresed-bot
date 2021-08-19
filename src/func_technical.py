@@ -43,9 +43,9 @@ def group_timeframe(ohlcv_df, step):
 
 def get_ref_time(ohlcv_df):
     ref_time = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
-    ref_time -=  relativedelta(days=1)
-    ref_time -=  relativedelta(hours=ref_time.hour)
-    ref_time -=  relativedelta(minutes=ref_time.minute)
+    ref_time -= relativedelta(days=1)
+    ref_time -= relativedelta(hours=ref_time.hour)
+    ref_time -= relativedelta(minutes=ref_time.minute)
     
     return ref_time
 
@@ -435,7 +435,7 @@ def update_transfer_technical(prev_date, exchange, bot_name, config_system, conf
     if net_transfer < 0:
         withdraw_position(net_transfer, exchange, bot_name, config_system, config_params_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
 
-    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield = get_available_yield(cash_flow_df)
     available_yield += (position['today_commission'] - transfer['withdraw_yield'])
 
     cash_flow_list = [
