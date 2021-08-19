@@ -126,10 +126,9 @@ def get_pending_order(open_orders_df_path):
     return min_buy_price, max_buy_price, min_sell_price, max_sell_price
 
 
-def get_available_cash_flow(transfer, cash_flow_df):
+def get_available_cash_flow(cash_flow_df):
     try:
         avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
-        avaialble_cash_flow -= transfer['withdraw_cash_flow']
     except IndexError:
         # first date
         avaialble_cash_flow = 0
@@ -137,10 +136,9 @@ def get_available_cash_flow(transfer, cash_flow_df):
     return avaialble_cash_flow
 
 
-def get_available_yield(transfer, cash_flow_df):
+def get_available_yield(cash_flow_df):
     try:
         avaialble_yield = cash_flow_df['available_yield'][len(cash_flow_df) - 1]
-        avaialble_yield -= transfer['withdraw_yield']
     except IndexError:
         # first date
         avaialble_yield = 0

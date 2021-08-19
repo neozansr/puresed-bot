@@ -210,9 +210,9 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
         if net_transfer < 0:
             withdraw_flag = 1
 
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_cash_flow = get_available_cash_flow(cash_flow_df)
     available_cash_flow += (net_cash_flow - transfer['withdraw_cash_flow'])
-    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield = get_available_yield(cash_flow_df)
     available_yield += (commission - transfer['withdraw_yield'])
 
     cash_flow_list = [

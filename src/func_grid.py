@@ -376,9 +376,9 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
     new_budget = config_params['budget'] + reinvest_amount + net_transfer
     new_value = new_budget / n_order
     
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_cash_flow = get_available_cash_flow(cash_flow_df)
     available_cash_flow += (remain_cash_flow - transfer['withdraw_cash_flow'])
-    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield = get_available_yield(cash_flow_df)
     available_yield += (commission - transfer['withdraw_yield'])
 
     cash_flow_list = [
