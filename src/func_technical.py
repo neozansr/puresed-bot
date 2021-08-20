@@ -304,7 +304,7 @@ def update_profit_technical(profit, config_params_path, position_path):
     net_profit = profit - commission
     
     today_profit = position['today_profit']
-    today_profit += net_profit
+    today_profit += profit
     position['today_profit'] = today_profit
 
     today_commission = position['today_commission']
