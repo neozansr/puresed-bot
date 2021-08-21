@@ -1,7 +1,5 @@
-import ccxt
 import pandas as pd
 import time
-import json
 import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow, get_available_yield

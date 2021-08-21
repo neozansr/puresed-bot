@@ -1,5 +1,4 @@
 import pandas as pd
-import json
 import requests
 
 from func_get import get_json, get_time, get_currency, get_currency_future, get_base_currency_value, get_quote_currency_value, get_pending_order

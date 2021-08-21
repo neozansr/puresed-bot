@@ -1,6 +1,5 @@
 import telebot
 import time
-import json
 import os
 import sys
 
