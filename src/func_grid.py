@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import time
 
-from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
+from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
 from func_cal import round_down_amount, cal_final_amount, cal_unrealised
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
@@ -110,10 +110,9 @@ def open_buy_orders_grid(exchange, bot_name, config_params, open_orders_df_path,
         amount = config_params['value'] / price
         floor_amount = round_down_amount(amount, config_params)
         
-        balance = exchange.fetch_balance()
-        quote_currency_amount = balance[quote_currency]['free']
+        quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
-        if quote_currency_amount >= remain_cash_flow_accum + config_params['value']:
+        if quote_currency_free >= remain_cash_flow_accum + config_params['value']:
             buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', floor_amount, price, params={'postOnly':True})
             append_order(buy_order, 'amount', open_orders_df_path)
             print(f"Open buy {floor_amount:.3f} {base_currency} at {price:.2f} {quote_currency}")
@@ -134,9 +133,8 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         append_order(sell_order, 'amount', open_orders_df_path)
     except ccxt.InsufficientFunds:
         # not available amount to sell (could caused by decimal), sell free amount
-        balance = exchange.fetch_balance()
-        base_currency_amount = balance[base_currency]['free']
-        final_amount = round_down_amount(base_currency_amount, config_params)
+        base_currency_free = get_base_currency_free(exchange, base_currency)
+        final_amount = round_down_amount(base_currency_free, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
         append_error_log('InsufficientFunds', error_log_df_path)
     except ccxt.InvalidOrder:
@@ -227,8 +225,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
     cont_flag = 1
 
     _, quote_currency = get_currency(config_params)
-    balance = exchange.fetch_balance()
-    quote_currency_amount = balance[quote_currency]['free']
+    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     open_orders_df = pd.read_csv(open_orders_df_path)
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
@@ -241,14 +238,12 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
 
     last_price = get_last_price(exchange, config_params)
 
-    if (quote_currency_amount - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
+    if (quote_currency_free - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
         cont_flag = 0
         
-        while quote_currency_amount - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']:
+        while quote_currency_free - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']:
             cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path)
-
-            balance = exchange.fetch_balance()
-            quote_currency_amount = balance[quote_currency]['free']
+            quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     return cont_flag
             
