@@ -15,7 +15,7 @@ def round_up_amount(amount, config_params):
     return floor_amount
 
 
-def cal_final_amount(order_id, exchange, config_system, config_params):
+def cal_final_amount(order_id, exchange, config_params):
     trades_df = pd.DataFrame(exchange.fetch_my_trades(config_params['symbol'], limit=200))
     order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)
     
@@ -23,15 +23,6 @@ def cal_final_amount(order_id, exchange, config_system, config_params):
     
     for i in range(len(order_trade)):
         amount += order_trade['amount'][i]
-
-        while order_trade['fee'][i] == None:
-            # fee is None, wait until updated
-            print(f'Wating order {order_id} fee to be updated')
-            time.sleep(config_system['idle_stage'])
-            
-            trades_df = pd.DataFrame(exchange.fetch_my_trades(config_params['symbol'], limit=200))
-            order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)
-            
         fee += order_trade['fee'][i]['cost']
 
     deducted_amount = amount - fee

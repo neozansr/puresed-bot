@@ -101,6 +101,17 @@ def get_base_currency_value(last_price, exchange, base_currency):
     return base_currency_value
 
 
+def get_base_currency_free(exchange, base_currency):
+    balance = exchange.fetch_balance()
+    
+    try:
+        base_currency_free = balance[base_currency]['free']
+    except KeyError:
+        base_currency_free = 0
+
+    return base_currency_free
+
+
 def get_quote_currency_value(exchange, quote_currency):
     balance = exchange.fetch_balance()
 

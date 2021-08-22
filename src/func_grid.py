@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import time
 
-from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
+from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
 from func_cal import round_down_amount, cal_final_amount, cal_unrealised
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, reset_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
@@ -89,7 +89,7 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
     return buy_price_list, cancel_flag
 
 
-def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
+def open_buy_orders_grid(exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     base_currency, quote_currency = get_currency(config_params)
     bid_price = get_bid_price(exchange, config_params)
     print(f"Bid price: {bid_price:.2f} {quote_currency}")
@@ -98,7 +98,7 @@ def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_
     buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
     
     if cancel_flag == 1:
-        cancel_open_buy_orders_grid(exchange, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+        cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     print(f"Open {len(buy_price_list)} buy orders")
 
@@ -123,13 +123,13 @@ def open_buy_orders_grid(exchange, bot_name, config_system, config_params, open_
             break
 
         
-def open_sell_orders_grid(buy_order, exchange, config_system, config_params, open_orders_df_path, error_log_df_path):
+def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_path, error_log_df_path):
     base_currency, quote_currency = get_currency(config_params)
     ask_price = get_ask_price(exchange, config_params)
     sell_price = cal_sell_price(buy_order, ask_price, config_params)
     
     try:
-        final_amount = cal_final_amount(buy_order['id'], exchange, config_system, config_params)
+        final_amount = cal_final_amount(buy_order['id'], exchange, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
         append_order(sell_order, 'amount', open_orders_df_path)
     except ccxt.InsufficientFunds:
@@ -148,7 +148,7 @@ def open_sell_orders_grid(buy_order, exchange, config_system, config_params, ope
     return sell_order
 
 
-def clear_orders_grid(side, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
+def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
 
@@ -164,7 +164,7 @@ def clear_orders_grid(side, exchange, bot_name, config_system, config_params, op
             noti_success_order(order, bot_name, config_params)
 
             if side == 'buy':
-                open_sell_orders_grid(order, exchange, config_system, config_params, open_orders_df_path, error_log_df_path)
+                open_sell_orders_grid(order, exchange, config_params, open_orders_df_path, error_log_df_path)
 
             remove_order(order_id, open_orders_df_path)
             append_order(order, 'filled', transactions_df_path)
@@ -174,7 +174,7 @@ def clear_orders_grid(side, exchange, bot_name, config_system, config_params, op
             remove_order(order_id, open_orders_df_path)
 
 
-def cancel_open_buy_orders_grid(exchange, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
+def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_buy_orders_list = open_buy_orders_df['order_id'].to_list()
@@ -189,7 +189,7 @@ def cancel_open_buy_orders_grid(exchange, config_system, config_params, open_ord
                 
                 if order['filled'] > 0:
                     append_order(order, 'filled', transactions_df_path)
-                    open_sell_orders_grid(order, exchange, config_system, config_params, open_orders_df_path, error_log_df_path)
+                    open_sell_orders_grid(order, exchange, config_params, open_orders_df_path, error_log_df_path)
                 
                 remove_order(order_id, open_orders_df_path)
             except ccxt.OrderNotFound:
@@ -197,7 +197,8 @@ def cancel_open_buy_orders_grid(exchange, config_system, config_params, open_ord
                 append_error_log('OrderNotFound', error_log_df_path)
                 print(f"Error: Cannot cancel order {order_id} due to unavailable order!!!")
             except ccxt.InvalidOrder:
-                # the order is closed by system (could caused by post_only param for buy orders)
+                # the order is closed by system (could caused by post_only param for buy orders)\
+                append_error_log('SizeTooSmall', error_log_df_path)
                 remove_order(order_id, open_orders_df_path)
 
 
@@ -215,7 +216,7 @@ def check_circuit_breaker(exchange, bot_name, config_system, config_params, last
         last_price = get_last_price(exchange, config_params)
 
         if (len(side_list) == 1) & (side_list[0] == 'buy') & (last_price <= last_loop['price']):
-            cancel_open_buy_orders_grid(exchange, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+            cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
             noti_warning(f"Circuit breaker at {last_price:.2f} {quote_currency}", bot_name)
             time.sleep(config_system['idle_rest'])
 
@@ -251,6 +252,26 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
 
     return cont_flag
             
+
+def update_loss(loss, last_loop_path):
+    last_loop = get_json(last_loop_path)
+    total_loss = last_loop['loss']
+    total_loss -= loss
+    last_loop['loss'] = total_loss
+
+    update_json(last_loop, last_loop_path)
+
+
+def reduce_budget(loss, config_params_path):
+    config_params = get_json(config_params_path)
+    
+    budget = config_params['budget']
+    # loss is negative
+    budget += loss
+    config_params['budget'] = budget
+
+    update_json(config_params, config_params_path)
+
 
 def cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -299,26 +320,6 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
         remove_order(canceled_id, open_orders_df_path)
 
 
-def update_loss(loss, last_loop_path):
-    last_loop = get_json(last_loop_path)
-    total_loss = last_loop['loss']
-    total_loss -= loss
-    last_loop['loss'] = total_loss
-
-    update_json(last_loop, last_loop_path)
-
-
-def reduce_budget(loss, config_params_path):
-    config_params = get_json(config_params_path)
-    
-    budget = config_params['budget']
-    # loss is negative
-    budget += loss
-    config_params['budget'] = budget
-
-    update_json(config_params, config_params_path)
-
-
 def reset_loss(last_loop_path):
     last_loop = get_json(last_loop_path)
     last_loop['loss'] = 0
@@ -352,6 +353,7 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
     balance_value = current_value + cash
     
     unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
+    base_currency_free = get_base_currency_free(exchange, base_currency)
 
     last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
     cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
@@ -384,7 +386,9 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
         prev_date,
         balance_value,
         unrealised,
+        base_currency_free,
         last_loop['loss'],
+        config_params['budget'],
         config_params['value'],
         cash_flow,
         commission,
