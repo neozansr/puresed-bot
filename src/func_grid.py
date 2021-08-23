@@ -128,7 +128,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     sell_price = cal_sell_price(buy_order, ask_price, config_params)
     
     try:
-        final_amount = cal_final_amount(buy_order['id'], exchange, config_params)
+        final_amount = cal_final_amount(buy_order['id'], exchange, base_currency, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
         append_order(sell_order, 'amount', open_orders_df_path)
     except ccxt.InsufficientFunds:
