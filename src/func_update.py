@@ -15,8 +15,8 @@ def append_order(order, amount_key, df_path):
     timestamp = get_time()
     
     if order['price'] == None:
-        # New created market orders
-        # Used for open_orders_df only
+        # New created market orders.
+        # Used for open_orders_df only.
         value = None
     else:
         value = order['amount'] * order['price']

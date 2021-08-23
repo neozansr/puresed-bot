@@ -25,12 +25,12 @@ def cal_budget(config_params, open_orders_df_path):
     sell_value_list = [(i - config_params['grid']) * j for i, j in zip(sell_price_list, sell_amount_list)]
     used_budget = sum(sell_value_list)
     
-    # for cal_new_orders
+    # For cal_new_orders.
     remain_budget = config_params['budget'] - used_budget
     buy_value_list = open_buy_orders_df['value'].to_list()
     pending_buy_value = sum(buy_value_list)
     
-    # for cal_append_orders
+    # For cal_append_orders.
     free_budget = remain_budget - pending_buy_value
 
     return remain_budget, free_budget
@@ -75,7 +75,7 @@ def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, ope
         if len(open_sell_orders_df) == 0:
             start_price = bid_price - (config_params['grid'] * config_params['start_safety'])
         else:
-            # grid * 2, skip grid to prevent dupplicate order
+            # Use grid * 2 to prevent dupplicate order.
             start_price = min(bid_price, min_open_sell_price - (config_params['grid'] * 2))
 
         buy_price_list = cal_new_orders(start_price, remain_budget, config_params)
@@ -117,7 +117,7 @@ def open_buy_orders_grid(exchange, bot_name, config_params, open_orders_df_path,
             append_order(buy_order, 'amount', open_orders_df_path)
             print(f"Open buy {floor_amount:.3f} {base_currency} at {price:.2f} {quote_currency}")
         else:
-            # actual buget less than cal_budget (could caused by open_orders match during loop)
+            # Actual buget less than cal_budget (could caused by open_orders match during loop).
             print(f"Error: Cannot buy at price {price:.2f} {quote_currency} due to insufficient fund!!!")
             break
 
@@ -132,13 +132,13 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
         append_order(sell_order, 'amount', open_orders_df_path)
     except ccxt.InsufficientFunds:
-        # not available amount to sell (could caused by decimal), sell free amount
+        # Not available amount to sell (could caused by decimal), sell free amount.
         base_currency_free = get_base_currency_free(exchange, base_currency)
         final_amount = round_down_amount(base_currency_free, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
         append_error_log('InsufficientFunds', error_log_df_path)
     except ccxt.InvalidOrder:
-        # filled small value than minimum order, ignore
+        # Filled small value than minimum order, ignore.
         sell_order = None
         append_error_log('InvalidOrder', error_log_df_path)
     
@@ -151,8 +151,8 @@ def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_pa
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
 
     if side == 'sell':
-        # buy orders: FIFO
-        # sell orders: LIFO
+        # Buy orders: FIFO.
+        # Sell orders: LIFO.
         open_orders_list.reverse()
     
     for order_id in open_orders_list:
@@ -168,7 +168,7 @@ def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_pa
             append_order(order, 'filled', transactions_df_path)
 
         elif order['status'] == 'canceled':
-            # canceld by param PostOnly
+            # Canceld by param PostOnly.
             remove_order(order_id, open_orders_df_path)
 
 
@@ -191,11 +191,11 @@ def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, tr
                 
                 remove_order(order_id, open_orders_df_path)
             except ccxt.OrderNotFound:
-                # no order in the system (could casued by the order is queued), skip for the next loop
+                # No order in the system (could casued by the order is queued), skip for the next loop.
                 append_error_log('OrderNotFound', error_log_df_path)
                 print(f"Error: Cannot cancel order {order_id} due to unavailable order!!!")
             except ccxt.InvalidOrder:
-                # the order is closed by system (could caused by post_only param for buy orders)\
+                # The order is closed by system (could caused by post_only param for buy orders).
                 append_error_log('SizeTooSmall', error_log_df_path)
                 remove_order(order_id, open_orders_df_path)
 
@@ -261,7 +261,7 @@ def reduce_budget(loss, config_params_path):
     config_params = get_json(config_params_path)
     
     budget = config_params['budget']
-    # loss is negative
+    # Loss is negative.
     budget += loss
     config_params['budget'] = budget
 
@@ -286,7 +286,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
         canceled_order = exchange.fetch_order(canceled_id, config_params['symbol'])
 
         while canceled_order['status'] != 'canceled':
-            # cancel orders will be removed from db on the next loop by check_orders_status
+            # Cancel orders will be removed from db on the next loop by check_orders_status.
             time.sleep(config_system['idle_stage'])
             canceled_order = exchange.fetch_order(canceled_id, config_params['symbol'])
 
@@ -311,7 +311,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
         time.sleep(config_system['idle_rest'])
     
     except ccxt.InvalidOrder:
-        # order has already been canceled from last loop but failed to update open_orders_df
+        # Order has already been canceled from last loop but failed to update open_orders_df.
         remove_order(canceled_id, open_orders_df_path)
 
 

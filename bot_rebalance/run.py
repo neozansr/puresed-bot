@@ -23,7 +23,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
 
     last_loop = get_json(last_loop_path)
     if last_loop['withdraw_flag'] == 1:
-        # force sell from withdrawal
+        # Force sell from withdrawal.
         method = 'fifo'
     else:
         method = 'lifo'

@@ -15,15 +15,30 @@ def round_up_amount(amount, config_params):
     return floor_amount
 
 
-def cal_final_amount(order_id, exchange, config_params):
-    trades_df = pd.DataFrame(exchange.fetch_my_trades(config_params['symbol'], limit=200))
-    order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)
-    
-    amount, fee = 0, 0
-    
-    for i in range(len(order_trade)):
-        amount += order_trade['amount'][i]
-        fee += order_trade['fee'][i]['cost']
+def cal_final_amount(order_id, exchange, base_currency, config_params):
+    # Trades can be queried 25 at most.
+    # With symbol assigned, trades limit is reduced to 3.
+    trades = exchange.fetch_my_trades(limit=25)
+    trades_df = pd.DataFrame(trades)
+
+    if len(trades_df) > 0:
+        order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)
+        
+        amount, fee = 0, 0
+        
+        for i in range(len(order_trade)):
+            amount += order_trade['amount'][i]
+
+            if order_trade['fee'][i]['currency'] == base_currency:
+                # Only base_currency fee affect sell amount.
+                fee += order_trade['fee'][i]['cost']
+    else:
+        # Unfetchable trades due to surpass 25 limit.
+        # Not actual fee, will result base_currency_free due to round down.
+        # Fee as maximum rate without uncertain params such as rebase, discount.
+        order_fetch = exchange.fetch_order(order_id, config_params['symbol'])
+        amount = order_fetch['filled']
+        fee = order_fetch['filled'] * (config_params['base_fee'] / 100)
 
     deducted_amount = amount - fee
     final_amount = round_down_amount(deducted_amount, config_params)

@@ -8,7 +8,7 @@ from func_noti import noti_success_order, print_current_balance, print_current_v
 
 
 def gen_series(n=18, limit_min=4):
-    # haxanacci
+    # Haxanacci.
     def hexa(n) :
         if n in range(6):
             return 0
@@ -169,8 +169,8 @@ def rebalance(method, exchange, bot_name, config_system, config_params, open_ord
 def update_withdraw_flag(last_loop_path, enable):
     last_loop = get_json(last_loop_path)
 
-    # enable flag when withdraw detected
-    # disable flag after sell assets
+    # Enable flag when withdraw detected.
+    # Disable flag after sell assets.
     if enable == True:
         last_loop['withdraw_flag'] = 1
     else:

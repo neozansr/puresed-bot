@@ -152,7 +152,7 @@ def get_available_cash_flow(cash_flow_df):
     try:
         avaialble_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
     except IndexError:
-        # first date
+        # First date
         avaialble_cash_flow = 0
 
     return avaialble_cash_flow
@@ -162,7 +162,7 @@ def get_available_yield(cash_flow_df):
     try:
         avaialble_yield = cash_flow_df['available_yield'][len(cash_flow_df) - 1]
     except IndexError:
-        # first date
+        # First date
         avaialble_yield = 0
 
     return avaialble_yield
@@ -190,7 +190,7 @@ def get_greed_index(default_index=0.5):
 
 
 def get_position_api(exchange, config_params):
-    # entry_price and pnl from api are not accurate
+    # API provide wrong entry_price and pnl.
     positions = exchange.fetch_positions()
     indexed = exchange.index_by(positions, 'future')
     position = exchange.safe_value(indexed, config_params['symbol'])
@@ -211,7 +211,7 @@ def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):
             last_date_str = cash_flow_df['date'][len(cash_flow_df) - 1]
             last_date = pd.to_datetime(last_date_str).date()
         else:
-            # first date   
+            # First date   
             last_date_str = transactions_df['timestamp'][0]
             last_date = pd.to_datetime(last_date_str).date() - relativedelta(days=1)
         

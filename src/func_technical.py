@@ -53,7 +53,7 @@ def get_ref_time(ohlcv_df):
 def get_inverval_lag(ohlcv_df, config_params):
     step, _, base_interval = get_timeframe(config_params)
 
-    # Signal start at 00:00 of each day as simulation
+    # Signal start at 00:00 of each day as simulation.
     ref_time = get_ref_time(ohlcv_df)
 
     i = 1
@@ -78,11 +78,11 @@ def get_ohlcv(exchange, config_params_path):
     config_params = get_json(config_params_path)
     step, base_timeframe, _ = get_timeframe(config_params)
 
-    # Last timstamp is cureent internal, not finalized
+    # Last timstamp is cureent internal, not finalized.
     ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=base_timeframe, limit=(config_params['window'] * step) + 1)
 
     while len(ohlcv) != ((config_params['window'] * step) + 1):
-        # Error from exchange, fetch until get limit
+        # Error from exchange, fetch until get limit.
         ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=base_timeframe, limit=(config_params['window'] * step) + 1)
 
     ohlcv_df = pd.DataFrame(ohlcv)
@@ -90,7 +90,7 @@ def get_ohlcv(exchange, config_params_path):
     ohlcv_df['time'] = pd.to_datetime(ohlcv_df['time'], unit='ms')
     ohlcv_df['time'] = ohlcv_df['time'].apply(lambda x: convert_tz(x))
 
-    # Add one more -1 as .loc includ stop as slice
+    # Add one more -1 as pandas_loc includ stop as slice.
     ohlcv_df = ohlcv_df.loc[:len(ohlcv_df) - 1 - 1, :]
 
     if step > 1:
@@ -157,7 +157,7 @@ def check_new_timestamp(signal_timestamp, config_params_path, last_loop_path):
     last_loop = get_json(last_loop_path)
 
     if last_loop['signal_timestamp'] == 0:
-        # One first loop, bypass to manage_position to update last_loop
+        # One first loop, bypass to manage_position to update last_loop.
         new_timestamp_flag = True
     else:
         last_signal_timestamp = pd.to_datetime(last_loop['signal_timestamp'])
@@ -212,10 +212,10 @@ def signal_ma(ohlcv_df, config_params):
 def signal_tma(ohlcv_df, config_params):
     sub_interval = (config_params['window'] + 1) / 2
     
-    # trunc ma to get minimum avg steps
+    # Trunc ma to get minimum avg steps.
     ohlcv_df['ma'] = ohlcv_df['close'].rolling(window=math.trunc(sub_interval)).mean()
     
-    # round tma to reach window steps
+    # Round tma to reach window steps.
     ohlcv_df['signal'] = ohlcv_df['ma'].rolling(window=int(np.round(sub_interval))).mean()
 
     action, signal_price = action_cross_signal(ohlcv_df)
