@@ -35,10 +35,10 @@ def cal_final_amount(order_id, exchange, base_currency, config_params):
     else:
         # Unfetchable trades due to surpass 25 limit.
         # Not actual fee, will result base_currency_free due to round down.
-        # Fee as maximum rate without uncertain params such as rebase, discount.
+        # Fee as maximum rate without uncertainty params such as rebase, discount.
         order_fetch = exchange.fetch_order(order_id, config_params['symbol'])
         amount = order_fetch['filled']
-        fee = order_fetch['filled'] * (config_params['base_fee'] / 100)
+        fee = order_fetch['filled'] * (config_params['taker_fee'] / 100)
 
     deducted_amount = amount - fee
     final_amount = round_down_amount(deducted_amount, config_params)
