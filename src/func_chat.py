@@ -115,6 +115,9 @@ def get_yield_text(bot_dict, config_params_path, profit_df_path, transactions_df
             today_yield = get_today_yield_grid(sub_path, config_params, transactions_df_path)
         elif bot_dict[s] == 'technical':
             today_yield = get_today_yield_technical(sub_path, position_path)
+        else:
+            # Not collect commission fee
+            today_yield = 0
 
         sub_yield = load_available_yield(s, cash_flow_path) + today_yield
         total_yield += sub_yield
