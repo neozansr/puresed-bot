@@ -3,7 +3,8 @@ import time
 import os
 import sys
 
-src_path = '../src/'
+home_path = '../'
+src_path = home_path + 'src/'
 sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_exchange, check_end_date
@@ -44,7 +45,7 @@ if __name__ == '__main__':
     open_orders_df_path = 'open_orders.csv'
     transactions_df_path = 'transactions.csv'
     error_log_df_path = 'error_log.csv'
-    cash_flow_df_path = '../cash_flow/{}.csv'
+    cash_flow_df_path = home_path + 'cash_flow/{}.csv'
 
     while True:
         config_system = get_json(config_system_path)

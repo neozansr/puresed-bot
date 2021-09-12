@@ -386,8 +386,8 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
     action, signal_price = get_action(ohlcv_df, config_params)
     close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
 
-    print(f'Close price: {close_price:.2f} {quote_currency}')
-    print(f'Signal price: {signal_price:.2f} {quote_currency}')
+    print(f"Close price: {close_price:.2f} {quote_currency}")
+    print(f"Signal price: {signal_price:.2f} {quote_currency}")
 
     if action == 'hold':
         action = last_loop['side']

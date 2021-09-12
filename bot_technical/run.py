@@ -3,7 +3,8 @@ import time
 import os
 import sys
 
-src_path = '../src/'
+home_path = '../'
+src_path = home_path + 'src/'
 sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_time, get_exchange, check_end_date
@@ -24,7 +25,7 @@ def run_bot(config_system, config_params_path, last_loop_path, position_path, tr
     print(f"Time: {timestamp}")
     
     ohlcv_df, signal_timestamp = get_ohlcv(exchange, config_params_path)
-    print(f'Signal timestamp: {signal_timestamp}')
+    print(f"Signal timestamp: {signal_timestamp}")
 
     new_timestamp_flag = check_new_timestamp(signal_timestamp, config_params_path, last_loop_path)
     
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     transactions_df_path = 'transactions.csv'
     profit_df_path = 'profit.csv'
     error_log_df_path = 'error_log.csv'
-    cash_flow_df_path = '../cash_flow/{}.csv'
+    cash_flow_df_path = home_path + 'cash_flow/{}.csv'
 
     while True:
         config_system = get_json(config_system_path)
