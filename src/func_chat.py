@@ -55,8 +55,6 @@ def get_balance_text(bot_dict, config_system_path, config_params_path, profit_df
 
     balance_dict = {'account':[], 'asset':[], 'value':[]}
 
-    total_yield = 0
-
     for s in bot_dict.keys():
         sub_path = f"../{s}/"
 
@@ -77,7 +75,6 @@ def get_balance_text(bot_dict, config_system_path, config_params_path, profit_df
             today_yield = 0
 
         sub_yield = load_available_yield(s, cash_flow_path) + today_yield
-        total_yield += sub_yield
 
         for asset in wallet[s]:
             if float(asset['usdValue']) >= 1:
@@ -89,7 +86,7 @@ def get_balance_text(bot_dict, config_system_path, config_params_path, profit_df
 
     balance_df = pd.DataFrame(balance_dict)
 
-    balance_value = balance_df['value'].sum() - total_yield
+    balance_value = balance_df['value'].sum()
     text += f"\nAll Balance: {balance_value:.2f} USD"
 
     for sub_account in balance_df['account'].unique():
