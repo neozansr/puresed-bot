@@ -59,7 +59,12 @@ def get_balance_text(bot_dict, config_system_path, config_params_path, profit_df
 
     for s in bot_dict.keys():
         sub_path = f"../{s}/"
-        config_params = get_json(sub_path + config_params_path)
+
+        try:
+            config_params = get_json(sub_path + config_params_path)
+        except FileNotFoundError:
+            # Not bot
+            pass
 
         if bot_dict[s] == 'rebalance':
             today_yield = get_today_yield_rebalance(sub_path, config_params, profit_df_path)
@@ -107,7 +112,12 @@ def get_yield_text(bot_dict, config_params_path, profit_df_path, transactions_df
     
     for s in bot_dict.keys():
         sub_path = f"../{s}/"
-        config_params = get_json(sub_path + config_params_path)
+
+        try:
+            config_params = get_json(sub_path + config_params_path)
+        except FileNotFoundError:
+            # Not bot
+            pass
 
         if bot_dict[s] == 'rebalance':
             today_yield = get_today_yield_rebalance(sub_path, config_params, profit_df_path)
@@ -127,6 +137,8 @@ def get_yield_text(bot_dict, config_params_path, profit_df_path, transactions_df
 
     for s in yield_dict.keys():
         text += f"\n{s} Yield: {yield_dict[s]:.2f} USD"
+
+    return text
 
 
 def get_rebalance_text(bot_name, bot_type, config_system_path, config_params_path, last_loop_path, profit_df_path, cash_flow_path):

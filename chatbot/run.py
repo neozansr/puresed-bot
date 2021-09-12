@@ -36,10 +36,10 @@ def send_help(message):
     text += "\ntype /[bot_name] to get bot status"
     text += "\ntype /yield_[account] to get yield info"
 
-    text += "\navaialble bot_name:"
+    text += "\navaialble [account]:"
     text += "\n   test"
     
-    text += "\navaialble bot_name:"
+    text += "\navaialble [bot_name]:"
     text += "\n   bot_rebalance"
     text += "\n   bot_grid"
     text += "\n   bot_technical"
