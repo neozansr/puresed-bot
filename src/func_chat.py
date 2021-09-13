@@ -22,7 +22,7 @@ def get_today_yield_rebalance(sub_path, config_params, profit_df_path):
     profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
     cash_flow = sum(today_profit_df['profit'])
-    today_yield = cash_flow * (1 - config_params['commission_rate'])
+    today_yield = cash_flow * config_params['commission_rate']
 
     return today_yield
 
@@ -34,7 +34,7 @@ def get_today_yield_grid(sub_path, config_params, transactions_df_path):
     today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
     today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
     cash_flow = sum(today_sell_df['amount'] * config_params['grid'])
-    today_yield = cash_flow * (1 - config_params['commission_rate'])
+    today_yield = cash_flow * config_params['commission_rate']
 
     return today_yield
 
