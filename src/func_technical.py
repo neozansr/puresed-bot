@@ -296,7 +296,7 @@ def update_budget_technical(change_value, config_params_path):
     update_json(config_params, config_params_path)
 
 
-def update_profit_technical(profit, config_params_path, position_path):
+def update_profit_technical(profit, config_params_path, position_path, withdraw_flag):
     config_params = get_json(config_params_path)
     position = get_json(position_path)
 
@@ -311,7 +311,9 @@ def update_profit_technical(profit, config_params_path, position_path):
     today_commission += commission
     position['today_commission'] = today_commission
 
-    update_budget_technical(net_profit, config_params_path)
+    if withdraw_flag == False:
+        update_budget_technical(net_profit, config_params_path)
+    
     update_json(position, position_path)
 
 
@@ -375,8 +377,9 @@ def withdraw_position(net_transfer, exchange, bot_name, config_system, config_pa
     time.sleep(config_system['idle_stage'])
     
     reduce_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-    append_profit_technical(reduce_order, position_path, profit_df_path)
+    profit = append_profit_technical(reduce_order, position_path, profit_df_path)
     update_reduce_position(reduce_order, position_path)
+    update_profit_technical(profit, config_params_path, position_path, withdraw_flag=True)
 
 
 def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path):
@@ -402,7 +405,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
             close_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
             profit = append_profit_technical(close_order, position_path, profit_df_path)
             update_reduce_position(close_order, position_path)
-            update_profit_technical(profit, config_params_path, position_path)
+            update_profit_technical(profit, config_params_path, position_path, withdraw_flag=False)
             
         open_position(action, exchange, config_params_path, open_orders_df_path)
         time.sleep(config_system['idle_stage'])

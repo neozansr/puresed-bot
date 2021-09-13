@@ -242,7 +242,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
         cont_flag = 0
         
         while quote_currency_free - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']:
-            cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path)
+            cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, withdraw_flag=False)
             quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     return cont_flag
@@ -268,7 +268,7 @@ def reduce_budget(loss, config_params_path):
     update_json(config_params, config_params_path)
 
 
-def cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path):
+def cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, withdraw_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
     max_sell_price = max(open_orders_df['price'])
     canceled_df = open_orders_df[open_orders_df['price'] == max_sell_price]
@@ -308,7 +308,8 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
         reduce_budget(loss, config_params_path)
         noti_warning(f"Cut loss {loss:.2f} {quote_currency} at {new_sell_price:.2f} {quote_currency}", bot_name)
 
-        time.sleep(config_system['idle_rest'])
+        if withdraw_flag == False:
+            time.sleep(config_system['idle_rest'])
     
     except ccxt.InvalidOrder:
         # Order has already been canceled from last loop but failed to update open_orders_df.
@@ -331,7 +332,7 @@ def update_reinvest(init_budget, new_budget, new_value, config_params_path):
     update_json(config_params, config_params_path)
 
 
-def update_budget_grid(prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
+def update_budget_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -376,6 +377,10 @@ def update_budget_grid(prev_date, exchange, bot_name, config_params, config_para
     available_cash_flow += (remain_cash_flow - transfer['withdraw_cash_flow'])
     available_yield = get_available_yield(cash_flow_df)
     available_yield += (commission - transfer['withdraw_yield'])
+
+    while quote_currency_free - available_cash_flow - available_yield < -net_transfer:
+        cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, withdraw_flag=True)
+        quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     cash_flow_list = [
         prev_date,
