@@ -33,8 +33,8 @@ print(x)
 @bot.message_handler(commands=['start', 'help', 'h'])
 def send_help(message):
     text = "type /balance_[account] to get balance info"
-    text += "\ntype /[bot_name] to get bot status"
     text += "\ntype /yield_[account] to get yield info"
+    text += "\ntype /[bot_name] to get bot status"
 
     text += "\navaialble [account]:"
     text += "\n   test"
@@ -50,9 +50,9 @@ def send_help(message):
 @bot.message_handler(commands=['balance_test'])
 def send_balance(message):
     bot_dict = {
-        'bot_rebalance':'bot_rebalance',
-        'bot_grid':'bot_grid',
-        'bot_technical':'bot_technical'
+        'bot_rebalance':'rebalance',
+        'bot_grid':'grid',
+        'bot_technical':'technical'
         }
     
     text = get_balance_text(bot_dict, config_system_path, config_params_path, profit_df_path, transactions_df_path, position_path, cash_flow_path)
@@ -62,9 +62,9 @@ def send_balance(message):
 @bot.message_handler(commands=['yield_test'])
 def send_yield(message):
     bot_dict = {
-        'bot_rebalance':'bot_rebalance',
-        'bot_grid':'bot_grid',
-        'bot_technical':'bot_technical'
+        'bot_rebalance':'rebalance',
+        'bot_grid':'grid',
+        'bot_technical':'technical'
         }
     
     text = get_yield_text(bot_dict, config_params_path, profit_df_path, transactions_df_path, position_path, cash_flow_path)
