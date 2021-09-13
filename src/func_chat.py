@@ -21,7 +21,7 @@ def get_today_yield_rebalance(sub_path, config_params, profit_df_path):
 
     profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
-    cash_flow = sum(today_profit_df['profit'])
+    cash_flow = max(sum(today_profit_df['profit']), 0)
     today_yield = cash_flow * config_params['commission_rate']
 
     return today_yield
