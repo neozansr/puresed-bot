@@ -156,7 +156,7 @@ def get_rebalance_text(bot_name, bot_type, config_system_path, config_params_pat
     profit_df = pd.read_csv(sub_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
     cash_flow = sum(today_profit_df['profit'])
-    today_yield = cash_flow * (1 - config_params['commission_rate'])
+    today_yield = cash_flow * config_params['commission_rate']
     net_cash_flow = cash_flow - today_yield
     available_yield = load_available_yield(bot_name, cash_flow_path)
     
@@ -196,7 +196,7 @@ def get_grid_text(bot_name, bot_type, config_system_path, config_params_path, la
     today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
     today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
     cash_flow = sum(today_sell_df['amount'] * config_params['grid'])
-    today_yield = cash_flow * (1 - config_params['commission_rate'])
+    today_yield = cash_flow * config_params['commission_rate']
     net_cash_flow = cash_flow - today_yield
     available_yield = load_available_yield(bot_name, cash_flow_path)
 
