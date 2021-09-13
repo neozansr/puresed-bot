@@ -41,7 +41,7 @@ def get_today_yield_grid(sub_path, config_params, transactions_df_path):
 
 def get_today_yield_technical(sub_path, position_path):
     position = get_json(sub_path + position_path)
-    today_yield = position['today_profit'] - position['today_commission']
+    today_yield = position['today_commission']
 
     return today_yield
 
