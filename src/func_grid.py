@@ -378,6 +378,8 @@ def update_budget_grid(prev_date, exchange, bot_name, config_system, config_para
     available_yield = get_available_yield(cash_flow_df)
     available_yield += (commission - transfer['withdraw_yield'])
 
+    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+    
     while quote_currency_free - available_cash_flow - available_yield < -net_transfer:
         cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, withdraw_flag=True)
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
