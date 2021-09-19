@@ -46,6 +46,28 @@ def get_today_yield_technical(sub_path, position_path):
     return today_yield
 
 
+def get_today_yield(bot_name, bot_dict, config_params_path, profit_df_path, transactions_df_path, position_path):
+    sub_path = f"../{bot_name}/"
+
+    try:
+        config_params = get_json(sub_path + config_params_path)
+    except FileNotFoundError:
+        # Not bot
+        pass
+
+    if bot_dict[bot_name] == 'rebalance':
+        today_yield = get_today_yield_rebalance(sub_path, config_params, profit_df_path)
+    elif bot_dict[bot_name] == 'grid':
+        today_yield = get_today_yield_grid(sub_path, config_params, transactions_df_path)
+    elif bot_dict[bot_name] == 'technical':
+        today_yield = get_today_yield_technical(sub_path, position_path)
+    else:
+        # Not collect commission fee
+        today_yield = 0
+
+    return today_yield
+
+
 def get_balance_text(bot_dict, config_system_path, config_params_path, profit_df_path, transactions_df_path, position_path, cash_flow_path):
     text = "Balance\n"
 
@@ -55,30 +77,13 @@ def get_balance_text(bot_dict, config_system_path, config_params_path, profit_df
 
     balance_dict = {'account':[], 'asset':[], 'value':[]}
 
-    for s in bot_dict.keys():
-        sub_path = f"../{s}/"
+    for bot_name in bot_dict.keys():
+        today_yield = get_today_yield(bot_name, bot_dict, config_params_path, profit_df_path, transactions_df_path, position_path)
+        sub_yield = load_available_yield(bot_name, cash_flow_path) + today_yield
 
-        try:
-            config_params = get_json(sub_path + config_params_path)
-        except FileNotFoundError:
-            # Not bot
-            pass
-
-        if bot_dict[s] == 'rebalance':
-            today_yield = get_today_yield_rebalance(sub_path, config_params, profit_df_path)
-        elif bot_dict[s] == 'grid':
-            today_yield = get_today_yield_grid(sub_path, config_params, transactions_df_path)
-        elif bot_dict[s] == 'technical':
-            today_yield = get_today_yield_technical(sub_path, position_path)
-        else:
-            # Not collect commission fee
-            today_yield = 0
-
-        sub_yield = load_available_yield(s, cash_flow_path) + today_yield
-
-        for asset in wallet[s]:
+        for asset in wallet[bot_name]:
             if float(asset['usdValue']) >= 1:
-                balance_dict['account'].append(s)
+                balance_dict['account'].append(bot_name)
                 balance_dict['asset'].append(asset['coin'])
 
                 sub_value = float(asset['usdValue']) - (sub_yield if asset['coin'] == 'USD' else 0)
