@@ -3,7 +3,7 @@ import time
 import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow, get_available_yield
-from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, reset_transfer
+from func_update import update_json, append_order, remove_order, append_cash_flow_df, reset_transfer
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
 
@@ -74,47 +74,29 @@ def update_fix_value(transfer, config_params, config_params_path):
     update_json(config_params, config_params_path)
 
 
-def append_profit_rebalance(sell_order, exe_amount, config_params, queue_df, profit_df_path):
-    df = pd.read_csv(profit_df_path)
-    
+def append_profit_rebalance2(order, config_params, last_loop_path, profit_df_path):
     timestamp = get_time()
-    buy_id = queue_df['order_id'][len(queue_df) - 1]
-    sell_id = sell_order['id']
-    buy_price = queue_df['price'][len(queue_df) - 1]
-    sell_price = sell_order['price']
-    profit = (sell_price - buy_price) * exe_amount
+    last_loop = get_json(last_loop_path)
+    average_cost = last_loop['average_cost']
+    holding_amount = last_loop['holding_amount']
 
-    df.loc[len(df)] = [timestamp, buy_id, sell_id, config_params['symbol'], exe_amount, buy_price, sell_price, profit]
-    df.to_csv(profit_df_path, index=False)
+    if order['side'] == 'buy':
+        holding_amount += order['amount']
+        average_cost = ((average_cost * holding_amount) + (order['price'] * order['amount'])) / (order['amount'] + holding_amount)
+    elif order['side'] == 'sell':
+        holding_amount -= order['amount']
+        profit = (order['price'] - average_cost) * order['amount']
 
+        profit_df = pd.read_csv(profit_df_path)
+        profit_df.loc[len(profit_df)] = [timestamp, config_params['symbol'], order['price'], average_cost, order['amount'], profit]
+        profit_df.to_csv(profit_df_path, index=False)
 
-def update_queue(method, amount_key, sell_order, config_params, queue_df_path, profit_df_path):
-    sell_amount = sell_order[amount_key]
-
-    while sell_amount > 0:
-        queue_df = pd.read_csv(queue_df_path)
-        
-        if method == 'fifo':
-            order_index = 0
-        elif method == 'lifo':
-            order_index = len(queue_df) - 1
-    
-        sell_queue = queue_df['amount'][order_index]
-        exe_amount = min(sell_amount, sell_queue)
-        remaining_queue = sell_queue - exe_amount
-
-        append_profit_rebalance(sell_order, exe_amount, config_params, queue_df, profit_df_path)
-        
-        if remaining_queue == 0:
-            queue_df = queue_df.drop([order_index])
-        else:
-            queue_df.loc[order_index, 'amount'] = remaining_queue
-
-        queue_df.to_csv(queue_df_path, index=False)
-        sell_amount -= exe_amount
+    last_loop['average_cost'] = average_cost
+    last_loop['holding_amount'] = holding_amount
+    update_json(last_loop, last_loop_path)
     
 
-def clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
+def clear_orders_rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
 
     if len(open_orders_df) > 0:
@@ -124,18 +106,14 @@ def clear_orders_rebalance(method, exchange, bot_name, config_system, config_par
         while order['status'] != 'closed':
             order = exchange.fetch_order(order_id, config_params['symbol'])
             time.sleep(config_system['idle_stage'])
-    
-        if order['side'] == 'buy':
-            append_order(order, 'filled', queue_df_path)
-        elif order['side'] == 'sell':
-            update_queue(method, 'filled', order, config_params, queue_df_path, profit_df_path)
-
+        
         remove_order(order_id, open_orders_df_path)
         append_order(order, 'filled', transactions_df_path)
+        append_profit_rebalance2(order, config_params, last_loop_path, profit_df_path)
         noti_success_order(order, bot_name, config_params)
 
 
-def rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, error_log_df_path):
+def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
     rebalance_flag = 1
 
     base_currency, quote_currency = get_currency(config_params)
@@ -163,27 +141,12 @@ def rebalance(method, exchange, bot_name, config_system, config_params, open_ord
         append_order(order, 'amount', open_orders_df_path)
 
     time.sleep(config_system['idle_stage'])
-    clear_orders_rebalance(method, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
-
-
-def update_withdraw_flag(last_loop_path, enable):
-    last_loop = get_json(last_loop_path)
-
-    # Enable flag when withdraw detected.
-    # Disable flag after sell assets.
-    if enable == True:
-        last_loop['withdraw_flag'] = 1
-    else:
-        last_loop['withdraw_flag'] = 0
-
-    update_json(last_loop, last_loop_path)
+    clear_orders_rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
 
 
 def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-
-    withdraw_flag = 0
 
     base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
@@ -204,9 +167,6 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
 
     if net_transfer != 0:
         update_fix_value(transfer, config_params, config_params_path)
-        
-        if net_transfer < 0:
-            withdraw_flag = 1
 
     available_cash_flow = get_available_cash_flow(cash_flow_df)
     available_cash_flow += (net_cash_flow - transfer['withdraw_cash_flow'])
@@ -231,8 +191,6 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
 
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     reset_transfer(transfer_path)
-
-    return withdraw_flag
 
 
 def print_report_rebalance(exchange, config_params):

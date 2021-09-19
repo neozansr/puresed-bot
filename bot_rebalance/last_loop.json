@@ -1,5 +1,6 @@
 {
  "timestamp": 0,
  "order_loop": 0,
- "withdraw_flag": 0
+ "holding_amount": 0,
+ "average_cost": 0
 }
