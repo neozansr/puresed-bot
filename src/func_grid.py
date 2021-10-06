@@ -316,7 +316,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
     except ccxt.InvalidOrder:
         # Order has already been canceled from last loop but failed to update open_orders_df.
         unsolve_amount = open_orders_df[open_orders_df['order_id'] == canceled_id]['amount']
-        append_error_log('InvalidOrder:LastLoopClose', error_log_df_path)
+        append_error_log(f'InvalidOrder:LastLoopClose {unsolve_amount}', error_log_df_path)
         remove_order(canceled_id, open_orders_df_path)
 
 
