@@ -140,7 +140,8 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     except ccxt.InvalidOrder:
         # Filled small value than minimum order, ignore.
         sell_order = None
-        append_error_log('InvalidOrder', error_log_df_path)
+        unsolve_amount = cal_final_amount(buy_order['id'], exchange, base_currency, config_params)
+        append_error_log(f'InvalidOrder:SizeTooSmall {unsolve_amount}', error_log_df_path)
     
     print(f"Open sell {final_amount:.3f} {base_currency} at {sell_price:.2f} {quote_currency}")
     return sell_order
@@ -196,7 +197,8 @@ def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, tr
                 print(f"Error: Cannot cancel order {order_id} due to unavailable order!!!")
             except ccxt.InvalidOrder:
                 # The order is closed by system (could caused by post_only param for buy orders).
-                append_error_log('SizeTooSmall', error_log_df_path)
+                unsolve_amount = open_orders_df[open_orders_df['order_id'] == order_id]['amount']
+                append_error_log(f'InvalidOrder:PostOnlyClose {unsolve_amount}', error_log_df_path)
                 remove_order(order_id, open_orders_df_path)
 
 
@@ -221,7 +223,7 @@ def check_circuit_breaker(exchange, bot_name, config_system, config_params, last
     return cont_flag
 
 
-def check_cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, cash_flow_df_path):
+def check_cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, error_log_df_path, cash_flow_df_path):
     cont_flag = 1
 
     _, quote_currency = get_currency(config_params)
@@ -242,7 +244,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
         cont_flag = 0
         
         while quote_currency_free - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']:
-            cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, withdraw_flag=False)
+            cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=False)
             quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     return cont_flag
@@ -268,7 +270,7 @@ def reduce_budget(loss, config_params_path):
     update_json(config_params, config_params_path)
 
 
-def cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, withdraw_flag):
+def cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
     max_sell_price = max(open_orders_df['price'])
     canceled_df = open_orders_df[open_orders_df['price'] == max_sell_price]
@@ -313,6 +315,8 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
     
     except ccxt.InvalidOrder:
         # Order has already been canceled from last loop but failed to update open_orders_df.
+        unsolve_amount = open_orders_df[open_orders_df['order_id'] == canceled_id]['amount']
+        append_error_log('InvalidOrder:LastLoopClose', error_log_df_path)
         remove_order(canceled_id, open_orders_df_path)
 
 
@@ -332,7 +336,7 @@ def update_reinvest(init_budget, new_budget, new_value, config_params_path):
     update_json(config_params, config_params_path)
 
 
-def update_budget_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
+def update_budget_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -381,7 +385,7 @@ def update_budget_grid(prev_date, exchange, bot_name, config_system, config_para
     quote_currency_free = get_quote_currency_free(exchange, quote_currency)
     
     while quote_currency_free - available_cash_flow - available_yield < -net_transfer:
-        cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, withdraw_flag=True)
+        cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     cash_flow_list = [
