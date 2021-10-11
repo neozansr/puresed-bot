@@ -131,20 +131,23 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         final_amount = cal_final_amount(buy_order['id'], exchange, base_currency, config_params)
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
         append_order(sell_order, 'amount', open_orders_df_path)
-    except ccxt.InsufficientFunds:
-        # Not available amount to sell (could caused by decimal), sell free amount.
+    except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
+        # InvalidOrder: Filled with small amount before force closed.
+        # InvalidOrder: The order is closed by system (could caused by post_only param for buy orders).
+        # InvalidOrder: Exchange fail to update actual filled amount.
+        # InsufficientFunds: Not available amount to sell (could caused by decimal).
         base_currency_free = get_base_currency_free(exchange, base_currency)
         final_amount = round_down_amount(base_currency_free, config_params)
-        sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
-        append_error_log('InsufficientFunds', error_log_df_path)
-    except ccxt.InvalidOrder:
-        # Filled small value than minimum order, ignore.
-        sell_order = None
-        unsolve_amount = cal_final_amount(buy_order['id'], exchange, base_currency, config_params)
-        append_error_log(f'InvalidOrder:SizeTooSmall {unsolve_amount}', error_log_df_path)
+
+        if final_amount > 0:
+            # Free amount more than minimum order, sell all.
+            sell_order = exchange.create_order(config_params['symbol'], 'market', 'sell', final_amount)
+        else:
+            sell_order = None
+
+        append_error_log('CannotOpenSell', error_log_df_path)
     
     print(f"Open sell {final_amount:.3f} {base_currency} at {sell_price:.2f} {quote_currency}")
-    return sell_order
 
 
 def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
@@ -197,8 +200,7 @@ def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, tr
                 print(f"Error: Cannot cancel order {order_id} due to unavailable order!!!")
             except ccxt.InvalidOrder:
                 # The order is closed by system (could caused by post_only param for buy orders).
-                unsolve_amount = open_orders_df[open_orders_df['order_id'] == order_id]['amount']
-                append_error_log(f'InvalidOrder:PostOnlyClose {unsolve_amount}', error_log_df_path)
+                append_error_log(f'InvalidOrder', error_log_df_path)
                 remove_order(order_id, open_orders_df_path)
 
 
@@ -315,8 +317,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
     
     except ccxt.InvalidOrder:
         # Order has already been canceled from last loop but failed to update open_orders_df.
-        unsolve_amount = open_orders_df[open_orders_df['order_id'] == canceled_id]['amount']
-        append_error_log(f'InvalidOrder:LastLoopClose {unsolve_amount}', error_log_df_path)
+        append_error_log(f'InvalidOrder:LastLoopClose', error_log_df_path)
         remove_order(canceled_id, open_orders_df_path)
 
 
