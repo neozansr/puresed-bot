@@ -29,6 +29,9 @@ def get_date(timezone='Asia/Bangkok'):
 
 
 def convert_tz(utc):
+    '''
+    Transform utc timezone in exchange to local timezone.
+    '''
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
     utc = utc.replace(tzinfo=from_zone).astimezone(to_zone)

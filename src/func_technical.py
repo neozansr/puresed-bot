@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
+import datetime as dt
+from dateutil import tz
 from dateutil.relativedelta import relativedelta
 import math
 import time
-import sys
 
 from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_position_api, get_available_yield
 from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future
@@ -11,95 +12,139 @@ from func_update import update_json, append_order, remove_order, append_cash_flo
 from func_noti import noti_success_order, noti_warning, print_position
 
 
-def get_timeframe(config_params):
-    timeframe_dict = {1440:'1d', 240:'4h', 60:'1h', 15:'15m'}
+def get_date_list(start_date, end_date=None):
+    '''
+    Generate list of date to fetch 1 day iteration from fetch_ohlcv.
+    '''
+    if end_date == None:
+        end_date = dt.date.today()
+    
+    num_day = (end_date - start_date).days
+    date_list = [end_date - relativedelta(days=x) for x in range(num_day, -1, -1)]
+    
+    return date_list
+
+    
+def get_js_date(dt_date, start_hour):
+    '''
+    Transform dt.datetime to JavaScript format.
+    Result based on local timezone.
+    '''
+    dt_datetime = dt.datetime(dt_date.year, dt_date.month, dt_date.day, start_hour)
+    js_datetime = dt_datetime.timestamp() * 1000
+    
+    return js_datetime
+
+
+def get_base_time(date, base_timezone):
+    '''
+    Convert to base_timezone to check day light saving.
+    DST change at 2 am.
+    '''
+    base_time = dt.datetime(date.year, date.month, date.day, 2, tzinfo=tz.gettz(base_timezone))
+    
+    return base_time
+
+
+def cal_dst(date, base_timezone):
+    today_dst = bool(get_base_time(date, base_timezone).dst())
+    tomorrow_dst = bool(get_base_time(date + relativedelta(days=1), base_timezone).dst())
+    
+    return today_dst, tomorrow_dst
+
+
+def cal_dst_offset(today_dst, tomorrow_dst):
+    '''
+    Offset ending of the day before DST change to be in sync with start time of the changing day.
+    '''
+    if (today_dst == 0) & (tomorrow_dst == 1):
+        dst_offset = -60
+    elif (today_dst == 1) & (tomorrow_dst == 0):
+        dst_offset = 60
+    else:
+        dst_offset = 0
+        
+    return dst_offset
+
+
+def get_start_hour(tomorrow_dst):
+    if tomorrow_dst == 1:
+        start_hour = 4
+    else:
+        start_hour = 5
+        
+    return start_hour
+
+
+def get_timeframe(interval):
+    timeframe_dict = {1440:'1d', 240:'4h', 60:'1h', 15:'15m', 5:'5m', 1:'1m'}
     
     for i in timeframe_dict.keys():
-        if config_params['interval'] % i == 0:
+        if interval % i == 0:
             base_interval = i
             break
             
     base_timeframe = timeframe_dict[base_interval]
-    step = int(config_params['interval'] / base_interval)
+    step = int(interval / base_interval)
             
-    return step, base_timeframe, base_interval
+    return base_timeframe, base_interval, step
 
 
-def group_timeframe(ohlcv_df, step):
-    ohlcv_dict = {'time':[], 'open':[], 'high':[], 'low':[], 'close':[]}
+def group_timeframe(df, step):
+    h_dict = {'time':[], 'open':[], 'high':[], 'low':[], 'close':[]}
+            
+    for i in [x for x in range(0, len(df), step)]:
+        temp_df = df.iloc[i:min(i + step, len(df)), :].reset_index(drop=True)
+        h_dict['time'].append(temp_df['time'][0])
+        h_dict['open'].append(temp_df['open'][0])
+        h_dict['high'].append(max(temp_df['high']))
+        h_dict['low'].append(min(temp_df['low']))
+        h_dict['close'].append(temp_df['close'][len(temp_df) - 1])
+
+    df = pd.DataFrame(h_dict)
     
-    for i in [x for x in range(0, len(ohlcv_df) - 1, step)]:
-        temp_df = ohlcv_df.iloc[i:i + step, :].reset_index(drop=True)
-        ohlcv_dict['time'].append(temp_df['time'][0])
-        ohlcv_dict['open'].append(temp_df['open'][0])
-        ohlcv_dict['high'].append(max(temp_df['high']))
-        ohlcv_dict['low'].append(min(temp_df['low']))
-        ohlcv_dict['close'].append(temp_df['close'][step - 1])
-
-    ohlcv_df = pd.DataFrame(ohlcv_dict)
-    
-    return ohlcv_df
-
-
-def get_ref_time(ohlcv_df):
-    ref_time = ohlcv_df.loc[len(ohlcv_df) - 1, 'time']
-    ref_time -= relativedelta(days=1)
-    ref_time -= relativedelta(hours=ref_time.hour)
-    ref_time -= relativedelta(minutes=ref_time.minute)
-    
-    return ref_time
-
-
-def get_inverval_lag(ohlcv_df, config_params):
-    step, _, base_interval = get_timeframe(config_params)
-
-    # Signal start at 00:00 of each day as simulation.
-    ref_time = get_ref_time(ohlcv_df)
-
-    i = 1
-    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - step, 'time'] - relativedelta(minutes=config_params['interval'] * i)
-
-    while signal_timestamp >= ref_time + relativedelta(minutes=config_params['interval']):
-        signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - step, 'time'] - relativedelta(minutes=config_params['interval'] * i)
-        i += 1
-
-    if config_params['interval'] < 60:
-        interval_lag = int(relativedelta(signal_timestamp, ref_time).minutes / base_interval)
-    elif config_params['interval'] < (60 * 24):
-        interval_lag = int(relativedelta(signal_timestamp, ref_time).hours / (base_interval / 60))
-    else:
-        print('Inverval not supported')
-        sys.exit(1)
-        
-    return interval_lag
+    return df
 
     
 def get_ohlcv(exchange, config_params_path):
+    ohlcv_df = pd.DataFrame(columns = ['time', 'open', 'high', 'low', 'close'])
     config_params = get_json(config_params_path)
-    step, base_timeframe, _ = get_timeframe(config_params)
+    base_timeframe, base_interval, step = get_timeframe(config_params['interval'])
 
-    # Last timstamp is cureent internal, not finalized.
-    ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=base_timeframe, limit=(config_params['window'] * step) + 1)
+    # Get start date to cover window range.
+    min_num_date = np.ceil((config_params['interval'] * config_params['window']) / 1440)
+    start_date = dt.date.today() - relativedelta(days=min_num_date)
+    date_list = get_date_list(start_date)
 
-    while len(ohlcv) != ((config_params['window'] * step) + 1):
-        # Error from exchange, fetch until get limit.
-        ohlcv = exchange.fetch_ohlcv(config_params['symbol'], timeframe=base_timeframe, limit=(config_params['window'] * step) + 1)
+    for date in date_list:
+        today_dst, tomorrow_dst = cal_dst(date, config_params['base_timezone'])
+        dst_offset = cal_dst_offset(today_dst, tomorrow_dst)
+        start_hour = get_start_hour(today_dst)
+        limit = int((1440 / base_interval) + (dst_offset / base_interval))
+        
+        since = get_js_date(date, start_hour)
+        ohlcv = exchange.fetch_ohlcv(config_params['symbol'], base_timeframe, since, limit)
+        
+        if len(ohlcv) > 0:
+            temp_df = pd.DataFrame(ohlcv)
+            temp_df.columns = ['time', 'open', 'high', 'low', 'close', 'volume']
+            temp_df['time'] = pd.to_datetime(temp_df['time'], unit='ms')
+            temp_df['time'] = temp_df['time'].apply(lambda x: convert_tz(x))
+            
+            # Remove timezone after offset timezone.
+            temp_df['time'] = temp_df['time'].dt.tz_localize(None)
+            
+            if step > 1:
+                date_df = group_timeframe(temp_df, step)
+            else:
+                date_df = temp_df[['time', 'open', 'high', 'low', 'close']]
 
-    ohlcv_df = pd.DataFrame(ohlcv)
-    ohlcv_df.columns = ['time', 'open', 'high', 'low', 'close', 'volume']
-    ohlcv_df['time'] = pd.to_datetime(ohlcv_df['time'], unit='ms')
-    ohlcv_df['time'] = ohlcv_df['time'].apply(lambda x: convert_tz(x))
+            ohlcv_df = pd.concat([ohlcv_df, date_df])
 
-    # Add one more -1 as pandas_loc includ stop as slice.
-    ohlcv_df = ohlcv_df.loc[:len(ohlcv_df) - 1 - 1, :]
-
-    if step > 1:
-        interval_lag = get_inverval_lag(ohlcv_df, config_params)
+    ohlcv_df = ohlcv_df.reset_index(drop=True)
     
-    signal_timestamp = ohlcv_df.loc[len(ohlcv_df) - interval_lag - step, 'time'] + relativedelta(minutes=config_params['interval'])
-
-    if step > 1:
-        ohlcv_df = group_timeframe(ohlcv_df, step)
+    signal_timestamp = ohlcv_df['time'][len(ohlcv_df) - 1]
+    ohlcv_df = ohlcv_df.iloc[len(ohlcv_df) - 1 - config_params['window']:len(ohlcv_df) - 1, :]
 
     return ohlcv_df, signal_timestamp
 
