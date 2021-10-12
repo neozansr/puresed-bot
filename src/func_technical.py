@@ -144,7 +144,7 @@ def get_ohlcv(exchange, config_params_path):
     ohlcv_df = ohlcv_df.reset_index(drop=True)
     
     signal_timestamp = ohlcv_df['time'][len(ohlcv_df) - 1]
-    ohlcv_df = ohlcv_df.iloc[len(ohlcv_df) - 1 - config_params['window']:len(ohlcv_df) - 1, :]
+    ohlcv_df = ohlcv_df.iloc[:len(ohlcv_df) - 1, :]
 
     return ohlcv_df, signal_timestamp
 
