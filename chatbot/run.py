@@ -90,7 +90,7 @@ def send_bot_grid(message):
 
 
 @bot.message_handler(commands=['bot_technical'])
-def send_bot_grid(message):
+def send_bot_technical(message):
     bot_name = 'bot_technical'
     bot_type = 'technical'
     
