@@ -61,10 +61,14 @@ def update_timestamp(last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def reset_transfer(transfer_path):
+def update_transfer(transfer_path):
     transfer = get_json(transfer_path)
+    withdraw = transfer['withdraw']
 
-    for s in transfer.keys():
-        transfer[s] = 0
+    transfer['deposit'] = 0
+    transfer['withdraw'] = 0
+    transfer['withdraw_cash_flow'] = 0
+    transfer['withdraw_yield'] = 0
+    transfer['pending_withdraw'] = transfer['pending_withdraw'] + withdraw
 
     update_json(transfer, transfer_path)

@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_time, get_exchange, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_technical import get_ohlcv, check_new_timestamp, manage_position, update_signal_timestamp, update_transfer_technical, check_drawdown, print_report_technical
+from func_technical import get_ohlcv, check_new_timestamp, manage_position, update_signal_timestamp, update_end_date_technical, check_drawdown, print_report_technical
 
 
 def run_bot(config_system, config_params_path, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
@@ -19,7 +19,7 @@ def run_bot(config_system, config_params_path, last_loop_path, position_path, tr
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
     
     if end_date_flag == 1:
-        update_transfer_technical(prev_date, exchange, bot_name, config_system, config_params_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
+        update_end_date_technical(prev_date, exchange, bot_name, config_system, config_params_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
         
     timestamp = get_time()
     print(f"Time: {timestamp}")

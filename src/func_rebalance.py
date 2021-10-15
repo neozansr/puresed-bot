@@ -3,7 +3,8 @@ import time
 import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_available_cash_flow, get_available_yield
-from func_update import update_json, append_order, remove_order, append_cash_flow_df, reset_transfer
+from func_cal import cal_end_balance
+from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
 
@@ -65,13 +66,16 @@ def reset_order_loop(last_loop_path):
 
 
 def update_fix_value(transfer, config_params, config_params_path):
-    fix_value = config_params['fix_value']
-    fix_value += ((transfer['deposit'] - transfer['withdraw']) / 2)
-    
-    config_params = get_json(config_params_path)
-    config_params['fix_value'] = fix_value
+    net_transfer = transfer['deposit'] - transfer['withdraw']
 
-    update_json(config_params, config_params_path)
+    if net_transfer != 0:
+        fix_value = config_params['fix_value']
+        fix_value += (net_transfer / 2)
+        
+        config_params = get_json(config_params_path)
+        config_params['fix_value'] = fix_value
+
+        update_json(config_params, config_params_path)
 
 
 def append_profit_rebalance(order, config_params, last_loop_path, profit_df_path):
@@ -144,16 +148,12 @@ def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_p
     clear_orders_rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
 
 
-def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):
+def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
 
     base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
-
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
-    balance_value = current_value + cash
 
     profit_df = pd.read_csv(profit_df_path)
     last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
@@ -163,34 +163,36 @@ def update_budget_rebalance(prev_date, exchange, bot_name, config_params, config
     net_cash_flow = cash_flow - commission
 
     transfer = get_json(transfer_path)
-    net_transfer = transfer['deposit'] - transfer['withdraw']
-
-    if net_transfer != 0:
-        update_fix_value(transfer, config_params, config_params_path)
 
     available_cash_flow = get_available_cash_flow(cash_flow_df)
     available_cash_flow += (net_cash_flow - transfer['withdraw_cash_flow'])
     available_yield = get_available_yield(cash_flow_df)
     available_yield += (commission - transfer['withdraw_yield'])
 
+    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    cash = get_quote_currency_value(exchange, quote_currency)
+    end_balance = cal_end_balance(current_value, cash, available_yield, transfer)
+
     cash_flow_list = [
         prev_date,
-        balance_value,
-        cash,
         config_params['fix_value'],
+        end_balance,
+        current_value,
+        cash,
         cash_flow,
         commission,
         net_cash_flow,
         transfer['deposit'],
-        transfer['withdraw'],
         transfer['withdraw_cash_flow'],
+        transfer['withdraw'],
         transfer['withdraw_yield'],
         available_cash_flow,
         available_yield
         ]
-
+    
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-    reset_transfer(transfer_path)
+    update_fix_value(transfer, config_params, config_params_path)
+    update_transfer(transfer_path)
 
 
 def print_report_rebalance(exchange, config_params):

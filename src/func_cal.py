@@ -82,3 +82,12 @@ def cal_drawdown_future(last_price, position):
         drawdown = max((last_price / position['entry_price']) - 1, 0)
 
     return drawdown
+
+
+def cal_end_balance(base_currency_value, quote_currency_value, available_yield, transfer):
+    # withdraw: today withdraw.
+    # pending_withdraw: older withdraw hasn't been transfered.
+    # Deposit will be added before end of the day.
+    end_balance = base_currency_value + quote_currency_value - available_yield - transfer['withdraw'] - transfer['pending_withdraw']
+
+    return end_balance

@@ -4,8 +4,8 @@ import pandas as pd
 import time
 
 from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
-from func_cal import round_down_amount, cal_final_amount, cal_unrealised
-from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, reset_transfer
+from func_cal import round_down_amount, cal_final_amount, cal_unrealised, cal_end_balance
+from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
 
 
@@ -337,7 +337,7 @@ def update_reinvest(init_budget, new_budget, new_value, config_params_path):
     update_json(config_params, config_params_path)
 
 
-def update_budget_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
+def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
@@ -348,10 +348,6 @@ def update_budget_grid(prev_date, exchange, bot_name, config_system, config_para
 
     base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
-
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
-    balance_value = current_value + cash
     
     unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
     base_currency_free = get_base_currency_free(exchange, base_currency)
@@ -383,25 +379,30 @@ def update_budget_grid(prev_date, exchange, bot_name, config_system, config_para
     available_yield = get_available_yield(cash_flow_df)
     available_yield += (commission - transfer['withdraw_yield'])
 
+    # Cut loss until quote_currency_free is enough to withdraw.
     quote_currency_free = get_quote_currency_free(exchange, quote_currency)
     
     while quote_currency_free - available_cash_flow - available_yield < -net_transfer:
         cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
+    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    cash = get_quote_currency_value(exchange, quote_currency)
+    end_balance = cal_end_balance(current_value, cash, available_yield, transfer)
+
     cash_flow_list = [
         prev_date,
-        balance_value,
-        unrealised,
-        base_currency_free,
-        last_loop['loss'],
         config_params['budget'],
         config_params['value'],
+        end_balance,
+        unrealised,
+        last_loop['loss'],
         cash_flow,
         commission,
         net_cash_flow,
         reinvest_amount,
         remain_cash_flow,
+        base_currency_free,
         transfer['deposit'],
         transfer['withdraw'],
         transfer['withdraw_cash_flow'],
@@ -413,7 +414,7 @@ def update_budget_grid(prev_date, exchange, bot_name, config_system, config_para
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_reinvest(new_init_budget, new_budget, new_value, config_params_path)
     reset_loss(last_loop_path)
-    reset_transfer(transfer_path)
+    update_transfer(transfer_path)
 
 
 def print_report_grid(exchange, config_params, open_orders_df_path):

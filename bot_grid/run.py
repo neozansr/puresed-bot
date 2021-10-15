@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_exchange, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_grid import clear_orders_grid, cancel_open_buy_orders_grid, open_buy_orders_grid, check_circuit_breaker, check_cut_loss, update_budget_grid, print_report_grid
+from func_grid import clear_orders_grid, cancel_open_buy_orders_grid, open_buy_orders_grid, check_circuit_breaker, check_cut_loss, update_end_date_grid, print_report_grid
 
 
 def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
@@ -31,7 +31,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
 
     if end_date_flag == 1:
-        update_budget_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
+        update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
         cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     update_timestamp(last_loop_path)

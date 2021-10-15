@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_time, get_exchange, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_rebalance import get_series_loop, reset_order_loop, rebalance, update_budget_rebalance, print_report_rebalance
+from func_rebalance import get_series_loop, reset_order_loop, rebalance, update_end_date_rebalance, print_report_rebalance
 
 
 def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
@@ -19,7 +19,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
 
     if end_date_flag == 1:
-        update_budget_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path)
+        update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path)
     
     rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
     print_report_rebalance(exchange, config_params)

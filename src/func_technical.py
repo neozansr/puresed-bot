@@ -7,8 +7,8 @@ import math
 import time
 
 from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_value, get_position_api, get_available_yield
-from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future
-from func_update import update_json, append_order, remove_order, append_cash_flow_df, reset_transfer
+from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future, cal_end_balance
+from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, noti_warning, print_position
 
 
@@ -465,7 +465,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
     update_side(action, last_loop_path)
 
 
-def update_transfer_technical(prev_date, exchange, bot_name, config_system, config_params_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def update_end_date_technical(prev_date, exchange, bot_name, config_system, config_params_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     config_params = get_json(config_params_path)
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
@@ -474,7 +474,6 @@ def update_transfer_technical(prev_date, exchange, bot_name, config_system, conf
     position = get_json(position_path)
 
     _, quote_currency = get_currency_future(config_params)
-    balance_value = get_quote_currency_value(exchange, quote_currency)
 
     unrealised = cal_unrealised_future(last_price, position)
     transfer = get_json(transfer_path)
@@ -486,9 +485,12 @@ def update_transfer_technical(prev_date, exchange, bot_name, config_system, conf
     available_yield = get_available_yield(cash_flow_df)
     available_yield += (position['today_commission'] - transfer['withdraw_yield'])
 
+    cash = get_quote_currency_value(exchange, quote_currency)
+    end_balance = cal_end_balance(0, cash, available_yield, transfer)
+
     cash_flow_list = [
         prev_date,
-        balance_value,
+        end_balance,
         unrealised,
         position['today_profit'],
         position['today_commission'],
@@ -501,7 +503,7 @@ def update_transfer_technical(prev_date, exchange, bot_name, config_system, conf
 
     update_budget_technical(net_transfer, config_params_path)
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-    reset_transfer(transfer_path)
+    update_transfer(transfer_path)
     reset_profit_technical(position_path)
 
 
