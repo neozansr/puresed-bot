@@ -30,7 +30,7 @@ def run_bot(config_system, config_params_path, last_loop_path, position_path, tr
     new_timestamp_flag = check_new_timestamp(signal_timestamp, config_params_path, last_loop_path)
     
     if new_timestamp_flag == True:
-        manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
+        manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
         update_signal_timestamp(signal_timestamp, last_loop_path)
 
     check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path)

@@ -418,7 +418,7 @@ def withdraw_position(net_transfer, exchange, bot_name, config_system, config_pa
     update_reduce_position(reduce_order, position_path)
 
 
-def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, transfer_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     config_params = get_json(config_params_path)
     _, quote_currency = get_currency_future(config_params)
     last_loop = get_json(last_loop_path)
