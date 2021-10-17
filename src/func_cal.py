@@ -75,13 +75,12 @@ def cal_unrealised_future(last_price, position):
     return unrealised
 
 
-def cal_drawdown_future(last_price, position):
-    if position['side'] == 'buy':
-        drawdown = max(1 - (last_price / position['entry_price']), 0)
-    elif position['side'] == 'sell':
-        drawdown = max((last_price / position['entry_price']) - 1, 0)
+def cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer):
+    # current_withdraw: fund has already been moved during the day but cash_flow report hasn't updated.
+    current_withdraw = transfer['withdraw_cash_flow'] + transfer['withdraw_yield'] + transfer['pending_withdraw']
+    available_budget = quote_currency_free - available_cash_flow - available_yield + current_withdraw
 
-    return drawdown
+    return available_budget
 
 
 def cal_end_balance(base_currency_value, quote_currency_value, available_yield, transfer):

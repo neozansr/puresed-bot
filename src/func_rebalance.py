@@ -151,9 +151,11 @@ def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_p
 def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-
-    base_currency, quote_currency = get_currency(config_params)
+    
     last_price = get_last_price(exchange, config_params)
+    base_currency, quote_currency = get_currency(config_params)
+    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    cash = get_quote_currency_value(exchange, quote_currency)
 
     profit_df = pd.read_csv(profit_df_path)
     last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
@@ -168,9 +170,7 @@ def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, conf
     available_cash_flow += (net_cash_flow - transfer['withdraw_cash_flow'])
     available_yield = get_available_yield(cash_flow_df)
     available_yield += (commission - transfer['withdraw_yield'])
-
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
+    
     end_balance = cal_end_balance(current_value, cash, available_yield, transfer)
 
     cash_flow_list = [

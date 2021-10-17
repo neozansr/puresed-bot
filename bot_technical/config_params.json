@@ -6,7 +6,6 @@
  "window": 50,
  "base_timezone": "US/Eastern",
  "leverage": 3,
- "safety_value": 0.9,
  "decimal":3,
  "commission_rate": 0
 }

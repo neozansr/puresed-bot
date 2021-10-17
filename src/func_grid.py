@@ -4,9 +4,28 @@ import pandas as pd
 import time
 
 from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
-from func_cal import round_down_amount, cal_final_amount, cal_unrealised, cal_end_balance
+from func_cal import round_down_amount, cal_final_amount, cal_unrealised, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
+
+
+def cal_buy_price_list(n_buy_orders, bid_price, min_open_sell_price, open_buy_orders_df, open_sell_orders_df, config_params):
+    if len(open_buy_orders_df) > 0:
+        buy_price = min(open_buy_orders_df['price']) - config_params['grid']
+    else:
+        if len(open_sell_orders_df) == 0:
+            buy_price = bid_price - (config_params['grid'] * config_params['start_safety'])
+        else:
+            # Use (grid * 2) to prevent dupplicate order.
+            buy_price = min(bid_price, min_open_sell_price - (config_params['grid'] * 2))
+    
+    buy_price_list = []
+
+    for _ in range(n_buy_orders):
+        buy_price_list.append(buy_price)
+        buy_price -= config_params['grid']
+
+    return buy_price_list
 
 
 def cal_sell_price(order, ask_price, config_params):
@@ -15,109 +34,50 @@ def cal_sell_price(order, ask_price, config_params):
     return sell_price
 
 
-def cal_budget(config_params, open_orders_df_path):
+def open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
+    base_currency, quote_currency = get_currency(config_params)
+    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+
+    bid_price = get_bid_price(exchange, config_params)
+    print(f"Bid price: {bid_price:.2f} {quote_currency}")
+
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    
-    sell_price_list = open_sell_orders_df['price'].to_list()
-    sell_amount_list = open_sell_orders_df['amount'].to_list()
-    sell_value_list = [(i - config_params['grid']) * j for i, j in zip(sell_price_list, sell_amount_list)]
-    used_budget = sum(sell_value_list)
-    
-    # For cal_new_orders.
-    remain_budget = config_params['budget'] - used_budget
-    buy_value_list = open_buy_orders_df['value'].to_list()
-    pending_buy_value = sum(buy_value_list)
-    
-    # For cal_append_orders.
-    free_budget = remain_budget - pending_buy_value
-
-    return remain_budget, free_budget
-
-
-def cal_new_orders(start_price, remain_budget, config_params):
-    buy_price = start_price
-    remain_n_order = int(remain_budget / np.ceil(config_params['value']))
-
-    buy_price_list = []
-    
-    for _ in range(min(remain_n_order, config_params['circuit_limit'])):
-        buy_price_list.append(buy_price)
-        buy_price -= config_params['grid']
-
-    return buy_price_list
-
-
-def cal_append_orders(min_open_buy_price, free_budget, config_params, open_buy_orders_df):
-    buy_price_list = []
-
-    free_slot_order = config_params['circuit_limit'] - len(open_buy_orders_df)
-    free_n_order = int(free_budget / np.ceil(config_params['value']))
-    buy_price = min_open_buy_price - config_params['grid']
-
-    for _ in range(min(free_n_order, free_slot_order)):
-        buy_price_list.append(buy_price)
-        buy_price -= config_params['grid']
-
-    return buy_price_list
-
-
-def cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path):
-    open_orders_df = pd.read_csv(open_orders_df_path)
-    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
-    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-    
     max_open_buy_price = max(open_buy_orders_df['price'], default=0)
     min_open_sell_price = min(open_sell_orders_df['price'], default=np.inf)
 
-    if min(bid_price, min_open_sell_price - config_params['grid']) - max_open_buy_price > config_params['grid']:    
-        if len(open_sell_orders_df) == 0:
-            start_price = bid_price - (config_params['grid'] * config_params['start_safety'])
-        else:
-            # Use grid * 2 to prevent dupplicate order.
-            start_price = min(bid_price, min_open_sell_price - (config_params['grid'] * 2))
-
-        buy_price_list = cal_new_orders(start_price, remain_budget, config_params)
-            
-        cancel_flag = 1
-    else:
-        min_open_buy_price = min(open_buy_orders_df['price'])
-        buy_price_list = cal_append_orders(min_open_buy_price, free_budget, config_params, open_buy_orders_df)
-        cancel_flag = 0
-
-    return buy_price_list, cancel_flag
-
-
-def open_buy_orders_grid(exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
-    base_currency, quote_currency = get_currency(config_params)
-    bid_price = get_bid_price(exchange, config_params)
-    print(f"Bid price: {bid_price:.2f} {quote_currency}")
-    
-    remain_budget, free_budget = cal_budget(config_params, open_orders_df_path)
-    buy_price_list, cancel_flag = cal_buy_price_list(remain_budget, free_budget, bid_price, config_params, open_orders_df_path)
-    
-    if cancel_flag == 1:
-        cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-
-    print(f"Open {len(buy_price_list)} buy orders")
-
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-    remain_cash_flow_accum = sum(cash_flow_df['remain_cash_flow'])
+    
+    if min(bid_price, min_open_sell_price - config_params['grid']) - max_open_buy_price > config_params['grid']:
+        cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+        n_open_buy_orders = 0
+    else:
+        n_open_buy_orders = len(open_buy_orders_df)
 
+    n_buy_orders = max(config_params['circuit_limit'] - n_open_buy_orders, 0)
+    print(f"Open {n_buy_orders} buy orders")
+
+    transfer = get_json(transfer_path)
+    available_cash_flow = get_available_cash_flow(cash_flow_df)
+    available_yield = get_available_yield(cash_flow_df)
+    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
+
+    buy_price_list = cal_buy_price_list(n_buy_orders, bid_price, min_open_sell_price, open_buy_orders_df, open_sell_orders_df, config_params)
+    
     for price in buy_price_list:
         amount = config_params['value'] / price
         floor_amount = round_down_amount(amount, config_params)
-        
-        quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
-        if quote_currency_free >= remain_cash_flow_accum + config_params['value']:
+        if available_budget >= config_params['value']:
             buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', floor_amount, price, params={'postOnly':True})
             append_order(buy_order, 'amount', open_orders_df_path)
             print(f"Open buy {floor_amount:.3f} {base_currency} at {price:.2f} {quote_currency}")
+
+            quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
         else:
-            # Actual buget less than cal_budget (could caused by open_orders match during loop).
             print(f"Error: Cannot buy at price {price:.2f} {quote_currency} due to insufficient fund!!!")
             break
 
@@ -236,18 +196,21 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     
     min_sell_price = min(open_orders_df['price'], default=0)    
+    last_price = get_last_price(exchange, config_params)
 
     transfer = get_json(transfer_path)
     available_cash_flow = get_available_cash_flow(cash_flow_df)
-
-    last_price = get_last_price(exchange, config_params)
-
-    if (quote_currency_free - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
+    available_yield = get_available_yield(cash_flow_df)
+    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
+    
+    # No available budget to buy while the price is down to buying level.
+    if (available_budget < config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
         cont_flag = 0
         
-        while quote_currency_free - available_cash_flow - transfer['withdraw_cash_flow'] < config_params['value']:
+        while available_budget < config_params['value']:
             cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=False)
             quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
 
     return cont_flag
             
@@ -259,17 +222,6 @@ def update_loss(loss, last_loop_path):
     last_loop['loss'] = total_loss
 
     update_json(last_loop, last_loop_path)
-
-
-def reduce_budget(loss, config_params_path):
-    config_params = get_json(config_params_path)
-    
-    budget = config_params['budget']
-    # Loss is negative.
-    budget += loss
-    config_params['budget'] = budget
-
-    update_json(config_params, config_params_path)
 
 
 def cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag):
@@ -309,7 +261,6 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
         loss = new_sell_value - buy_value
         
         update_loss(loss, last_loop_path)
-        reduce_budget(loss, config_params_path)
         noti_warning(f"Cut loss {loss:.2f} {quote_currency} at {new_sell_price:.2f} {quote_currency}", bot_name)
 
         if withdraw_flag == False:
@@ -328,10 +279,8 @@ def reset_loss(last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def update_reinvest(init_budget, new_budget, new_value, config_params_path):
+def update_reinvest(new_value, config_params_path):
     config_params = get_json(config_params_path)
-    config_params['init_budget'] = init_budget
-    config_params['budget'] = new_budget
     config_params['value'] = new_value
 
     update_json(config_params, config_params_path)
@@ -344,14 +293,12 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     transactions_df = pd.read_csv(transactions_df_path)
     last_loop = get_json(last_loop_path)
 
-    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
-
-    base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
-    
-    unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
+    base_currency, quote_currency = get_currency(config_params)
     base_currency_free = get_base_currency_free(exchange, base_currency)
+    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
+    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
     last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
     cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
 
@@ -366,13 +313,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     remain_cash_flow = net_cash_flow - reinvest_amount
 
     transfer = get_json(transfer_path)
-    lower_price = last_price * (1 - config_params['fluctuation_rate'])
-    n_order = int((last_price - lower_price) / config_params['grid'])
-
     net_transfer = transfer['deposit'] - transfer['withdraw']
-    new_init_budget = config_params['init_budget'] + net_transfer
-    new_budget = config_params['budget'] + reinvest_amount + net_transfer
-    new_value = new_budget / n_order
     
     available_cash_flow = get_available_cash_flow(cash_flow_df)
     available_cash_flow += (remain_cash_flow - transfer['withdraw_cash_flow'])
@@ -380,8 +321,6 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     available_yield += (commission - transfer['withdraw_yield'])
 
     # Cut loss until quote_currency_free is enough to withdraw.
-    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-    
     while quote_currency_free - available_cash_flow - available_yield < -net_transfer:
         cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
@@ -390,9 +329,13 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     cash = get_quote_currency_value(exchange, quote_currency)
     end_balance = cal_end_balance(current_value, cash, available_yield, transfer)
 
+    lower_price = last_price * (1 - config_params['fluctuation_rate'])
+    n_order = int((last_price - lower_price) / config_params['grid'])
+    unrealised, _, _, _ = cal_unrealised(last_price, config_params, open_orders_df)
+    new_value = (end_balance - unrealised ) / n_order
+
     cash_flow_list = [
         prev_date,
-        config_params['budget'],
         config_params['value'],
         end_balance,
         unrealised,
@@ -412,7 +355,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         ]
 
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-    update_reinvest(new_init_budget, new_budget, new_value, config_params_path)
+    update_reinvest(new_value, config_params_path)
     reset_loss(last_loop_path)
     update_transfer(transfer_path)
 
