@@ -166,10 +166,10 @@ def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, conf
 
     transfer = get_json(transfer_path)
 
-    available_cash_flow = get_available_cash_flow(cash_flow_df)
-    available_cash_flow += (net_cash_flow - transfer['withdraw_cash_flow'])
-    available_yield = get_available_yield(cash_flow_df)
-    available_yield += (commission - transfer['withdraw_yield'])
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_cash_flow += net_cash_flow
+    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield += commission
     
     end_balance = cal_end_balance(current_value, cash, available_yield, transfer)
 

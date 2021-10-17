@@ -60,8 +60,8 @@ def open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_
     print(f"Open {n_buy_orders} buy orders")
 
     transfer = get_json(transfer_path)
-    available_cash_flow = get_available_cash_flow(cash_flow_df)
-    available_yield = get_available_yield(cash_flow_df)
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_yield = get_available_yield(transfer, cash_flow_df)
     available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
 
     buy_price_list = cal_buy_price_list(n_buy_orders, bid_price, min_open_sell_price, open_buy_orders_df, open_sell_orders_df, config_params)
@@ -199,8 +199,8 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
     last_price = get_last_price(exchange, config_params)
 
     transfer = get_json(transfer_path)
-    available_cash_flow = get_available_cash_flow(cash_flow_df)
-    available_yield = get_available_yield(cash_flow_df)
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_yield = get_available_yield(transfer, cash_flow_df)
     available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
     
     # No available budget to buy while the price is down to buying level.
@@ -315,10 +315,10 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     transfer = get_json(transfer_path)
     net_transfer = transfer['deposit'] - transfer['withdraw']
     
-    available_cash_flow = get_available_cash_flow(cash_flow_df)
-    available_cash_flow += (remain_cash_flow - transfer['withdraw_cash_flow'])
-    available_yield = get_available_yield(cash_flow_df)
-    available_yield += (commission - transfer['withdraw_yield'])
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    available_cash_flow += remain_cash_flow
+    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield += commission
 
     # Cut loss until quote_currency_free is enough to withdraw.
     while quote_currency_free - available_cash_flow - available_yield < -net_transfer:

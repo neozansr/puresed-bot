@@ -7,7 +7,7 @@ import math
 import time
 
 from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_free, get_quote_currency_value, get_position_api, get_available_yield
-from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_available_budget, cal_end_balance
+from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, noti_warning, print_position
 
@@ -311,15 +311,6 @@ def cal_reduce_amount(value, exchange, config_params):
     return amount
 
 
-def cal_drawdown_future(last_price, position):
-    if position['side'] == 'buy':
-        drawdown = max(1 - (last_price / position['entry_price']), 0)
-    elif position['side'] == 'sell':
-        drawdown = max((last_price / position['entry_price']) - 1, 0)
-
-    return drawdown
-
-
 def append_profit_technical(order, position_path, profit_df_path):
     profit_df = pd.read_csv(profit_df_path)
     position = get_json(position_path)
@@ -445,7 +436,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
         transfer = get_json(transfer_path)
         cash_flow_df_path = cash_flow_df_path.format(bot_name)
         cash_flow_df = pd.read_csv(cash_flow_df_path)
-        available_yield = get_available_yield(cash_flow_df)
+        available_yield = get_available_yield(transfer, cash_flow_df)
 
         # Technical bot not collect cash flow.
         available_cash_flow = 0
@@ -481,8 +472,8 @@ def update_end_date_technical(prev_date, exchange, bot_name, config_system, conf
     if net_transfer < 0:
         withdraw_position(net_transfer, exchange, bot_name, config_system, config_params_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
 
-    available_yield = get_available_yield(cash_flow_df)
-    available_yield += (position['today_commission'] - transfer['withdraw_yield'])
+    available_yield = get_available_yield(transfer, cash_flow_df)
+    available_yield += position['today_commission']
 
     # Techical port don't hold actual asset.
     current_value = 0
