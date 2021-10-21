@@ -1,3 +1,4 @@
+import ccxt
 import pandas as pd
 import time
 import sys
@@ -141,7 +142,13 @@ def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_p
         
     if rebalance_flag == 1:
         amount = diff_value / price
-        order = exchange.create_order(config_params['symbol'], 'market', side, amount)
+
+        try:
+            # InvalidOrder: Too small size due to small min_value.
+            order = exchange.create_order(config_params['symbol'], 'market', side, amount)
+        except ccxt.InvalidOrder:
+            pass
+        
         append_order(order, 'amount', open_orders_df_path)
 
     time.sleep(config_system['idle_stage'])
