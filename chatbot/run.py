@@ -19,6 +19,7 @@ config_system_path = 'config_system.json'
 config_params_path = 'config_params.json'
 last_loop_path = 'last_loop.json'
 position_path = 'position.json'
+transfer_path = 'transfer.json'
 open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
 profit_df_path = 'profit.csv'
@@ -37,7 +38,7 @@ def send_help(message):
     text += "\ntype /[bot_name] to get bot status"
 
     text += "\navaialble [account]:"
-    text += "\n   test"
+    text += "\n   dev"
     
     text += "\navaialble [bot_name]:"
     text += "\n   bot_rebalance"
@@ -47,27 +48,29 @@ def send_help(message):
     bot.send_message(message.chat.id, text)
 
 
-@bot.message_handler(commands=['balance_test'])
+@bot.message_handler(commands=['balance_dev'])
 def send_balance(message):
     bot_dict = {
         'bot_rebalance':'rebalance',
         'bot_grid':'grid',
-        'bot_technical':'technical'
+        'bot_technical':'technical',
+        'hold':'hold'
         }
     
-    text = get_balance_text(bot_dict, config_system_path, config_params_path, profit_df_path, transactions_df_path, position_path, cash_flow_path)
+    text = get_balance_text(home_path, bot_dict, config_system_path, config_params_path, transfer_path, profit_df_path, transactions_df_path, position_path, cash_flow_path)
     bot.send_message(message.chat.id, text)
 
 
-@bot.message_handler(commands=['yield_test'])
+@bot.message_handler(commands=['yield_dev'])
 def send_yield(message):
     bot_dict = {
         'bot_rebalance':'rebalance',
         'bot_grid':'grid',
-        'bot_technical':'technical'
+        'bot_technical':'technical',
+        'hold':'hold'
         }
     
-    text = get_yield_text(bot_dict, config_params_path, profit_df_path, transactions_df_path, position_path, cash_flow_path)
+    text = get_yield_text(home_path, bot_dict, config_params_path, profit_df_path, transactions_df_path, position_path, transfer_path, cash_flow_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -76,7 +79,7 @@ def send_bot_rebalance(message):
     bot_name = 'bot_rebalance'
     bot_type = 'rebalance'
     
-    text = get_rebalance_text(bot_name, bot_type, config_system_path, config_params_path, last_loop_path, profit_df_path, cash_flow_path)
+    text = get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -85,7 +88,7 @@ def send_bot_grid(message):
     bot_name = 'bot_grid'
     bot_type = 'grid'
 
-    text = get_grid_text(bot_name, bot_type, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path, cash_flow_path)
+    text = get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -94,7 +97,7 @@ def send_bot_technical(message):
     bot_name = 'bot_technical'
     bot_type = 'technical'
     
-    text = get_technical_text(bot_name, bot_type, config_system_path, config_params_path, last_loop_path, position_path, cash_flow_path)
+    text = get_technical_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, position_path, transfer_path, cash_flow_path)
     bot.send_message(message.chat.id, text)
 
 
