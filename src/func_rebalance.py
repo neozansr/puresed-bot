@@ -14,7 +14,7 @@ def gen_fix_series(config_system):
     return series
 
 
-def gen_time_series(n=18, limit_min=4):
+def gen_hexa_series(n=18, limit_min=4):
     def hexa(n) :
         if n in range(6):
             return 0
@@ -46,8 +46,8 @@ def get_series_loop(config_params, config_system, last_loop_path):
 
     if config_params['series_rule'] == 'fix':
         series = gen_fix_series(config_system)
-    elif config_params['series_rule'] == 'haxanacci':
-        series = gen_time_series()
+    elif config_params['series_rule'] == 'hexa':
+        series = gen_hexa_series()
 
     order_loop = last_loop['order_loop']
     series_loop = series[order_loop]
