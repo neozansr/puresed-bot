@@ -42,7 +42,7 @@ if __name__ == '__main__':
     while True:
         config_system = get_json(config_system_path)
         config_params = get_json(config_params_path)
-        idle_loop = get_series_loop(last_loop_path)
+        idle_loop = get_series_loop(config_params, config_system, last_loop_path)
 
         if config_system['run_flag'] == 1:
             print("Start loop")

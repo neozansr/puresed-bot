@@ -8,8 +8,13 @@ from func_update import update_json, append_order, remove_order, append_cash_flo
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
 
-def gen_series(n=18, limit_min=4):
-    # Haxanacci.
+def gen_fix_series(config_system):
+    series = [config_system['idle_loop']]
+
+    return series
+
+
+def gen_time_series(n=18, limit_min=4):
     def hexa(n) :
         if n in range(6):
             return 0
@@ -36,9 +41,13 @@ def gen_series(n=18, limit_min=4):
     return series
 
 
-def get_series_loop(last_loop_path):
+def get_series_loop(config_params, config_system, last_loop_path):
     last_loop = get_json(last_loop_path)
-    series = gen_series()
+
+    if config_params['series_rule'] == 'fix':
+        series = gen_fix_series(config_system)
+    elif config_params['series_rule'] == 'haxanacci':
+        series = gen_time_series()
 
     order_loop = last_loop['order_loop']
     series_loop = series[order_loop]
