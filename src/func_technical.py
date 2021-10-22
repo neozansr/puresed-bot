@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 import math
 import time
 
-from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_free, get_quote_currency_value, get_position_api, get_available_yield
+from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_free, get_quote_currency_value, get_position_api
 from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, noti_warning, print_position
@@ -328,31 +328,6 @@ def append_profit_technical(order, position_path, profit_df_path):
     profit_df.to_csv(profit_df_path, index=False)
 
 
-def update_profit_technical(profit, config_params_path, position_path, withdraw_flag):
-    config_params = get_json(config_params_path)
-    position = get_json(position_path)
-
-    commission = max(profit * config_params['commission_rate'], 0)
-    
-    today_profit = position['today_profit']
-    today_profit += profit
-    position['today_profit'] = today_profit
-
-    today_commission = position['today_commission']
-    today_commission += commission
-    position['today_commission'] = today_commission
-    
-    update_json(position, position_path)
-
-
-def reset_profit_technical(position_path):
-    position = get_json(position_path)
-    position['today_profit'] = 0
-    position['today_commission'] = 0
-    
-    update_json(position, position_path)
-
-
 def open_position(available_budget, action, exchange, config_params_path, open_orders_df_path):
     config_params = get_json(config_params_path)
     amount = cal_new_amount(available_budget, exchange, config_params)
@@ -434,14 +409,11 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
             update_reduce_position(close_order, position_path)
         
         transfer = get_json(transfer_path)
-        cash_flow_df_path = cash_flow_df_path.format(bot_name)
-        cash_flow_df = pd.read_csv(cash_flow_df_path)
-        available_yield = get_available_yield(transfer, cash_flow_df)
 
         # Technical bot not collect cash flow.
         available_cash_flow = 0
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-        available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
+        available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
         open_position(available_budget, action, exchange, config_params_path, open_orders_df_path)
         time.sleep(config_system['idle_stage'])
 
@@ -466,36 +438,33 @@ def update_end_date_technical(prev_date, exchange, bot_name, config_system, conf
     _, quote_currency = get_currency_future(config_params)
 
     unrealised = cal_unrealised_future(last_price, position)
+
+    profit_df = pd.read_csv(profit_df_path)
+    last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
+    profit = sum(last_profit_df['profit'])
+
     transfer = get_json(transfer_path)
     net_transfer = transfer['deposit'] - transfer['withdraw']
 
     if net_transfer < 0:
         withdraw_position(net_transfer, exchange, bot_name, config_system, config_params_path, position_path, open_orders_df_path, transactions_df_path, profit_df_path)
 
-    available_yield = get_available_yield(transfer, cash_flow_df)
-    available_yield += position['today_commission']
-
     # Techical port don't hold actual asset.
     current_value = 0
     cash = get_quote_currency_value(exchange, quote_currency)
-    end_balance = cal_end_balance(current_value, cash, available_yield, transfer)
+    end_balance = cal_end_balance(current_value, cash, transfer)
 
     cash_flow_list = [
         prev_date,
         end_balance,
         unrealised,
-        position['today_profit'],
-        position['today_commission'],
-        position['today_profit'] - position['today_commission'],
+        profit,
         transfer['deposit'],
-        transfer['withdraw'],
-        transfer['withdraw_yield'],
-        available_yield
+        transfer['withdraw']
         ]
 
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_transfer(transfer_path)
-    reset_profit_technical(position_path)
 
 
 def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path):

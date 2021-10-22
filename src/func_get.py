@@ -164,19 +164,6 @@ def get_available_cash_flow(transfer, cash_flow_df):
     return avaialble_cash_flow
 
 
-def get_available_yield(transfer, cash_flow_df):
-    try:
-        last_yield = cash_flow_df['available_yield'][len(cash_flow_df) - 1]
-    except IndexError:
-        # First date
-        last_yield = 0
-
-    withdraw_yield = transfer['withdraw_yield']
-    avaialble_yield = last_yield - withdraw_yield
-
-    return avaialble_yield
-
-
 def get_greed_index(default_index=0.5):
     greed_index = default_index
     

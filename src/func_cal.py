@@ -84,18 +84,18 @@ def cal_drawdown_future(last_price, position):
     return drawdown
     
 
-def cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer):
-    # current_withdraw: fund has already been moved during the day but cash_flow report hasn't updated.
-    current_withdraw = transfer['withdraw_cash_flow'] + transfer['withdraw_yield'] + transfer['pending_withdraw']
-    available_budget = quote_currency_free - available_cash_flow - available_yield + current_withdraw
+def cal_available_budget(quote_currency_free, available_cash_flow, transfer):
+    # Exclue withdraw_cash_flow as it is moved instantly.
+    total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
+    available_budget = quote_currency_free - available_cash_flow - total_withdraw
 
     return available_budget
 
 
-def cal_end_balance(base_currency_value, quote_currency_value, available_yield, transfer):
-    # withdraw: today withdraw.
-    # pending_withdraw: older withdraw hasn't been transfered.
-    # Deposit will be added before end of the day.
-    end_balance = base_currency_value + quote_currency_value - available_yield - transfer['withdraw'] - transfer['pending_withdraw']
+def cal_end_balance(base_currency_value, quote_currency_value, transfer):
+    # This function is called before update, today withdraw is still in withdraw.
+    # After update, withdraw is moved to pending_withdraw and will be edited manually after tranfer fund.
+    # Deposit has already included in balance as it is added before end of the day.
+    end_balance = base_currency_value + quote_currency_value - transfer['withdraw'] - transfer['pending_withdraw']
 
     return end_balance

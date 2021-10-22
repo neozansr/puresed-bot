@@ -1,1 +1,1 @@
-date,fix_value,end_balance,current_value,cash,cash_flow,commission,net_cash_flow,deposit,withdraw,withdraw_cash_flow,withdraw_yield,available_cash_flow,available_yield
+date,fix_value,end_balance,current_value,cash,cash_flow,deposit,withdraw,withdraw_cash_flow,available_cash_flow

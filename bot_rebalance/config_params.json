@@ -1,6 +1,5 @@
 {
  "symbol": "ETH/USD",
  "fix_value": 1000, 
- "min_value": 10,
- "commission_rate": 0
+ "min_value": 10
 }

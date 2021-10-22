@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import time
 
-from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow, get_available_yield
+from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow
 from func_cal import round_down_amount, cal_final_amount, cal_unrealised, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
@@ -36,7 +36,6 @@ def cal_sell_price(order, ask_price, config_params):
 
 def open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     base_currency, quote_currency = get_currency(config_params)
-    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     bid_price = get_bid_price(exchange, config_params)
     print(f"Bid price: {bid_price:.2f} {quote_currency}")
@@ -61,8 +60,8 @@ def open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_
 
     transfer = get_json(transfer_path)
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_yield = get_available_yield(transfer, cash_flow_df)
-    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
+    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
 
     buy_price_list = cal_buy_price_list(n_buy_orders, bid_price, min_open_sell_price, open_buy_orders_df, open_sell_orders_df, config_params)
     
@@ -76,7 +75,7 @@ def open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_
             print(f"Open buy {floor_amount:.3f} {base_currency} at {price:.2f} {quote_currency}")
 
             quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
+            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
         else:
             print(f"Error: Cannot buy at price {price:.2f} {quote_currency} due to insufficient fund!!!")
             break
@@ -200,8 +199,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
 
     transfer = get_json(transfer_path)
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_yield = get_available_yield(transfer, cash_flow_df)
-    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
+    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
     
     # No available budget to buy while the price is down to buying level.
     if (available_budget < config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
@@ -210,7 +208,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
         while available_budget < config_params['value']:
             cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=False)
             quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, available_yield, transfer)
+            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
 
     return cont_flag
             
@@ -301,33 +299,28 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
     last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
     cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
-
-    commission = max(cash_flow * config_params['commission_rate'], 0)
-    net_cash_flow = cash_flow - commission
     
     if config_params['reinvest_ratio'] == -1:
         greed_index = get_greed_index()
         reinvest_ratio = max(1 - (greed_index / 100), 0)
 
-    reinvest_amount = net_cash_flow * reinvest_ratio
-    remain_cash_flow = net_cash_flow - reinvest_amount
+    reinvest_amount = cash_flow * reinvest_ratio
+    remain_cash_flow = cash_flow - reinvest_amount
 
     transfer = get_json(transfer_path)
     net_transfer = transfer['deposit'] - transfer['withdraw']
     
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
     available_cash_flow += remain_cash_flow
-    available_yield = get_available_yield(transfer, cash_flow_df)
-    available_yield += commission
 
     # Cut loss until quote_currency_free is enough to withdraw.
-    while quote_currency_free - available_cash_flow - available_yield < -net_transfer:
+    while quote_currency_free - available_cash_flow < -net_transfer:
         cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     current_value = get_base_currency_value(last_price, exchange, base_currency)
     cash = get_quote_currency_value(exchange, quote_currency)
-    end_balance = cal_end_balance(current_value, cash, available_yield, transfer)
+    end_balance = cal_end_balance(current_value, cash, transfer)
 
     lower_price = last_price * (1 - config_params['fluctuation_rate'])
     n_order = int((last_price - lower_price) / config_params['grid'])
@@ -341,17 +334,13 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         unrealised,
         last_loop['loss'],
         cash_flow,
-        commission,
-        net_cash_flow,
         reinvest_amount,
         remain_cash_flow,
         base_currency_free,
         transfer['deposit'],
         transfer['withdraw'],
         transfer['withdraw_cash_flow'],
-        transfer['withdraw_yield'],
-        available_cash_flow,
-        available_yield
+        available_cash_flow
         ]
 
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)

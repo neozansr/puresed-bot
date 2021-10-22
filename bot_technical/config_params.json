@@ -6,6 +6,5 @@
  "window": 50,
  "base_timezone": "US/Eastern",
  "leverage": 3,
- "decimal":3,
- "commission_rate": 0
+ "decimal":3
 }
