@@ -1,5 +1,6 @@
 {
  "symbol": "ETH/USD",
- "fix_value": 1000, 
+ "fix_value": 1000,
+ "leverage": 1,
  "min_value": 10
 }

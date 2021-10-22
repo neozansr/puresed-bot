@@ -69,8 +69,10 @@ def update_fix_value(transfer, config_params, config_params_path):
     net_transfer = transfer['deposit'] - transfer['withdraw']
 
     if net_transfer != 0:
+        # At leverage 1, hold value and cash with same amount.
+        cash_ratio = 1 / config_params['leverage']
         fix_value = config_params['fix_value']
-        fix_value += (net_transfer / 2)
+        fix_value += (net_transfer / (1 + cash_ratio))
         
         config_params = get_json(config_params_path)
         config_params['fix_value'] = fix_value
