@@ -94,7 +94,7 @@ def append_profit_rebalance(order, exchange, config_params, last_loop_path, prof
     last_loop = get_json(last_loop_path)
     average_cost = last_loop['average_cost']
     holding_amount = last_loop['holding_amount']
-    fee = get_order_fee(exchange, order, config_params)
+    fee = get_order_fee('spot', order, exchange, config_params)
 
     if order['side'] == 'buy':
         adjusted_price = cal_adjusted_price(order, fee)

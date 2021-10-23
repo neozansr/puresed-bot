@@ -257,8 +257,8 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
         while sell_order['status'] != 'closed':
             time.sleep(config_system['idle_stage'])
             sell_order = exchange.fetch_order(sell_order['id'], config_params['symbol'])
-
-        fee = get_order_fee(exchange, sell_order, config_params)
+            
+        fee = get_order_fee('spot', sell_order, exchange, config_params)
         new_sell_price = sell_order['price']
         new_sell_amount = sell_order['amount']
         new_sell_value = new_sell_price * new_sell_amount

@@ -137,9 +137,13 @@ def get_quote_currency_value(exchange, quote_currency):
     return quote_currency_value
     
 
-def get_order_fee(exchange, order, config_params):
+def get_order_fee(market, order, exchange, config_params):
     # Trades can be queried 200 at most.
-    _, quote_currency = get_currency(config_params)
+    if market == 'spot':
+        _, quote_currency = get_currency(config_params)
+    elif market == 'future':
+        _, quote_currency = get_currency_future(config_params)
+
     trades = exchange.fetch_my_trades(config_params['symbol'], limit=200)
     trades_df = pd.DataFrame(trades)
     if len(trades_df) > 0:

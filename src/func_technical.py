@@ -173,7 +173,7 @@ def update_signal_timestamp(signal_timestamp, last_loop_path):
 
 def update_open_position(order, exchange, config_params, position_path):
     position = get_json(position_path)
-    fee = get_order_fee(exchange, order, config_params)
+    fee = get_order_fee('future', order, exchange, config_params)
 
     position['side'] = order['side']
     position['entry_price'] = order['price']
@@ -326,7 +326,7 @@ def append_profit_technical(order, exchange, config_params, position_path, profi
         margin = position['entry_price'] - order['price']
 
     open_fee = position['open_fee']
-    close_fee = get_order_fee(exchange, order, config_params)
+    close_fee = get_order_fee('future', order, exchange, config_params)
     profit = (margin * order['amount']) - (open_fee + close_fee)
 
     profit_df.loc[len(profit_df)] = [timestamp, order['id'], order['symbol'], order['side'], order['amount'], position['entry_price'], order['price'], profit]
