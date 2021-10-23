@@ -1,6 +1,5 @@
 {
  "symbol": "ETH-PERP",
- "budget": 100,
  "signal": "ma",
  "interval": 15,
  "window": 50,
