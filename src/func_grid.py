@@ -11,13 +11,13 @@ from func_noti import noti_success_order, noti_warning, print_current_balance, p
 
 def cal_buy_price_list(n_buy_orders, bid_price, min_open_sell_price, open_buy_orders_df, open_sell_orders_df, config_params):
     if len(open_buy_orders_df) > 0:
-        buy_price = min(open_buy_orders_df['price']) - config_params['grid']
+        buy_price = min(open_buy_orders_df['price'] - config_params['grid'], bid_price)
     else:
         if len(open_sell_orders_df) == 0:
             buy_price = bid_price - (config_params['grid'] * config_params['start_safety'])
         else:
             # Use (grid * 2) to prevent dupplicate order.
-            buy_price = min(bid_price, min_open_sell_price - (config_params['grid'] * 2))
+            buy_price = min(min_open_sell_price - (config_params['grid'] * 2), bid_price)
     
     buy_price_list = []
 
