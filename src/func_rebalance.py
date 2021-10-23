@@ -89,7 +89,7 @@ def update_fix_value(transfer, config_params, config_params_path):
         update_json(config_params, config_params_path)
 
 
-def append_profit_rebalance(exchange, order, config_params, last_loop_path, profit_df_path):
+def append_profit_rebalance(order, exchange, config_params, last_loop_path, profit_df_path):
     timestamp = get_time()
     last_loop = get_json(last_loop_path)
     average_cost = last_loop['average_cost']
@@ -126,7 +126,7 @@ def clear_orders_rebalance(exchange, bot_name, config_system, config_params, ope
             
             remove_order(order_id, open_orders_df_path)
             append_order(order, 'filled', transactions_df_path)
-            append_profit_rebalance(order, config_params, last_loop_path, profit_df_path)
+            append_profit_rebalance(order, exchange, config_params, last_loop_path, profit_df_path)
             noti_success_order(order, bot_name, config_params)
 
 
