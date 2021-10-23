@@ -59,10 +59,10 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_path):
 
         all_cash_flow += available_cash_flow
 
-    text += f"\nAll Yield: {all_cash_flow} USD"
+    text += f"\nAll cash flow: {all_cash_flow} USD"
 
     for s in cash_flow_dict.keys():
-        text += f"\n{bot_name} Yield: {cash_flow_dict[s]} USD"
+        text += f"\n{bot_name} Cash flow: {cash_flow_dict[s]} USD"
 
     return text
 
