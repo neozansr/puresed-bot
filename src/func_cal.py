@@ -14,34 +14,11 @@ def round_up_amount(amount, config_params):
     return floor_amount
 
 
-def cal_final_amount(order_id, exchange, base_currency, config_params):
-    # Trades can be queried 200 at most.
-    trades = exchange.fetch_my_trades(config_params['symbol'], limit=200)
-    trades_df = pd.DataFrame(trades)
-
-    if len(trades_df) > 0:
-        order_trade = trades_df[trades_df['order'] == order_id].reset_index(drop=True)
-        
-        amount, fee = 0, 0
-        
-        for i in range(len(order_trade)):
-            amount += order_trade['amount'][i]
-
-            if order_trade['fee'][i]['currency'] == base_currency:
-                # Only base_currency fee affect sell amount.
-                fee += order_trade['fee'][i]['cost']
-    else:
-        # Unfetchable trades due to surpass 200 limit.
-        # Not actual fee, will result base_currency_free due to round down.
-        # Fee as maximum rate without uncertainty params such as rebase, discount.
-        order_fetch = exchange.fetch_order(order_id, config_params['symbol'])
-        amount = order_fetch['filled']
-        fee = order_fetch['filled'] * (config_params['taker_fee'] / 100)
-
-    deducted_amount = amount - fee
-    final_amount = round_down_amount(deducted_amount, config_params)
-
-    return final_amount
+def cal_adjusted_price(order, fee):
+    adjusted_cost = order['cost'] + fee
+    adjusted_price = adjusted_cost / order['filled']
+    
+    return adjusted_price
     
 
 def cal_unrealised(last_price, config_params, open_orders_df):

@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import time
 
-from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_greed_index, get_available_cash_flow
-from func_cal import round_down_amount, cal_final_amount, cal_unrealised, cal_available_budget, cal_end_balance
+from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_order_fee, get_greed_index, get_available_cash_flow
+from func_cal import round_down_amount, cal_unrealised, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
 
@@ -87,26 +87,25 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     sell_price = cal_sell_price(buy_order, ask_price, config_params)
     
     try:
-        final_amount = cal_final_amount(buy_order['id'], exchange, base_currency, config_params)
-        sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', final_amount, sell_price)
+        sell_amount = buy_order['filled']
+        sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', sell_amount, sell_price)
         append_order(sell_order, 'amount', open_orders_df_path)
     except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
         # InvalidOrder: Filled with small amount before force closed.
         # InvalidOrder: The order is closed by system (could caused by post_only param for buy orders).
         # InvalidOrder: Exchange fail to update actual filled amount.
         # InsufficientFunds: Not available amount to sell (could caused by decimal).
-        base_currency_free = get_base_currency_free(exchange, base_currency)
-        final_amount = round_down_amount(base_currency_free, config_params)
+        sell_amount = round_down_amount(buy_order['filled'])
 
-        if final_amount > 0:
+        if sell_amount > 0:
             # Free amount more than minimum order, sell all.
-            sell_order = exchange.create_order(config_params['symbol'], 'market', 'sell', final_amount)
+            sell_order = exchange.create_order(config_params['symbol'], 'market', 'sell', sell_amount)
         else:
             sell_order = None
 
         append_error_log('CannotOpenSell', error_log_df_path)
     
-    print(f"Open sell {final_amount:.3f} {base_currency} at {sell_price:.2f} {quote_currency}")
+    print(f"Open sell {sell_amount:.3f} {base_currency} at {sell_price:.2f} {quote_currency}")
 
 
 def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
@@ -253,10 +252,11 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
             time.sleep(config_system['idle_stage'])
             sell_order = exchange.fetch_order(sell_order['id'], config_params['symbol'])
 
+        fee = get_order_fee(exchange, sell_order, config_params)
         new_sell_price = sell_order['price']
         new_sell_amount = sell_order['amount']
         new_sell_value = new_sell_price * new_sell_amount
-        loss = new_sell_value - buy_value
+        loss = new_sell_value - buy_value + fee
         
         update_loss(loss, last_loop_path)
         noti_warning(f"Cut loss {loss:.2f} {quote_currency} at {new_sell_price:.2f} {quote_currency}", bot_name)

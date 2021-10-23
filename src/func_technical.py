@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 import math
 import time
 
-from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_free, get_quote_currency_value, get_position_api
+from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_free, get_quote_currency_value, get_order_fee, get_position_api
 from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, noti_warning, print_position
@@ -171,11 +171,14 @@ def update_signal_timestamp(signal_timestamp, last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def update_open_position(order, position_path):
+def update_open_position(order, exchange, config_params, position_path):
     position = get_json(position_path)
+    fee = get_order_fee(exchange, order, config_params)
+
     position['side'] = order['side']
     position['entry_price'] = order['price']
     position['amount'] = order['amount']
+    position['open_fee'] = fee
 
     update_json(position, position_path)
 
@@ -311,7 +314,7 @@ def cal_reduce_amount(value, exchange, config_params):
     return amount
 
 
-def append_profit_technical(order, position_path, profit_df_path):
+def append_profit_technical(order, exchange, config_params, position_path, profit_df_path):
     profit_df = pd.read_csv(profit_df_path)
     position = get_json(position_path)
     
@@ -322,7 +325,9 @@ def append_profit_technical(order, position_path, profit_df_path):
     elif position['side'] == 'sell':
         margin = position['entry_price'] - order['price']
 
-    profit = margin * order['amount']
+    open_fee = position['open_fee']
+    close_fee = get_order_fee(exchange, order, config_params)
+    profit = (margin * order['amount']) - (open_fee + close_fee)
 
     profit_df.loc[len(profit_df)] = [timestamp, order['id'], order['symbol'], order['side'], order['amount'], position['entry_price'], order['price'], profit]
     profit_df.to_csv(profit_df_path, index=False)
@@ -380,7 +385,7 @@ def withdraw_position(net_transfer, exchange, bot_name, config_system, config_pa
     time.sleep(config_system['idle_stage'])
     
     reduce_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-    append_profit_technical(reduce_order, position_path, profit_df_path)
+    append_profit_technical(reduce_order, exchange, config_params, position_path, profit_df_path)
     update_reduce_position(reduce_order, position_path)
 
 
@@ -405,7 +410,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
             time.sleep(config_system['idle_stage'])
 
             close_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-            append_profit_technical(close_order, position_path, profit_df_path)
+            append_profit_technical(close_order, exchange, config_params, position_path, profit_df_path)
             update_reduce_position(close_order, position_path)
         
         transfer = get_json(transfer_path)
@@ -418,7 +423,7 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
         time.sleep(config_system['idle_stage'])
 
         open_order = clear_orders_technical(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
-        update_open_position(open_order, position_path)
+        update_open_position(open_order, exchange, config_params, position_path)
 
     else:
         print("No action")

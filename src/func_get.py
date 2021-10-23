@@ -135,6 +135,26 @@ def get_quote_currency_value(exchange, quote_currency):
         quote_currency_value = 0
 
     return quote_currency_value
+    
+
+def get_order_fee(exchange, order, config_params):
+    # Trades can be queried 200 at most.
+    _, quote_currency = get_currency(config_params)
+    trades = exchange.fetch_my_trades(config_params['symbol'], limit=200)
+    trades_df = pd.DataFrame(trades)
+    if len(trades_df) > 0:
+        order_trade = trades_df[trades_df['order'] == order['id']].reset_index(drop=True)
+        fee = 0
+
+        for i in range(len(order_trade)):
+            if (order_trade['fee'][i]['currency'] == quote_currency) | (order_trade['fee'][i]['cost'] == 0):
+                fee += order_trade['fee'][i]['cost']
+            else:
+                # Taker fee should be charged as quote currency.
+                # Maker fee should be 0 for FTT stakers.
+                raise ValueError("Fee is not quote currency!!!")
+
+    return fee
 
 
 def get_pending_order(open_orders_df_path):
