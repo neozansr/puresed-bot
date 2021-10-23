@@ -9,7 +9,13 @@ from func_update import update_json, append_order, remove_order, append_error_lo
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
 
 
-def cal_buy_price_list(n_buy_orders, bid_price, min_open_sell_price, open_buy_orders_df, open_sell_orders_df, config_params):
+def cal_buy_price_list(n_buy_orders, bid_price, open_orders_df_path, config_params):
+    # Update open_orders_df before cal price.
+    open_orders_df = pd.read_csv(open_orders_df_path)
+    open_buy_orders_df = open_orders_df[open_orders_df['side'] == 'buy']
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+    min_open_sell_price = min(open_sell_orders_df['price'], default=np.inf)
+
     if len(open_buy_orders_df) > 0:
         buy_price = min(open_buy_orders_df['price']) - config_params['grid']
     else:
@@ -63,7 +69,7 @@ def open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_
     quote_currency_free = get_quote_currency_free(exchange, quote_currency)
     available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
 
-    buy_price_list = cal_buy_price_list(n_buy_orders, bid_price, min_open_sell_price, open_buy_orders_df, open_sell_orders_df, config_params)
+    buy_price_list = cal_buy_price_list(n_buy_orders, bid_price, open_orders_df_path, config_params)
     
     for price in buy_price_list:
         amount = config_params['value'] / price
