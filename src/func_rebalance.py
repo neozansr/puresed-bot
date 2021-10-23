@@ -8,13 +8,13 @@ from func_update import update_json, append_order, remove_order, append_cash_flo
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
 
-def gen_fix_series(config_system):
-    series = [config_system['idle_loop']]
+def gen_fix_sequence(config_system):
+    sequence = [config_system['idle_loop']]
 
-    return series
+    return sequence
 
 
-def gen_hexa_series(n=18, limit_min=4):
+def gen_hexa_sequence(n=18, limit_min=4):
     def hexa(n) :
         if n in range(6):
             return 0
@@ -28,38 +28,38 @@ def gen_hexa_series(n=18, limit_min=4):
                     hexa(n - 5) +
                     hexa(n - 6))
     
-    series = []
+    sequence = []
     for i in range(6, n):
-        series.append(hexa(i))
+        sequence.append(hexa(i))
         
-    series = [x for x in series if x >= limit_min]
+    sequence = [x for x in sequence if x >= limit_min]
     
-    if len(series) == 0:
-        print("No series generated, increase n size")
+    if len(sequence) == 0:
+        print("No sequence generated, increase n size")
         sys.exit(1)
         
-    return series
+    return sequence
 
 
-def get_series_loop(config_params, config_system, last_loop_path):
+def get_sequence_loop(config_params, config_system, last_loop_path):
     last_loop = get_json(last_loop_path)
 
-    if config_params['series_rule'] == 'fix':
-        series = gen_fix_series(config_system)
-    elif config_params['series_rule'] == 'hexa':
-        series = gen_hexa_series()
+    if config_params['sequence_rule'] == 'fix':
+        sequence = gen_fix_sequence(config_system)
+    elif config_params['sequence_rule'] == 'hexa':
+        sequence = gen_hexa_sequence()
 
     order_loop = last_loop['order_loop']
-    series_loop = series[order_loop]
+    sequence_loop = sequence[order_loop]
 
-    update_order_loop(order_loop, series, last_loop, last_loop_path)
+    update_order_loop(order_loop, sequence, last_loop, last_loop_path)
     
-    return series_loop
+    return sequence_loop
 
 
-def update_order_loop(order_loop, series, last_loop, last_loop_path):
+def update_order_loop(order_loop, sequence, last_loop, last_loop_path):
     order_loop += 1
-    if order_loop >= len(series):
+    if order_loop >= len(sequence):
         order_loop = 0
 
     last_loop['order_loop'] = order_loop
