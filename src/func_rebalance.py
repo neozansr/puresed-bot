@@ -169,11 +169,11 @@ def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_p
     if rebalance_flag == 1:
         amount = round_down_amount(diff_value / price, config_params)
 
-        try:
+        if amount > 0:
             order = exchange.create_order(config_params['symbol'], 'market', side, amount)
             append_order(order, 'amount', open_orders_df_path)
-        except ccxt.InvalidOrder:
-            print (f"{amount} {base_currency} is too small to place order!!!")
+        else:
+            print("Too small amount to place order!!!")
 
     time.sleep(config_system['idle_stage'])
     clear_orders_rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
