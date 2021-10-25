@@ -1,9 +1,10 @@
+import ccxt
 import pandas as pd
 import time
 import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_order_fee, get_available_cash_flow
-from func_cal import cal_adjusted_price, cal_end_balance
+from func_cal import round_down_amount, cal_adjusted_price, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
@@ -35,7 +36,7 @@ def gen_hexa_sequence(n=18, limit_min=4):
     sequence = [x for x in sequence if x >= limit_min]
     
     if len(sequence) == 0:
-        print("No sequence generated, increase n size")
+        print("No sequence generated, increase n size!!!")
         sys.exit(1)
         
     return sequence
@@ -110,9 +111,21 @@ def append_profit_rebalance(order, exchange, config_params, last_loop_path, prof
 
     last_loop['average_cost'] = average_cost
     last_loop['holding_amount'] = holding_amount
+    last_loop['last_action_price'] = order['price']
     update_json(last_loop, last_loop_path)
     
 
+def cal_min_value(config_params, last_loop_path):
+    last_loop = get_json(last_loop_path)
+
+    grid = last_loop['last_action_price'] * (config_params['grid_percent'] / 100)
+    target_price = last_loop['last_action_price'] + grid
+    last_action_value = last_loop['last_action_price'] * last_loop['holding_amount']
+    min_value = (target_price * last_loop['holding_amount']) - last_action_value
+
+    return min_value
+
+    
 def clear_orders_rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
 
@@ -136,15 +149,16 @@ def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_p
     base_currency, quote_currency = get_currency(config_params)
     last_price = get_last_price(exchange, config_params)
     current_value = get_base_currency_value(last_price, exchange, base_currency)
+    min_value = cal_min_value(config_params, last_loop_path)
     
     print(f"Last price: {last_price:.2f} {quote_currency}")
     print_current_value(current_value, exchange, quote_currency)
 
-    if current_value < config_params['fix_value'] - config_params['min_value']:
+    if current_value < config_params['fix_value'] - min_value:
         side = 'buy'
         diff_value = config_params['fix_value'] - current_value
         price = get_bid_price(exchange, config_params)
-    elif current_value > config_params['fix_value'] + config_params['min_value']:
+    elif current_value > config_params['fix_value'] + min_value:
         side = 'sell'
         diff_value = current_value - config_params['fix_value']
         price = get_ask_price(exchange, config_params)
@@ -153,12 +167,13 @@ def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_p
         print("No action")
         
     if rebalance_flag == 1:
-        amount = diff_value / price
+        amount = round_down_amount(diff_value / price, config_params)
 
-        # If InvalidOrder, the price is too high for current fix_value.
-        order = exchange.create_order(config_params['symbol'], 'market', side, amount)
-        
-        append_order(order, 'amount', open_orders_df_path)
+        try:
+            order = exchange.create_order(config_params['symbol'], 'market', side, amount)
+            append_order(order, 'amount', open_orders_df_path)
+        except ccxt.InvalidOrder:
+            print (f"{amount} {base_currency} is too small to place order!!!")
 
     time.sleep(config_system['idle_stage'])
     clear_orders_rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)

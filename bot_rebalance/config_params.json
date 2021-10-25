@@ -3,5 +3,6 @@
  "sequence_rule": "fix",
  "fix_value": 1000,
  "leverage": 1,
- "min_value": 10
+ "grid_percent": 0.12,
+ "decimal": 3
 }
