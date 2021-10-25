@@ -34,7 +34,6 @@ if __name__ == '__main__':
     transfer_path = 'transfer.json'
     open_orders_df_path = 'open_orders.csv'
     transactions_df_path = 'transactions.csv'
-    queue_df_path = 'queue.csv'
     profit_df_path = 'profit.csv'
     error_log_df_path = 'error_log.csv'
     cash_flow_df_path = home_path + 'cash_flow/{}.csv'
