@@ -173,7 +173,7 @@ def rebalance(exchange, bot_name, config_system, config_params, open_orders_df_p
             order = exchange.create_order(config_params['symbol'], 'market', side, amount)
             append_order(order, 'amount', open_orders_df_path)
         else:
-            print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
+            print(f"Cannot {side} {diff_value:.2f} value, {amount:.2f} {base_currency} is too small amount to place order!!!")
 
     time.sleep(config_system['idle_stage'])
     clear_orders_rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)

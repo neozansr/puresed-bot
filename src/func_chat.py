@@ -91,6 +91,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     last_timestamp = last_loop['timestamp']
 
     text += f"\nBalance: {balance_value:.2f} {quote_currency}"
+    text += f"\nFix value: {config_params['fix_value']:.2f} {quote_currency}"
     text += f"\nCurrent value: {current_value:.2f} {quote_currency}"
     text += f"\nCash: {cash:.2f} {quote_currency}"
     text += f"\nToday cash flow: {today_cash_flow:.2f} {quote_currency}"
