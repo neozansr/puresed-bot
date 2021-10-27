@@ -352,7 +352,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_reinvest(new_value, config_params_path)
     reset_loss(last_loop_path)
-    update_transfer(transfer_path)
+    update_transfer(config_params, transfer_path)
 
 
 def print_report_grid(exchange, config_params, open_orders_df_path):

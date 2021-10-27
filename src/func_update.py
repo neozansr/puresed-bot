@@ -61,7 +61,7 @@ def update_timestamp(last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def update_transfer(transfer_path):
+def update_transfer(config_params, transfer_path):
     transfer = get_json(transfer_path)
     withdraw = transfer['withdraw']
 
@@ -69,6 +69,9 @@ def update_transfer(transfer_path):
     transfer['withdraw'] = 0
     transfer['withdraw_cash_flow'] = 0
     transfer['withdraw_yield'] = 0
-    transfer['pending_withdraw'] = transfer['pending_withdraw'] + withdraw
+
+    fee = withdraw * (config_params['taker_fee'] / 100)
+    adjusted_withdraw = withdraw - fee
+    transfer['pending_withdraw'] = transfer['pending_withdraw'] + adjusted_withdraw
 
     update_json(transfer, transfer_path)

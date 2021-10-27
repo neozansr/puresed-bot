@@ -469,7 +469,7 @@ def update_end_date_technical(prev_date, exchange, bot_name, config_system, conf
         ]
 
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-    update_transfer(transfer_path)
+    update_transfer(config_params, transfer_path)
 
 
 def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path):

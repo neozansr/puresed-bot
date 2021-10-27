@@ -4,5 +4,6 @@
  "fix_value": 1000,
  "leverage": 1,
  "grid_percent": 0.12,
- "decimal": 3
+ "decimal": 3,
+ "taker_fee": 0.07
 }

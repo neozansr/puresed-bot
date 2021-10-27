@@ -214,7 +214,7 @@ def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, conf
     
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_fix_value(transfer, config_params, config_params_path)
-    update_transfer(transfer_path)
+    update_transfer(config_params, transfer_path)
 
 
 def print_report_rebalance(exchange, config_params):
