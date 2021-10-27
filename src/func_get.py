@@ -146,17 +146,17 @@ def get_order_fee(market, order, exchange, config_params):
 
     trades = exchange.fetch_my_trades(config_params['symbol'], limit=200)
     trades_df = pd.DataFrame(trades)
-    if len(trades_df) > 0:
-        order_trade = trades_df[trades_df['order'] == order['id']].reset_index(drop=True)
-        fee = 0
-
-        for i in range(len(order_trade)):
-            if (order_trade['fee'][i]['currency'] == quote_currency) | (order_trade['fee'][i]['cost'] == 0):
-                fee += order_trade['fee'][i]['cost']
-            else:
-                # Taker fee should be charged as quote currency.
-                # Maker fee should be 0 for FTT stakers.
-                raise ValueError("Fee is not quote currency!!!")
+    order_trade = trades_df[trades_df['order'] == order['id']].reset_index(drop=True)
+    
+    fee = 0
+    
+    for i in range(len(order_trade)):
+        if (order_trade['fee'][i]['currency'] == quote_currency) | (order_trade['fee'][i]['cost'] == 0):
+            fee += order_trade['fee'][i]['cost']
+        else:
+            # Taker fee should be charged as quote currency.
+            # Maker fee should be 0 for FTT stakers.
+            raise ValueError("Fee is not quote currency!!!")
 
     return fee
 
