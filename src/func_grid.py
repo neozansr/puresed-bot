@@ -114,7 +114,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     print(f"Open sell {sell_amount:.3f} {base_currency} at {sell_price:.2f} {quote_currency}")
 
 
-def clear_orders_grid(side, exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
+def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     open_orders_list = open_orders_df[open_orders_df['side'] == side]['order_id'].to_list()
 
@@ -130,17 +130,7 @@ def clear_orders_grid(side, exchange, bot_name, config_system, config_params, op
             noti_success_order(order, bot_name, config_params)
 
             if side == 'buy':
-                sell_flag = 1
-
-                while sell_flag == 1:
-
-                    try:
-                        open_sell_orders_grid(order, exchange, config_params, open_orders_df_path, error_log_df_path)
-                        sell_flag = 0
-                    except ccxt.InsufficientFunds:
-                        # Available amount has not been update.
-                        print(f"Error: Cannot open sell order {order_id}")
-                        time.sleep(config_system['idle_stage'])
+                open_sell_orders_grid(order, exchange, config_params, open_orders_df_path, error_log_df_path)
 
             remove_order(order_id, open_orders_df_path)
             append_order(order, 'filled', transactions_df_path)
