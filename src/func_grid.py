@@ -101,7 +101,8 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         # InvalidOrder: The order is closed by system (could caused by post_only param for buy orders).
         # InvalidOrder: Exchange fail to update actual filled amount.
         # InsufficientFunds: Not available amount to sell (could caused by decimal).
-        sell_amount = round_down_amount(buy_order['filled'], config_params)
+        free_amount = get_base_currency_free(exchange, base_currency)
+        sell_amount = round_down_amount(free_amount, config_params)
 
         if sell_amount > 0:
             # Free amount more than minimum order, sell all.
