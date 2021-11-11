@@ -47,7 +47,7 @@ if __name__ == '__main__':
             print("Start loop")
             try:
                 run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
-            except (ccxt.RequestTimeout, ccxt.NetworkError):
+            except (ccxt.RequestTimeout, ccxt.NetworkError, ccxt.ExchangeError):
                 append_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
         
