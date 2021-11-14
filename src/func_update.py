@@ -68,7 +68,6 @@ def update_transfer(config_params, transfer_path):
     transfer['deposit'] = 0
     transfer['withdraw'] = 0
     transfer['withdraw_cash_flow'] = 0
-    transfer['withdraw_yield'] = 0
 
     fee = withdraw * (config_params['taker_fee'] / 100)
     adjusted_withdraw = withdraw - fee
