@@ -289,6 +289,7 @@ def get_action(ohlcv_df, config_params):
         'tma': signal_tma,
         'bollinger': signal_bollinger
         }
+        
     action, signal_price = func_dict[config_params['signal']](ohlcv_df, config_params)
     
     return action, signal_price

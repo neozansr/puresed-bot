@@ -210,7 +210,7 @@ def get_greed_index(default_index=0.5):
 
 
 def get_position_api(exchange, config_params):
-    # API provide wrong entry_price and pnl.
+    # ccxt 1.50.9 API provide wrong entry_price and pnl.
     positions = exchange.fetch_positions()
     indexed = exchange.index_by(positions, 'future')
     position = exchange.safe_value(indexed, config_params['symbol'])

@@ -4,7 +4,7 @@ import time
 import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_order_fee, get_available_cash_flow
-from func_cal import round_down_amount, cal_adjusted_price, cal_end_balance
+from func_cal import round_down_amount, cal_adjusted_price, cal_end_balance, cal_end_quote_currency
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, print_current_balance, print_current_value
 
@@ -198,13 +198,14 @@ def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, conf
     available_cash_flow += cash_flow
     
     end_balance = cal_end_balance(current_value, cash, transfer)
+    end_cash = cal_end_quote_currency(cash, transfer)
 
     cash_flow_list = [
         prev_date,
         config_params['fix_value'],
         end_balance,
         current_value,
-        cash,
+        end_cash,
         cash_flow,
         transfer['deposit'],
         transfer['withdraw'],

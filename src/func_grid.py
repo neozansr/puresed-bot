@@ -200,7 +200,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     
-    min_sell_price = min(open_orders_df['price'], default=0)    
+    min_sell_price = min(open_orders_df['price'], default=0)
     last_price = get_last_price(exchange, config_params)
 
     transfer = get_json(transfer_path)
@@ -272,7 +272,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, config_params_pat
             time.sleep(config_system['idle_rest'])
     
     except ccxt.InvalidOrder:
-        # Order has already been canceled from last loop but failed to update   df.
+        # Order has already been canceled from last loop but failed to update df.
         append_error_log(f'InvalidOrder:LastLoopClose', error_log_df_path)
         remove_order(canceled_id, open_orders_df_path)
 
