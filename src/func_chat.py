@@ -88,6 +88,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     today_cash_flow = sum(today_profit_df['profit'])
 
     last_loop = get_json(bot_path + last_loop_path)
+    average_cost = last_loop['average_cost']
     last_timestamp = last_loop['timestamp']
 
     text += f"\nBalance: {balance_value:.2f} {quote_currency}"
@@ -95,6 +96,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     text += f"\nCurrent value: {current_value:.2f} {quote_currency}"
     text += f"\nCash: {cash:.2f} {quote_currency}"
     text += f"\nToday cash flow: {today_cash_flow:.2f} {quote_currency}"
+    text += f"\nAverage cost: {average_cost} {quote_currency}"
 
     text += f"\n\nLast active: {last_timestamp}"
 
