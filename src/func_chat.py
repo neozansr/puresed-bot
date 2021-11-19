@@ -96,7 +96,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     text += f"\nCurrent value: {current_value:.2f} {quote_currency}"
     text += f"\nCash: {cash:.2f} {quote_currency}"
     text += f"\nToday cash flow: {today_cash_flow:.2f} {quote_currency}"
-    text += f"\nAverage cost: {average_cost} {quote_currency}"
+    text += f"\nAverage cost: {average_cost:.2f} {quote_currency}"
 
     text += f"\n\nLast active: {last_timestamp}"
 
