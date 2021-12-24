@@ -1,8 +1,11 @@
 {
- "symbol": "ETH/USD",
+ "symbol": {
+	 "ETH/USD": 0.3,
+	 "LUNA-PERP": 0.2,
+	 "ETH-PERP": -0.3
+	 },
  "sequence_rule": "fix",
- "fix_value": 1000,
- "leverage": 1,
+ "budget": 1000,
  "grid_percent": 0.12,
  "decimal": 3,
  "taker_fee": 0.07

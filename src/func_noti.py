@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 
-from func_get import get_json, get_time, get_currency, get_currency_future, get_base_currency_value, get_quote_currency_value, get_pending_order
+from func_get import get_json, get_time, get_currency, get_base_currency_value, get_quote_currency_value, get_pending_order
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
@@ -23,11 +23,8 @@ def line_send(message, noti_type):
     return send_message
 
 
-def noti_success_order(order, bot_name, config_params, future=False):
-    if future == True:
-        base_currency, quote_currency = get_currency_future(config_params)
-    else:
-        base_currency, quote_currency = get_currency(config_params)
+def noti_success_order(order, bot_name, symbol):
+    base_currency, quote_currency = get_currency(symbol)
     
     side = order['side']
     filled = order['filled']
@@ -44,8 +41,8 @@ def noti_warning(warning, bot_name):
     print(message)
 
 
-def print_current_balance(last_price, exchange, config_params):
-    base_currency, quote_currency = get_currency(config_params)
+def print_current_balance(last_price, exchange, symbol):
+    base_currency, quote_currency = get_currency(symbol)
 
     current_value = get_base_currency_value(last_price, exchange, base_currency)
     cash = get_quote_currency_value(exchange, quote_currency)
@@ -54,9 +51,9 @@ def print_current_balance(last_price, exchange, config_params):
     print(f"Balance: {balance_value:.2f} {quote_currency}")
 
 
-def print_hold_assets(last_price, base_currency, quote_currency, config_params, open_orders_df_path):
+def print_hold_assets(last_price, base_currency, quote_currency, grid, open_orders_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, config_params, open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, grid, open_orders_df)
 
     assets_dict = {'timestamp': get_time(),
                    'last_price': last_price, 

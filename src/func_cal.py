@@ -1,14 +1,14 @@
 import numpy as np
 
 
-def round_down_amount(amount, config_params):
-    floor_amount = np.floor(amount * (10 ** config_params['decimal'])) / (10 ** config_params['decimal'])
+def round_down_amount(amount, decimal):
+    floor_amount = np.floor(amount * (10 ** decimal)) / (10 ** decimal)
     
     return floor_amount
 
 
-def round_up_amount(amount, config_params):
-    floor_amount = np.ceil(amount * (10 ** config_params['decimal'])) / (10 ** config_params['decimal'])
+def round_up_amount(amount, decimal):
+    floor_amount = np.ceil(amount * (10 ** decimal)) / (10 ** decimal)
     
     return floor_amount
 
@@ -20,11 +20,11 @@ def cal_adjusted_price(order, fee):
     return adjusted_price
     
 
-def cal_unrealised(last_price, config_params, open_orders_df):
+def cal_unrealised(last_price, grid, open_orders_df):
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     n_open_sell_oders = len(open_sell_orders_df)
     
-    price_list = [x - config_params['grid'] for x in open_sell_orders_df['price']]
+    price_list = [x - grid for x in open_sell_orders_df['price']]
     amount_list = open_sell_orders_df['amount'].to_list()
 
     amount = sum(amount_list)

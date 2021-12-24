@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 import math
 import time
 
-from func_get import get_json, get_time, convert_tz, get_currency_future, get_last_price, get_quote_currency_free, get_quote_currency_value, get_order_fee, get_position_api
+from func_get import get_json, get_time, convert_tz, get_currency, get_last_price, get_quote_currency_free, get_quote_currency_value, get_order_fee, get_position_api
 from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, noti_warning, print_position
@@ -100,7 +100,7 @@ def group_timeframe(df, step):
         h_dict['high'].append(max(temp_df['high']))
         h_dict['low'].append(min(temp_df['low']))
         h_dict['close'].append(temp_df['close'][len(temp_df) - 1])
-
+    
     df = pd.DataFrame(h_dict)
     
     return df
@@ -173,7 +173,7 @@ def update_signal_timestamp(signal_timestamp, last_loop_path):
 
 def update_open_position(order, exchange, config_params, position_path):
     position = get_json(position_path)
-    fee = get_order_fee('future', order, exchange, config_params)
+    fee = get_order_fee(order, exchange, config_params['symbol'])
 
     position['side'] = order['side']
     position['entry_price'] = order['price']
@@ -298,9 +298,9 @@ def get_action(ohlcv_df, config_params):
 def cal_new_amount(value, exchange, config_params):
     leverage_value = value * config_params['leverage']
     
-    last_price = get_last_price(exchange, config_params)
+    last_price = get_last_price(exchange, config_params['symbol'])
     amount = leverage_value / last_price
-    amount = round_down_amount(amount, config_params)
+    amount = round_down_amount(amount, config_params['decimal'])
     
     return amount
 
@@ -308,9 +308,9 @@ def cal_new_amount(value, exchange, config_params):
 def cal_reduce_amount(value, exchange, config_params):
     leverage_value = value * config_params['leverage']
     
-    last_price = get_last_price(exchange, config_params)
+    last_price = get_last_price(exchange, config_params['symbol'])
     amount = leverage_value / last_price
-    amount = round_up_amount(amount, config_params)
+    amount = round_up_amount(amount, config_params['decimal'])
 
     return amount
 
@@ -327,7 +327,7 @@ def append_profit_technical(order, exchange, config_params, position_path, profi
         margin = position['entry_price'] - order['price']
 
     open_fee = position['open_fee']
-    close_fee = get_order_fee('future', order, exchange, config_params)
+    close_fee = get_order_fee(order, exchange, config_params['symbol'])
     profit = (margin * order['amount']) - (open_fee + close_fee)
 
     profit_df.loc[len(profit_df)] = [timestamp, order['id'], order['symbol'], order['side'], order['amount'], position['entry_price'], order['price'], profit]
@@ -370,7 +370,7 @@ def clear_orders_technical(exchange, bot_name, config_system, config_params, ope
 
         remove_order(order_id, open_orders_df_path)
         append_order(order, 'filled', transactions_df_path)
-        noti_success_order(order, bot_name, config_params, future=True)
+        noti_success_order(order, bot_name, config_params['symbol'])
 
     return order
 
@@ -392,7 +392,7 @@ def withdraw_position(net_transfer, exchange, bot_name, config_system, config_pa
 
 def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_path, last_loop_path, position_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
     config_params = get_json(config_params_path)
-    _, quote_currency = get_currency_future(config_params)
+    _, quote_currency = get_currency(config_params['symbol'])
     last_loop = get_json(last_loop_path)
     action, signal_price = get_action(ohlcv_df, config_params)
     close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
@@ -416,10 +416,11 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
         
         transfer = get_json(transfer_path)
 
-        # Technical bot not collect cash flow.
-        available_cash_flow = 0
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-        available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
+        
+        # Technical bot not collect cash flow.
+        available_budget = cal_available_budget(quote_currency_free, 0, transfer)
+        
         open_position(available_budget, action, exchange, config_params_path, open_orders_df_path)
         time.sleep(config_system['idle_stage'])
 
@@ -438,10 +439,10 @@ def update_end_date_technical(prev_date, exchange, bot_name, config_system, conf
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     
-    last_price = get_last_price(exchange, config_params)
+    last_price = get_last_price(exchange, config_params['symbol'])
     position = get_json(position_path)
 
-    _, quote_currency = get_currency_future(config_params)
+    _, quote_currency = get_currency(config_params['symbol'])
 
     unrealised = cal_unrealised_future(last_price, position)
 
@@ -470,7 +471,7 @@ def update_end_date_technical(prev_date, exchange, bot_name, config_system, conf
         ]
 
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-    update_transfer(config_params, transfer_path)
+    update_transfer(config_params['taker_fee'], transfer_path)
 
 
 def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, position_path):
@@ -479,7 +480,7 @@ def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, posit
     
     if position['amount'] > 0:
         last_loop = get_json(last_loop_path)
-        last_price = get_last_price(exchange, config_params)
+        last_price = get_last_price(exchange, config_params['symbol'])
 
         drawdown = cal_drawdown_future(last_price, position)
         
@@ -490,10 +491,10 @@ def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, posit
 
 def print_report_technical(exchange, config_params_path, position_path):
     config_params = get_json(config_params_path)
-    _, quote_currency = get_currency_future(config_params)
-    last_price = get_last_price(exchange, config_params)
+    _, quote_currency = get_currency(config_params['symbol'])
+    last_price = get_last_price(exchange, config_params['symbol'])
     position = get_json(position_path)
 
     if position['amount'] > 0:
-        position_api = get_position_api(exchange, config_params)
+        position_api = get_position_api(exchange, config_params['symbol'])
         print_position(last_price, position, position_api, quote_currency)

@@ -21,8 +21,10 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     if end_date_flag == 1:
         update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path)
     
-    rebalance(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
-    print_report_rebalance(exchange, config_params)
+    for symbol in config_params['symbol'].keys():
+        print(symbol)
+        rebalance(exchange, bot_name, symbol, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
+        print_report_rebalance(exchange, symbol)
 
     update_timestamp(last_loop_path)
 

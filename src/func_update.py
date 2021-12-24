@@ -46,9 +46,9 @@ def append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path):
     cash_flow_df.to_csv(cash_flow_df_path, index=False)
 
 
-def update_last_loop_price(exchange, config_params, last_loop_path):
+def update_last_loop_price(exchange, symbol, last_loop_path):
     last_loop = get_json(last_loop_path)
-    last_price = get_last_price(exchange, config_params)
+    last_price = get_last_price(exchange, symbol)
     last_loop['price'] = last_price
 
     update_json(last_loop, last_loop_path)
@@ -61,7 +61,7 @@ def update_timestamp(last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def update_transfer(config_params, transfer_path):
+def update_transfer(taker_fee, transfer_path):
     transfer = get_json(transfer_path)
     withdraw = transfer['withdraw']
 
@@ -69,7 +69,7 @@ def update_transfer(config_params, transfer_path):
     transfer['withdraw'] = 0
     transfer['withdraw_cash_flow'] = 0
 
-    fee = withdraw * (config_params['taker_fee'] / 100)
+    fee = withdraw * (taker_fee / 100)
     adjusted_withdraw = withdraw - fee
     transfer['pending_withdraw'] = transfer['pending_withdraw'] + adjusted_withdraw
 

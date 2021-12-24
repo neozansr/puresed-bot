@@ -57,36 +57,35 @@ def get_exchange(config_system, future=False):
     return exchange
 
 
-def get_currency(config_params):
-    base_currency = config_params['symbol'].split('/')[0]
-    quote_currency = config_params['symbol'].split('/')[1]
+def get_currency(symbol):
+    if len(symbol.split('/')) == 2:
+        base_currency = symbol.split('/')[0]
+        quote_currency = symbol.split('/')[1]
+    elif len(symbol.split('-')) == 2:
+        base_currency = symbol.split('-')[0]
+        quote_currency = 'USD'
+    else:
+        raise ValueError("Unrecognized symbol pattern")
 
     return base_currency, quote_currency
 
 
-def get_currency_future(config_params):
-    base_currency = config_params['symbol'].split('-')[0]
-    quote_currency = 'USD'
-
-    return base_currency, quote_currency
-
-
-def get_last_price(exchange, config_params):
-    ticker = exchange.fetch_ticker(config_params['symbol'])
+def get_last_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
     last_price = ticker['last']
     
     return last_price
 
 
-def get_bid_price(exchange, config_params):
-    ticker = exchange.fetch_ticker(config_params['symbol'])
+def get_bid_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
     bid_price = ticker['bid']
 
     return bid_price
 
 
-def get_ask_price(exchange, config_params):
-    ticker = exchange.fetch_ticker(config_params['symbol'])
+def get_ask_price(exchange, symbol):
+    ticker = exchange.fetch_ticker(symbol)
     ask_price = ticker['ask']
 
     return ask_price
@@ -137,14 +136,11 @@ def get_quote_currency_value(exchange, quote_currency):
     return quote_currency_value
     
 
-def get_order_fee(market, order, exchange, config_params):
+def get_order_fee(order, exchange, symbol):
     # Trades can be queried 200 at most.
-    if market == 'spot':
-        _, quote_currency = get_currency(config_params)
-    elif market == 'future':
-        _, quote_currency = get_currency_future(config_params)
+    _, quote_currency = get_currency(symbol)
 
-    trades = exchange.fetch_my_trades(config_params['symbol'], limit=200)
+    trades = exchange.fetch_my_trades(symbol, limit=200)
     trades_df = pd.DataFrame(trades)
     order_trade = trades_df[trades_df['order'] == order['id']].reset_index(drop=True)
     
@@ -209,11 +205,11 @@ def get_greed_index(default_index=0.5):
     return greed_index
 
 
-def get_position_api(exchange, config_params):
+def get_position_api(exchange, symbol):
     # ccxt 1.50.9 API provide wrong entry_price and pnl.
     positions = exchange.fetch_positions()
     indexed = exchange.index_by(positions, 'future')
-    position = exchange.safe_value(indexed, config_params['symbol'])
+    position = exchange.safe_value(indexed, symbol)
 
     return position
     
