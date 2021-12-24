@@ -1,10 +1,17 @@
 import numpy as np
 
 
-def round_down_amount(amount, decimal):
-    floor_amount = np.floor(amount * (10 ** decimal)) / (10 ** decimal)
+def round_amount(amount, exchange, symbol, type):
+    rounded_amount_str = exchange.amount_to_precision(symbol, amount)
+
+    if type == 'down':
+        rounded_amount = float(rounded_amount_str)
+    elif type == 'up':
+        decimal = rounded_amount_str[::-1].find('.')
+        min_amount = 10 ** (-decimal)
+        rounded_amount = float(rounded_amount_str) + min_amount
     
-    return floor_amount
+    return rounded_amount
 
 
 def round_up_amount(amount, decimal):
@@ -77,7 +84,7 @@ def cal_end_balance(base_currency_value, quote_currency_value, transfer):
     return end_balance
 
 
-def cal_end_quote_currency(quote_currency_value, transfer):
-    end_cash = quote_currency_value - transfer['withdraw'] - transfer['pending_withdraw']
+def cal_end_cash(cash, transfer):
+    end_cash = cash - transfer['withdraw'] - transfer['pending_withdraw']
 
     return end_cash

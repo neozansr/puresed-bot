@@ -5,6 +5,5 @@
  "window": 50,
  "base_timezone": "US/Eastern",
  "leverage": 3,
- "decimal":3,
  "taker_fee": 0.07
 }

@@ -4,7 +4,7 @@ import pandas as pd
 import time
 
 from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_order_fee, get_greed_index, get_available_cash_flow
-from func_cal import round_down_amount, cal_unrealised, cal_available_budget, cal_end_balance
+from func_cal import round_amount, cal_unrealised, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
 
@@ -73,12 +73,12 @@ def open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_
     
     for price in buy_price_list:
         amount = config_params['value'] / price
-        floor_amount = round_down_amount(amount, config_params['decimal'])
+        amount = round_amount(amount, exchange, config_params['symbol'], type='down')
 
         if available_budget >= config_params['value']:
-            buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', floor_amount, price, params={'postOnly':True})
+            buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', amount, price, params={'postOnly':True})
             append_order(buy_order, 'amount', open_orders_df_path)
-            print(f"Open buy {floor_amount:.3f} {base_currency} at {price:.2f} {quote_currency}")
+            print(f"Open buy {amount:.3f} {base_currency} at {price:.2f} {quote_currency}")
 
             quote_currency_free = get_quote_currency_free(exchange, quote_currency)
             available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
@@ -102,7 +102,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         # InvalidOrder: Exchange fail to update actual filled amount.
         # InsufficientFunds: Not available amount to sell (could caused by decimal).
         free_amount = get_base_currency_free(exchange, base_currency)
-        sell_amount = round_down_amount(free_amount, config_params['decimal'])
+        sell_amount = round_amount(free_amount, exchange, config_params['symbol'], type='down')
 
         if sell_amount > 0:
             # Free amount more than minimum order, sell all.
@@ -325,7 +325,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
     cash = get_quote_currency_value(exchange, quote_currency)
     end_balance = cal_end_balance(current_value, cash, transfer)
 

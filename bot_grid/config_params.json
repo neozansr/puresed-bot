@@ -6,6 +6,5 @@
  "reinvest_ratio": -1,
  "start_safety": 0,
  "circuit_limit": 40,
- "decimal": 3,
  "taker_fee": 0.07
 }

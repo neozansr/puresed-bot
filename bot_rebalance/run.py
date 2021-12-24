@@ -7,7 +7,7 @@ home_path = '../'
 src_path = home_path + 'src/'
 sys.path.append(os.path.abspath(src_path))
 
-from func_get import get_json, get_time, get_exchange, check_end_date
+from func_get import get_json, get_time, get_exchange, get_cash_value, check_end_date
 from func_update import append_error_log, update_timestamp
 from func_rebalance import get_sequence_loop, reset_order_loop, rebalance, update_end_date_rebalance, print_report_rebalance
 
@@ -24,8 +24,9 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     for symbol in config_params['symbol'].keys():
         print(symbol)
         rebalance(exchange, bot_name, symbol, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
-        print_report_rebalance(exchange, symbol)
 
+    cash = get_cash_value(exchange)
+    print(f"Cash: {cash:.2f} USD")
     update_timestamp(last_loop_path)
 
 

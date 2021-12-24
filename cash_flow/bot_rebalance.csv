@@ -1,1 +1,1 @@
-date,fix_value,end_balance,current_value,cash,cash_flow,deposit,withdraw,withdraw_cash_flow,available_cash_flow
+date,budget,end_balance,cash,symbol1,symbol2,cash_flow,deposit,withdraw,withdraw_cash_flow,available_cash_flow

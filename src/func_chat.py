@@ -1,6 +1,6 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_quote_currency_value, get_pending_order, get_available_cash_flow, get_position_api
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_pending_order, get_available_cash_flow, get_position
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
@@ -75,12 +75,9 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     config_params = get_json(bot_path + config_params_path)
 
     exchange = get_exchange(config_system)
-    base_currency, quote_currency = get_currency(symbol)
-    last_price = get_last_price(exchange, symbol)
-
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
-    balance_value = current_value + cash
+    total_value, value_dict = get_total_value(exchange, config_params)
+    cash = get_cash_value(exchange)
+    balance_value = total_value + cash
 
     cur_date = get_date()
     profit_df = pd.read_csv(bot_path + profit_df_path)
@@ -91,12 +88,16 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     average_cost = last_loop['average_cost']
     last_timestamp = last_loop['timestamp']
 
-    text += f"\nBalance: {balance_value:.2f} {quote_currency}"
-    text += f"\nFix value: {config_params['fix_value']:.2f} {quote_currency}"
-    text += f"\nCurrent value: {current_value:.2f} {quote_currency}"
-    text += f"\nCash: {cash:.2f} {quote_currency}"
-    text += f"\nToday cash flow: {today_cash_flow:.2f} {quote_currency}"
-    text += f"\nAverage cost: {average_cost:.2f} {quote_currency}"
+    text += f"\nBalance: {balance_value:.2f} USD"
+
+    for symbol in value_dict.keys():
+        base_currency, _ = get_currency(symbol)
+        text += f"\n{base_currency} Fix value: {value_dict[symbol]['fix_value']:.2f} USD"
+        text += f"\n{base_currency} Current value: {value_dict[symbol]['current_value']:.2f} USD"
+    
+    text += f"\nCash: {cash:.2f} USD"
+    text += f"\nToday cash flow: {today_cash_flow:.2f} USD"
+    text += f"\nAverage cost: {average_cost:.2f} USD"
 
     text += f"\n\nLast active: {last_timestamp}"
 
@@ -114,8 +115,8 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     base_currency, quote_currency = get_currency(config_params['symbol'])
     last_price = get_last_price(exchange, config_params['symbol'])
 
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
+    current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
+    cash = get_cash_value(exchange)
     balance_value = current_value + cash
 
     open_orders_df = pd.read_csv(bot_path + open_orders_df_path)
@@ -157,7 +158,7 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
     _, quote_currency = get_currency(config_params['symbol'])
     last_price = get_last_price(exchange, config_params['symbol'])
     
-    balance_value = get_quote_currency_value(exchange, quote_currency)
+    balance_value = get_cash_value(exchange)
 
     last_loop = get_json(bot_path + last_loop_path)
     last_timestamp = last_loop['timestamp']
@@ -178,7 +179,7 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
     position = get_json(bot_path + position_path)
 
     if position['amount'] > 0:
-        position_api = get_position_api(exchange, config_params['symbol'])
+        position_api = get_position(exchange, config_params['symbol'])
         liquidate_price = float(position_api['estimatedLiquidationPrice'])
         notional_value = float(position_api['cost'])
         

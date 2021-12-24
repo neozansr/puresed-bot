@@ -6,8 +6,8 @@ from dateutil.relativedelta import relativedelta
 import math
 import time
 
-from func_get import get_json, get_time, convert_tz, get_currency, get_last_price, get_quote_currency_free, get_quote_currency_value, get_order_fee, get_position_api
-from func_cal import round_down_amount, round_up_amount, cal_unrealised_future, cal_drawdown_future, cal_available_budget, cal_end_balance
+from func_get import get_json, get_time, convert_tz, get_currency, get_last_price, get_position, get_quote_currency_free, get_quote_currency_value, get_order_fee
+from func_cal import round_amount, cal_unrealised_future, cal_drawdown_future, cal_available_budget, cal_end_balance
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order, noti_warning, print_position
 
@@ -300,7 +300,7 @@ def cal_new_amount(value, exchange, config_params):
     
     last_price = get_last_price(exchange, config_params['symbol'])
     amount = leverage_value / last_price
-    amount = round_down_amount(amount, config_params['decimal'])
+    amount = round_amount(amount, exchange, config_params['symbol'], type='down')
     
     return amount
 
@@ -310,7 +310,7 @@ def cal_reduce_amount(value, exchange, config_params):
     
     last_price = get_last_price(exchange, config_params['symbol'])
     amount = leverage_value / last_price
-    amount = round_up_amount(amount, config_params['decimal'])
+    amount = round_amount(amount, exchange, config_params['symbol'], type='up')
 
     return amount
 
@@ -496,5 +496,5 @@ def print_report_technical(exchange, config_params_path, position_path):
     position = get_json(position_path)
 
     if position['amount'] > 0:
-        position_api = get_position_api(exchange, config_params['symbol'])
+        position_api = get_position(exchange, config_params['symbol'])
         print_position(last_price, position, position_api, quote_currency)

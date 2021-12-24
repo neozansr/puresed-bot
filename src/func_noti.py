@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 
-from func_get import get_json, get_time, get_currency, get_base_currency_value, get_quote_currency_value, get_pending_order
+from func_get import get_json, get_time, get_currency, get_base_currency_value, get_cash_value, get_pending_order
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
@@ -42,10 +42,10 @@ def noti_warning(warning, bot_name):
 
 
 def print_current_balance(last_price, exchange, symbol):
-    base_currency, quote_currency = get_currency(symbol)
+    _, quote_currency = get_currency(symbol)
 
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
+    current_value = get_base_currency_value(last_price, exchange, symbol)
+    cash = get_cash_value(exchange)
     balance_value = current_value + cash
     
     print(f"Balance: {balance_value:.2f} {quote_currency}")
@@ -75,20 +75,7 @@ def print_pending_order(quote_currency, open_orders_df_path):
     print(f"Max buy price: {max_buy_price:.2f} {quote_currency}")
     print(f"Min sell price: {min_sell_price:.2f} {quote_currency}")
     print(f"Max sell price: {max_sell_price:.2f} {quote_currency}")
-
-
-def print_current_value(current_value, exchange, quote_currency):
-    quote_currency_value = get_quote_currency_value(exchange, quote_currency)
-
-    print(f"Current value: {current_value:.2f} {quote_currency}")
-    print(f"Cash: {quote_currency_value:.2f} {quote_currency}")
-
-
-def print_current_value_future(exchange, quote_currency):
-    quote_currency_value = get_quote_currency_value(exchange, quote_currency)
-
-    print(f"Balance: {quote_currency_value:.2f} {quote_currency}")
-
+    
 
 def print_position(last_price, position, position_api, quote_currency):
     liquidate_price = float(position_api['estimatedLiquidationPrice'])

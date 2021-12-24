@@ -7,6 +7,5 @@
  "sequence_rule": "fix",
  "budget": 1000,
  "grid_percent": 0.12,
- "decimal": 3,
  "taker_fee": 0.07
 }

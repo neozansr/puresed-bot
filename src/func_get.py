@@ -63,7 +63,7 @@ def get_currency(symbol):
         quote_currency = symbol.split('/')[1]
     elif len(symbol.split('-')) == 2:
         base_currency = symbol.split('-')[0]
-        quote_currency = 'USD'
+        quote_currency = symbol.split('-')[1]
     else:
         raise ValueError("Unrecognized symbol pattern")
 
@@ -91,17 +91,54 @@ def get_ask_price(exchange, symbol):
     return ask_price
 
 
-def get_base_currency_value(last_price, exchange, base_currency):
-    balance = exchange.fetch_balance()
+def get_position(exchange, symbol):
+    positions = exchange.fetch_positions()
+    indexed = exchange.index_by(positions, 'future')
+    position = exchange.safe_value(indexed, symbol)
+
+    return position
+
+
+def get_base_currency_value(last_price, exchange, symbol):
+    base_currency, quote_currency = get_currency(symbol)
     
-    try:
-        amount = balance[base_currency]['total']
-        base_currency_value = last_price * amount
-    except KeyError:
-        base_currency_value = 0
+    if quote_currency != 'PERP':
+        balance = exchange.fetch_balance()
+        
+        try:
+            amount = balance[base_currency]['total']
+            base_currency_value = last_price * amount
+        except KeyError:
+            base_currency_value = 0
+
+    else:
+        position = get_position(exchange, symbol)
+        base_currency_value = last_price * float(position['size'])
 
     return base_currency_value
 
+
+def get_quote_currency_value(exchange, quote_currency):
+    balance = exchange.fetch_balance()
+
+    try:
+        quote_currency_value = balance[quote_currency]['total']
+    except KeyError:
+        quote_currency_value = 0
+
+    return quote_currency_value
+
+
+def get_cash_value(exchange):
+    balance = exchange.fetch_balance()
+    
+    try:
+        quote_currency_free = balance['USD']['total']
+    except KeyError:
+        quote_currency_free = 0
+
+    return quote_currency_free
+    
 
 def get_base_currency_free(exchange, base_currency):
     balance = exchange.fetch_balance()
@@ -125,15 +162,37 @@ def get_quote_currency_free(exchange, quote_currency):
     return quote_currency_free
 
 
-def get_quote_currency_value(exchange, quote_currency):
+def get_cash_free(exchange):
     balance = exchange.fetch_balance()
-
+    
     try:
-        quote_currency_value = balance[quote_currency]['total']
+        quote_currency_free = balance['USD']['free']
     except KeyError:
-        quote_currency_value = 0
+        quote_currency_free = 0
 
-    return quote_currency_value
+    return quote_currency_free
+
+
+def get_total_value(exchange, config_params):
+    total_value = 0
+    value_dict = {}
+    
+    for symbol in config_params['symbol'].keys():
+        _, quote_currency = get_currency(symbol)
+
+        last_price = get_last_price(exchange, symbol)
+        sub_value = get_base_currency_value(last_price, exchange, symbol)
+        side = -1 if config_params['symbol'][symbol] < 0 else 1
+        
+        value_dict[symbol] = {
+            'fix_value':config_params['budget'] * config_params['symbol'][symbol],
+            'current_value':sub_value * side
+            }
+
+        if quote_currency != 'PERP':    
+            total_value += sub_value
+
+    return total_value, value_dict
     
 
 def get_order_fee(order, exchange, symbol):
@@ -203,15 +262,6 @@ def get_greed_index(default_index=0.5):
         pass
 
     return greed_index
-
-
-def get_position_api(exchange, symbol):
-    # ccxt 1.50.9 API provide wrong entry_price and pnl.
-    positions = exchange.fetch_positions()
-    indexed = exchange.index_by(positions, 'future')
-    position = exchange.safe_value(indexed, symbol)
-
-    return position
     
 
 def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):

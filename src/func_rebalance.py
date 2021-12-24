@@ -3,10 +3,12 @@ import pandas as pd
 import time
 import sys
 
-from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_quote_currency_value, get_order_fee, get_available_cash_flow
-from func_cal import round_down_amount, cal_adjusted_price, cal_end_balance, cal_end_quote_currency
+from pandas.core.indexes import base
+
+from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_order_fee, get_available_cash_flow
+from func_cal import round_amount, cal_adjusted_price, cal_end_balance, cal_end_cash
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
-from func_noti import noti_success_order, print_current_balance, print_current_value
+from func_noti import noti_success_order
 
 
 def gen_fix_sequence(config_system):
@@ -79,7 +81,6 @@ def update_budget(transfer, config_params, config_params_path):
     net_transfer = transfer['deposit'] - transfer['withdraw']
 
     if net_transfer != 0:
-        # At leverage 1, hold value and cash with same amount.
         budget = config_params['budget']
         budget += net_transfer
         
@@ -89,18 +90,18 @@ def update_budget(transfer, config_params, config_params_path):
         update_json(config_params, config_params_path)
 
 
-def append_profit_rebalance(order, exchange, symbol, last_loop_path, profit_df_path):
+def append_profit_rebalance(order, exchange, symbol, fix_value, last_loop_path, profit_df_path):
     timestamp = get_time()
     last_loop = get_json(last_loop_path)
     average_cost = last_loop['symbol'][symbol]['average_cost']
     holding_amount = last_loop['symbol'][symbol]['holding_amount']
     fee = get_order_fee(order, exchange, symbol)
 
-    if order['side'] == 'buy':
+    if ((order['side'] == 'buy') & (fix_value >= 0)) | ((order['side'] == 'sell') & (fix_value < 0)):
         adjusted_price = cal_adjusted_price(order, fee)
         average_cost = ((average_cost * holding_amount) + (adjusted_price * order['amount'])) / (holding_amount + order['amount'])
         holding_amount += order['amount']
-    elif order['side'] == 'sell':
+    elif ((order['side'] == 'sell') & (fix_value >= 0)) | ((order['side'] == 'buy') & (fix_value < 0)):
         profit = ((order['price'] - average_cost) * order['amount']) - fee
         holding_amount -= order['amount']
 
@@ -125,7 +126,7 @@ def cal_min_value(symbol, grid_percent, last_loop_path):
     return min_value
 
     
-def clear_orders_rebalance(exchange, bot_name, symbol, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
+def clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
 
     if len(open_orders_df) > 0:
@@ -138,7 +139,7 @@ def clear_orders_rebalance(exchange, bot_name, symbol, config_system, open_order
             
             remove_order(order_id, open_orders_df_path)
             append_order(order, 'filled', transactions_df_path)
-            append_profit_rebalance(order, exchange, symbol, last_loop_path, profit_df_path)
+            append_profit_rebalance(order, exchange, symbol, fix_value, last_loop_path, profit_df_path)
             noti_success_order(order, bot_name, symbol)
 
 
@@ -147,12 +148,11 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
 
     base_currency, quote_currency = get_currency(symbol)
     last_price = get_last_price(exchange, symbol)
-    # Update get_base_currency_value to support future market.
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
+    current_value = get_base_currency_value(last_price, exchange, symbol)
     min_value = cal_min_value(symbol, config_params['grid_percent'], last_loop_path)
     
     print(f"Last price: {last_price:.2f} {quote_currency}")
-    print_current_value(current_value, exchange, quote_currency)
+    print(f"Current value: {current_value:.2f} USD")
 
     fix_value = config_params['budget'] * config_params['symbol'][symbol]
     
@@ -169,7 +169,8 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
         print("No action")
         
     if rebalance_flag == 1:
-        amount = round_down_amount(diff_value / price, config_params['decimal'])
+        amount = diff_value / price
+        amount = round_amount(amount, exchange, symbol, type='down')
 
         if amount > 0:
             order = exchange.create_order(symbol, 'market', side, amount)
@@ -178,52 +179,47 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
             print(f"Cannot {side} {diff_value:.2f} value, {amount:.2f} {base_currency} is too small amount to place order!!!")
 
     time.sleep(config_system['idle_stage'])
-    clear_orders_rebalance(exchange, bot_name, symbol, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
+    clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
 
 
 def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
+    transfer = get_json(transfer_path)
     
-    last_price = get_last_price(exchange, symbol)
-    base_currency, quote_currency = get_currency(symbol)
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-    cash = get_quote_currency_value(exchange, quote_currency)
+    total_value, value_dict = get_total_value(exchange, config_params)
+    cash = get_cash_value(exchange)
+
+    end_balance = cal_end_balance(total_value, cash, transfer)
+    end_cash = cal_end_cash(cash, transfer)
 
     profit_df = pd.read_csv(profit_df_path)
     last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
     cash_flow = sum(last_profit_df['profit'])
 
-    transfer = get_json(transfer_path)
-
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
     available_cash_flow += cash_flow
-    
-    end_balance = cal_end_balance(current_value, cash, transfer)
-    end_cash = cal_end_quote_currency(cash, transfer)
 
-    cash_flow_list = [
+    pre_cash_flow_list = [
         prev_date,
         config_params['budget'],
         end_balance,
-        current_value,
-        end_cash,
+        end_cash]
+
+    value_list = []
+    for symbol in value_dict.keys():
+        value_list.append(value_dict[symbol]['current_value'])
+
+    post_cash_flow_list = [
         cash_flow,
         transfer['deposit'],
         transfer['withdraw'],
         transfer['withdraw_cash_flow'],
         available_cash_flow
         ]
+
+    cash_flow_list = pre_cash_flow_list + value_list  + post_cash_flow_list
     
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_budget(transfer, config_params, config_params_path)
     update_transfer(config_params['taker_fee'], transfer_path)
-
-
-def print_report_rebalance(exchange, symbol):
-    base_currency, quote_currency = get_currency(symbol)
-    last_price = get_last_price(exchange, symbol)
-    current_value = get_base_currency_value(last_price, exchange, base_currency)
-
-    print_current_balance(last_price, exchange, symbol)
-    print_current_value(current_value, exchange, quote_currency)
