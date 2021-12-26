@@ -103,19 +103,18 @@ def get_base_currency_value(last_price, exchange, symbol):
     base_currency, _ = get_currency(symbol)
     
     if '-PERP' in symbol:
+        try:
+            position = get_position(exchange, symbol)
+            base_currency_value = last_price * float(position['netSize'])
+        except TypeError:
+            base_currency_value = 0
+    else:
         balance = exchange.fetch_balance()
         
         try:
             amount = balance[base_currency]['total']
             base_currency_value = last_price * amount
         except KeyError:
-            base_currency_value = 0
-
-    else:
-        try:
-            position = get_position(exchange, symbol)
-            base_currency_value = last_price * float(position['netSize'])
-        except TypeError:
             base_currency_value = 0
 
     return base_currency_value
