@@ -112,8 +112,11 @@ def get_base_currency_value(last_price, exchange, symbol):
             base_currency_value = 0
 
     else:
-        position = get_position(exchange, symbol)
-        base_currency_value = last_price * float(position['size'])
+        try:
+            position = get_position(exchange, symbol)
+            base_currency_value = last_price * float(position['size'])
+        except TypeError:
+            base_currency_value = 0
 
     return base_currency_value
 
