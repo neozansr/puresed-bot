@@ -100,9 +100,9 @@ def get_position(exchange, symbol):
 
 
 def get_base_currency_value(last_price, exchange, symbol):
-    base_currency, quote_currency = get_currency(symbol)
+    base_currency, _ = get_currency(symbol)
     
-    if quote_currency != 'PERP':
+    if '-PERP' in symbol:
         balance = exchange.fetch_balance()
         
         try:
@@ -114,7 +114,7 @@ def get_base_currency_value(last_price, exchange, symbol):
     else:
         try:
             position = get_position(exchange, symbol)
-            base_currency_value = last_price * float(position['size'])
+            base_currency_value = last_price * float(position['netSize'])
         except TypeError:
             base_currency_value = 0
 
@@ -185,14 +185,13 @@ def get_total_value(exchange, config_params):
 
         last_price = get_last_price(exchange, symbol)
         sub_value = get_base_currency_value(last_price, exchange, symbol)
-        side = -1 if config_params['symbol'][symbol] < 0 else 1
         
         value_dict[symbol] = {
             'fix_value':config_params['budget'] * config_params['symbol'][symbol],
-            'current_value':sub_value * side
+            'current_value':sub_value
             }
 
-        if quote_currency != 'PERP':    
+        if '-PERP' in symbol:
             total_value += sub_value
 
     return total_value, value_dict

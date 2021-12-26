@@ -5,7 +5,7 @@ import sys
 
 from pandas.core.indexes import base
 
-from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_order_fee, get_available_cash_flow
+from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_position, get_base_currency_value, get_cash_value, get_total_value, get_order_fee, get_available_cash_flow
 from func_cal import round_amount, cal_adjusted_price, cal_end_balance, cal_end_cash
 from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
 from func_noti import noti_success_order
@@ -143,6 +143,19 @@ def clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system,
             noti_success_order(order, bot_name, symbol)
 
 
+def get_init_position_flag(exchange, symbol):
+    init_position_flag = False
+    
+    # Check first order
+    if '-PERP' in symbol:
+        position = get_position(exchange, symbol)
+
+        if position == None:
+            init_position_flag = True
+
+    return init_position_flag
+    
+
 def rebalance(exchange, bot_name, symbol, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
     rebalance_flag = 1
 
@@ -155,7 +168,7 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
     print(f"Current value: {current_value:.2f} USD")
 
     fix_value = config_params['budget'] * config_params['symbol'][symbol]
-    
+
     if abs(current_value) < abs(fix_value) - min_value:
         side = 'buy'
         diff_value = fix_value - current_value
@@ -169,11 +182,17 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
         print("No action")
         
     if rebalance_flag == 1:
-        amount = diff_value / price
+        amount = abs(diff_value) / price
         amount = round_amount(amount, exchange, symbol, type='down')
 
         if amount > 0:
-            order = exchange.create_order(symbol, 'market', side, amount)
+            if get_init_position_flag(exchange, symbol) == True:
+                # Short position use different logic on opening.
+                side = 'buy' if fix_value >= 0 else 'sell'
+                order = exchange.create_order(symbol, 'market', side, amount)
+            else:
+                order = exchange.create_order(symbol, 'market', side, amount)
+            
             append_order(order, 'amount', open_orders_df_path)
         else:
             print(f"Cannot {side} {diff_value:.2f} value, {amount:.2f} {base_currency} is too small amount to place order!!!")
