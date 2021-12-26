@@ -2,7 +2,7 @@
  "symbol": {
 	 "ETH/USD": 0.3,
 	 "LUNA-PERP": 0.2,
-	 "ETH-PERP": -0.3
+	 "ETH-PERP": -0.1
 	 },
  "sequence_rule": "fix",
  "budget": 1000,

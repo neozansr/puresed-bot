@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_time, get_exchange, get_cash_value, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_rebalance import get_sequence_loop, reset_order_loop, rebalance, update_end_date_rebalance, print_report_rebalance
+from func_rebalance import get_sequence_loop, reset_order_loop, rebalance, update_end_date_rebalance
 
 
 def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
