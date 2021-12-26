@@ -143,14 +143,14 @@ def clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system,
             noti_success_order(order, bot_name, symbol)
 
 
-def get_init_position_flag(exchange, symbol):
+def check_init_position_flag(exchange, symbol):
     init_position_flag = False
     
     # Check first order
     if '-PERP' in symbol:
         position = get_position(exchange, symbol)
 
-        if position == None:
+        if (position == None) | (float(position['size']) == 0):
             init_position_flag = True
 
     return init_position_flag
@@ -163,11 +163,11 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
     last_price = get_last_price(exchange, symbol)
     current_value = get_base_currency_value(last_price, exchange, symbol)
     min_value = cal_min_value(symbol, config_params['grid_percent'], last_loop_path)
-    
-    print(f"Last price: {last_price:.2f} {quote_currency}")
-    print(f"Current value: {current_value:.2f} USD")
-
     fix_value = config_params['budget'] * config_params['symbol'][symbol]
+
+    print(f"Last price: {last_price:.2f} {quote_currency}")
+    print(f"Fix value: {fix_value:.2f} USD")
+    print(f"Current value: {current_value:.2f} USD")
 
     if abs(current_value) < abs(fix_value) - min_value:
         side = 'buy'
@@ -186,8 +186,10 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
         amount = round_amount(amount, exchange, symbol, type='down')
 
         if amount > 0:
-            if get_init_position_flag(exchange, symbol) == True:
+            print(check_init_position_flag(exchange, symbol))
+            if check_init_position_flag(exchange, symbol) == True:
                 # Short position use different logic on opening.
+                print("Buy init ______________")
                 side = 'buy' if fix_value >= 0 else 'sell'
                 order = exchange.create_order(symbol, 'market', side, amount)
             else:
