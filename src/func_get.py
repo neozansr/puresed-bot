@@ -63,7 +63,7 @@ def get_currency(symbol):
         quote_currency = symbol.split('/')[1]
     elif len(symbol.split('-')) == 2:
         base_currency = symbol.split('-')[0]
-        quote_currency = symbol.split('-')[1]
+        quote_currency = 'USD'
     else:
         raise ValueError("Unrecognized symbol pattern")
 
