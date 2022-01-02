@@ -119,9 +119,7 @@ def cal_min_value(symbol, grid_percent, last_loop_path):
     last_loop = get_json(last_loop_path)
 
     grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
-    target_price = last_loop['symbol'][symbol]['last_action_price'] + grid
-    last_action_value = last_loop['symbol'][symbol]['last_action_price'] * last_loop['symbol'][symbol]['holding_amount']
-    min_value = (target_price * last_loop['symbol'][symbol]['holding_amount']) - last_action_value
+    min_value = grid * last_loop['symbol'][symbol]['holding_amount']
 
     return min_value
 
