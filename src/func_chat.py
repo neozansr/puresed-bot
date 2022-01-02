@@ -92,12 +92,12 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     for symbol in value_dict.keys():
         average_cost = last_loop['symbol'][symbol]['average_cost']
 
-        base_currency, _ = get_currency(symbol)
-        text += f"\n{base_currency} Fix value: {value_dict[symbol]['fix_value']} USD"
-        text += f"\n{base_currency} Current value: {value_dict[symbol]['current_value']} USD"
-        text += f"\n{base_currency} Average cost: {average_cost} USD"
+        text += f"\n\n{symbol}"
+        text += f"\n   Fix value: {value_dict[symbol]['fix_value']} USD"
+        text += f"\n   Current value: {value_dict[symbol]['current_value']} USD"
+        text += f"\n   Average cost: {average_cost} USD"
     
-    text += f"\nCash: {cash} USD"
+    text += f"\n\nCash: {cash} USD"
     text += f"\nToday cash flow: {today_cash_flow} USD"
 
     text += f"\n\nLast active: {last_timestamp}"
