@@ -53,6 +53,7 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_path):
             cash_flow_df = pd.read_csv(cash_flow_df_path)
             transfer = get_json(bot_path + transfer_path)
             available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+            cash_flow_dict[bot_name] = available_cash_flow
         except FileNotFoundError:
             # Not bot
             pass
@@ -61,8 +62,8 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_path):
 
     text += f"\nAll cash flow: {all_cash_flow} USD"
 
-    for s in cash_flow_dict.keys():
-        text += f"\n{bot_name} Cash flow: {cash_flow_dict[s]} USD"
+    for bot_name in cash_flow_dict.keys():
+        text += f"\n{bot_name} Cash flow: {cash_flow_dict[bot_name]} USD"
 
     return text
 
