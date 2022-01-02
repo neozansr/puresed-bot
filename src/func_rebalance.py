@@ -173,7 +173,7 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
         amount = diff_value / price
         rounded_amount = round_amount(amount, exchange, symbol, type='down')
 
-        if amount > 0:
+        if rounded_amount > 0:
             print(f"Diff value: {diff_value} USD")
             order = exchange.create_order(symbol, 'market', side, rounded_amount)
             append_order(order, 'amount', open_orders_df_path)
