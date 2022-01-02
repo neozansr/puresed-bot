@@ -90,9 +90,11 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     text += f"\nBalance: {balance_value} USD"
 
     for symbol in value_dict.keys():
+        last_price = get_last_price(exchange, symbol)
         average_cost = last_loop['symbol'][symbol]['average_cost']
 
         text += f"\n\n{symbol}"
+        text += f"\n   Last price: {last_price} USD"
         text += f"\n   Fix value: {value_dict[symbol]['fix_value']} USD"
         text += f"\n   Current value: {value_dict[symbol]['current_value']} USD"
         text += f"\n   Average cost: {average_cost} USD"
@@ -135,6 +137,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     
     text += f"\nBalance: {balance_value} {quote_currency}"
     text += f"\nCash: {cash} {quote_currency}"
+    text += f"\nLast price: {last_price} {quote_currency}"
     text += f"\nHold {amount} {base_currency} with {n_open_sell_oders} orders at {avg_price} {quote_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
     text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
