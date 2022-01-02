@@ -25,16 +25,16 @@ def get_balance_text(bot_list, config_system_path):
     balance_df = pd.DataFrame(balance_dict)
 
     balance_value = balance_df['value'].sum()
-    text += f"\nAll Balance: {balance_value:.2f} USD"
+    text += f"\nAll Balance: {balance_value} USD"
 
     for sub_account in balance_df['account'].unique():
         sub_account_df = balance_df[balance_df['account'] == sub_account]
         sub_account_value = sub_account_df['value'].sum()
-        text += f"\n\nBalance {sub_account}: {sub_account_value:.2f} USD"
+        text += f"\n\nBalance {sub_account}: {sub_account_value} USD"
         
         for asset in sub_account_df['asset'].unique():
             asset_value = sub_account_df[sub_account_df['asset'] == asset]['value'].sum()
-            text += f"\n{sub_account} {asset}: {asset_value:.2f} USD"
+            text += f"\n{sub_account} {asset}: {asset_value} USD"
 
     return text
 
@@ -85,19 +85,20 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     today_cash_flow = sum(today_profit_df['profit'])
 
     last_loop = get_json(bot_path + last_loop_path)
-    average_cost = last_loop['average_cost']
     last_timestamp = last_loop['timestamp']
 
-    text += f"\nBalance: {balance_value:.2f} USD"
+    text += f"\nBalance: {balance_value} USD"
 
     for symbol in value_dict.keys():
+        average_cost = last_loop['symbol'][symbol]['average_cost']
+
         base_currency, _ = get_currency(symbol)
-        text += f"\n{base_currency} Fix value: {value_dict[symbol]['fix_value']:.2f} USD"
-        text += f"\n{base_currency} Current value: {value_dict[symbol]['current_value']:.2f} USD"
+        text += f"\n{base_currency} Fix value: {value_dict[symbol]['fix_value']} USD"
+        text += f"\n{base_currency} Current value: {value_dict[symbol]['current_value']} USD"
+        text += f"\n{base_currency} Average cost: {average_cost} USD"
     
-    text += f"\nCash: {cash:.2f} USD"
-    text += f"\nToday cash flow: {today_cash_flow:.2f} USD"
-    text += f"\nAverage cost: {average_cost:.2f} USD"
+    text += f"\nCash: {cash} USD"
+    text += f"\nToday cash flow: {today_cash_flow} USD"
 
     text += f"\n\nLast active: {last_timestamp}"
 
@@ -132,15 +133,15 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     last_loop = get_json(bot_path + last_loop_path)
     last_timestamp = last_loop['timestamp']
     
-    text += f"\nBalance: {balance_value:.2f} {quote_currency}"
-    text += f"\nCash: {cash:.2f} {quote_currency}"
-    text += f"\nHold {amount:.4f} {base_currency} with {n_open_sell_oders} orders at {avg_price:.2f} {quote_currency}"
-    text += f"\nUnrealised: {unrealised:.2f} {quote_currency}"
-    text += f"\nToday cash flow: {today_cash_flow:.2f} {quote_currency}"
-    text += f"\nMin buy price: {min_buy_price:.2f} {quote_currency}"
-    text += f"\nMax buy price: {max_buy_price:.2f} {quote_currency}"
-    text += f"\nMin sell price: {min_sell_price:.2f} {quote_currency}"
-    text += f"\nMax sell price: {max_sell_price:.2f} {quote_currency}"
+    text += f"\nBalance: {balance_value} {quote_currency}"
+    text += f"\nCash: {cash} {quote_currency}"
+    text += f"\nHold {amount} {base_currency} with {n_open_sell_oders} orders at {avg_price} {quote_currency}"
+    text += f"\nUnrealised: {unrealised} {quote_currency}"
+    text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
+    text += f"\nMin buy price: {min_buy_price} {quote_currency}"
+    text += f"\nMax buy price: {max_buy_price} {quote_currency}"
+    text += f"\nMin sell price: {min_sell_price} {quote_currency}"
+    text += f"\nMax sell price: {max_sell_price} {quote_currency}"
 
     text += f"\n\nLast active: {last_timestamp}"
     
@@ -171,10 +172,10 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
     today_profit = sum(today_profit_df['profit'])
 
-    text += f"\nBalance: {balance_value:.2f} {quote_currency}"
+    text += f"\nBalance: {balance_value} {quote_currency}"
     text += f"\nLast timestamp: {last_signal_timestamp}"
-    text += f"\nClose price: {close_price:.2f} {quote_currency}"
-    text += f"\nSignal price: {signal_price:.2f} {quote_currency}"
+    text += f"\nClose price: {close_price} {quote_currency}"
+    text += f"\nSignal price: {signal_price} {quote_currency}"
     
     position = get_json(bot_path + position_path)
 
@@ -188,17 +189,17 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
         max_drawdown = last_loop['max_drawdown']
         
         text += f"\nSide: {position['side']}"
-        text += f"\nUnrealise: {unrealised:.2f} {quote_currency}"
-        text += f"\nLast price: {last_price:.2f} {quote_currency}"
-        text += f"\nEntry price: {position['entry_price']:.2f} {quote_currency}"
-        text += f"\nLiquidate price: {liquidate_price:.2f}  {quote_currency}"
-        text += f"\nNotional value: {notional_value:.2f} {quote_currency}"
-        text += f"\nDrawdown: {drawdown * 100:.2f}%"
-        text += f"\nMax drawdown: {max_drawdown * 100:.2f}%"
+        text += f"\nUnrealise: {unrealised} {quote_currency}"
+        text += f"\nLast price: {last_price} {quote_currency}"
+        text += f"\nEntry price: {position['entry_price']} {quote_currency}"
+        text += f"\nLiquidate price: {liquidate_price}  {quote_currency}"
+        text += f"\nNotional value: {notional_value} {quote_currency}"
+        text += f"\nDrawdown: {drawdown * 100}%"
+        text += f"\nMax drawdown: {max_drawdown * 100}%"
     else:
         text += "\nNo open position"
 
-    text += f"\nToday profit: {today_profit:.2f} {quote_currency}"
+    text += f"\nToday profit: {today_profit} {quote_currency}"
     
     text += f"\n\nLast active: {last_timestamp}"
     

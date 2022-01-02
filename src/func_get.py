@@ -180,8 +180,6 @@ def get_total_value(exchange, config_params):
     value_dict = {}
     
     for symbol in config_params['symbol'].keys():
-        _, quote_currency = get_currency(symbol)
-
         last_price = get_last_price(exchange, symbol)
         sub_value = get_base_currency_value(last_price, exchange, symbol)
         
@@ -190,7 +188,7 @@ def get_total_value(exchange, config_params):
             'current_value':sub_value
             }
 
-        if '-PERP' in symbol:
+        if '-PERP' not in symbol:
             total_value += sub_value
 
     return total_value, value_dict

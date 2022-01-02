@@ -397,8 +397,8 @@ def manage_position(ohlcv_df, exchange, bot_name, config_system, config_params_p
     action, signal_price = get_action(ohlcv_df, config_params)
     close_price = ohlcv_df.loc[len(ohlcv_df) - 1, 'close']
 
-    print(f"Close price: {close_price:.2f} {quote_currency}")
-    print(f"Signal price: {signal_price:.2f} {quote_currency}")
+    print(f"Close price: {close_price} {quote_currency}")
+    print(f"Signal price: {signal_price} {quote_currency}")
 
     if action == 'hold':
         action = last_loop['side']
@@ -485,7 +485,7 @@ def check_drawdown(exchange, bot_name, config_params_path, last_loop_path, posit
         drawdown = cal_drawdown_future(last_price, position)
         
         if drawdown > last_loop['max_drawdown']:
-            noti_warning(f"Drawdown {drawdown * 100:.2f}%", bot_name)
+            noti_warning(f"Drawdown {drawdown * 100}%", bot_name)
             update_max_drawdown(drawdown, last_loop_path)
 
 

@@ -141,19 +141,6 @@ def clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system,
             append_order(order, 'filled', transactions_df_path)
             append_profit_rebalance(order, exchange, symbol, fix_value, last_loop_path, profit_df_path)
             noti_success_order(order, bot_name, symbol)
-
-
-def check_init_position_flag(exchange, symbol):
-    init_position_flag = False
-    
-    # Check first order
-    if '-PERP' in symbol:
-        position = get_position(exchange, symbol)
-
-        if (position == None) | (float(position['size']) == 0):
-            init_position_flag = True
-
-    return init_position_flag
     
 
 def rebalance(exchange, bot_name, symbol, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
@@ -165,15 +152,16 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
     min_value = cal_min_value(symbol, config_params['grid_percent'], last_loop_path)
     fix_value = config_params['budget'] * config_params['symbol'][symbol]
 
-    print(f"Last price: {last_price:.2f} {quote_currency}")
-    print(f"Fix value: {fix_value:.2f} USD")
-    print(f"Current value: {current_value:.2f} USD")
+    print(f"Last price: {last_price} {quote_currency}")
+    print(f"Fix value: {fix_value} USD")
+    print(f"Min value: {min_value} USD")
+    print(f"Current value: {current_value} USD")
 
-    if abs(current_value) < abs(fix_value) - min_value:
+    if current_value < fix_value - min_value:
         side = 'buy'
         diff_value = fix_value - current_value
         price = get_bid_price(exchange, symbol)
-    elif abs(current_value) > abs(fix_value) + min_value:
+    elif current_value > fix_value + min_value:
         side = 'sell'
         diff_value = current_value - fix_value
         price = get_ask_price(exchange, symbol)
@@ -182,22 +170,15 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
         print("No action")
         
     if rebalance_flag == 1:
-        amount = abs(diff_value) / price
-        amount = round_amount(amount, exchange, symbol, type='down')
+        amount = diff_value / price
+        rounded_amount = round_amount(amount, exchange, symbol, type='down')
 
         if amount > 0:
-            print(check_init_position_flag(exchange, symbol))
-            if check_init_position_flag(exchange, symbol) == True:
-                # Short position use different logic on opening.
-                print("Buy init ______________")
-                side = 'buy' if fix_value >= 0 else 'sell'
-                order = exchange.create_order(symbol, 'market', side, amount)
-            else:
-                order = exchange.create_order(symbol, 'market', side, amount)
-            
+            print(f"Diff value: {diff_value} USD")
+            order = exchange.create_order(symbol, 'market', side, rounded_amount)
             append_order(order, 'amount', open_orders_df_path)
         else:
-            print(f"Cannot {side} {diff_value:.2f} value, {amount:.2f} {base_currency} is too small amount to place order!!!")
+            print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
 
     time.sleep(config_system['idle_stage'])
     clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
