@@ -328,9 +328,10 @@ def append_profit_technical(order, exchange, config_params, position_path, profi
 
     open_fee = position['open_fee']
     close_fee = get_order_fee(order, exchange, config_params['symbol'])
-    profit = (margin * order['amount']) - (open_fee + close_fee)
+    total_fee = open_fee + close_fee
+    profit = (margin * order['amount']) - total_fee
 
-    profit_df.loc[len(profit_df)] = [timestamp, order['id'], order['symbol'], order['side'], order['amount'], position['entry_price'], order['price'], profit]
+    profit_df.loc[len(profit_df)] = [timestamp, order['id'], order['symbol'], order['side'], order['amount'], position['entry_price'], order['price'], total_fee, profit]
     profit_df.to_csv(profit_df_path, index=False)
 
 

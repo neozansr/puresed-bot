@@ -1,1 +1,1 @@
-timestamp,id,symbol,side,amount,open_price,close_price,profit
+timestamp,id,symbol,side,amount,open_price,close_price,fee,profit
