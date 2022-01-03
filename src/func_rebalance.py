@@ -90,23 +90,23 @@ def update_budget(transfer, config_params, config_params_path):
         update_json(config_params, config_params_path)
 
 
-def append_profit_rebalance(order, exchange, symbol, fix_value, last_loop_path, profit_df_path):
+def append_profit_rebalance(order, exchange, symbol, last_loop_path, profit_df_path):
     timestamp = get_time()
     last_loop = get_json(last_loop_path)
     average_cost = last_loop['symbol'][symbol]['average_cost']
     holding_amount = last_loop['symbol'][symbol]['holding_amount']
     fee = get_order_fee(order, exchange, symbol)
 
-    if ((order['side'] == 'buy') & (fix_value >= 0)) | ((order['side'] == 'sell') & (fix_value < 0)):
+    if order['side'] == 'buy':
         adjusted_price = cal_adjusted_price(order, fee)
         average_cost = ((average_cost * holding_amount) + (adjusted_price * order['amount'])) / (holding_amount + order['amount'])
         holding_amount += order['amount']
-    elif ((order['side'] == 'sell') & (fix_value >= 0)) | ((order['side'] == 'buy') & (fix_value < 0)):
+    elif order['side'] == 'sell':
         profit = ((order['price'] - average_cost) * order['amount']) - fee
         holding_amount -= order['amount']
 
         profit_df = pd.read_csv(profit_df_path)
-        profit_df.loc[len(profit_df)] = [timestamp, symbol, order['price'], average_cost, order['amount'], profit]
+        profit_df.loc[len(profit_df)] = [timestamp, symbol, order['price'], average_cost, order['amount'], fee, profit]
         profit_df.to_csv(profit_df_path, index=False)
 
     last_loop['symbol'][symbol]['average_cost'] = average_cost
@@ -124,7 +124,7 @@ def cal_min_value(symbol, grid_percent, last_loop_path):
     return min_value
 
     
-def clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
+def clear_orders_rebalance(exchange, bot_name, symbol, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
 
     if len(open_orders_df) > 0:
@@ -137,7 +137,7 @@ def clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system,
             
             remove_order(order_id, open_orders_df_path)
             append_order(order, 'filled', transactions_df_path)
-            append_profit_rebalance(order, exchange, symbol, fix_value, last_loop_path, profit_df_path)
+            append_profit_rebalance(order, exchange, symbol, last_loop_path, profit_df_path)
             noti_success_order(order, bot_name, symbol)
     
 
@@ -179,7 +179,7 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, open_ord
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
 
     time.sleep(config_system['idle_stage'])
-    clear_orders_rebalance(exchange, bot_name, symbol, fix_value, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
+    clear_orders_rebalance(exchange, bot_name, symbol, config_system, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
 
 
 def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, transfer_path, profit_df_path, cash_flow_df_path):
