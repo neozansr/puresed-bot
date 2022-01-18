@@ -228,7 +228,7 @@ def update_loss(loss, last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag):
+def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
     max_sell_price = max(open_orders_df['price'])
     canceled_df = open_orders_df[open_orders_df['price'] == max_sell_price]
@@ -322,7 +322,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
 
     # Cut loss until quote_currency_free is enough to withdraw.
     while quote_currency_free - available_cash_flow < -net_transfer:
-        cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
+        cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
         quote_currency_free = get_quote_currency_free(exchange, quote_currency)
 
     current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])

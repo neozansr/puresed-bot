@@ -20,8 +20,12 @@ def round_up_amount(amount, decimal):
     return floor_amount
 
 
-def cal_adjusted_price(order, fee):
-    adjusted_cost = order['cost'] + fee
+def cal_adjusted_price(order, fee, side):
+    if side == 'buy':
+        adjusted_cost = order['cost'] + fee
+    elif side == 'sell':
+        adjusted_cost = order['cost'] - fee
+        
     adjusted_price = adjusted_cost / order['filled']
     
     return adjusted_price
