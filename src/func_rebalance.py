@@ -168,7 +168,7 @@ def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
     
 def clear_orders_rebalance(method, exchange, bot_name, symbol, config_system, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    base_currency = get_currency(symbol)
+    base_currency, _ = get_currency(symbol)
 
     if len(open_orders_df) > 0:
         order_id = open_orders_df['order_id'][0]
