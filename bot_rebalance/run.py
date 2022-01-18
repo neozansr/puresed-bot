@@ -12,7 +12,7 @@ from func_update import append_error_log, update_timestamp
 from func_rebalance import get_sequence_loop, reset_order_loop, rebalance, update_end_date_rebalance
 
 
-def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path):
+def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(config_system)
     
@@ -23,10 +23,10 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     
     for symbol in config_params['symbol'].keys():
         print(symbol)
-        rebalance(exchange, bot_name, symbol, config_system, config_params, open_orders_df_path, transactions_df_path, last_loop_path, profit_df_path)
+        rebalance(exchange, bot_name, symbol, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
 
     cash = get_cash_value(exchange)
-    print(f"Cash: {cash:.2f} USD")
+    print(f"Cash: {cash} USD")
     update_timestamp(last_loop_path)
 
 
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     transfer_path = 'transfer.json'
     open_orders_df_path = 'open_orders.csv'
     transactions_df_path = 'transactions.csv'
+    queue_df_path = 'queue_{}.csv'
     profit_df_path = 'profit.csv'
     error_log_df_path = 'error_log.csv'
     cash_flow_df_path = home_path + 'cash_flow/{}.csv'
@@ -49,7 +50,7 @@ if __name__ == '__main__':
         if config_system['run_flag'] == 1:
             print("Start loop")
             try:
-                run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, profit_df_path, cash_flow_df_path)
+                run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError, ccxt.ExchangeError):
                 append_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')

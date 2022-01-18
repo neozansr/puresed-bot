@@ -3,19 +3,14 @@
  "order_loop": 0,
  "symbol": {
 	 "ETH/USD": {
-		 "average_cost": 0,
-		 "holding_amount": 0,
 		 "last_action_price": 0
 		},
 	 "LUNA-PERP": {
-		 "average_cost": 0,
-		 "holding_amount": 0,
 		 "last_action_price": 0
 		},
 	 "ETH-PERP": {
-		 "average_cost": 0,
-		 "holding_amount": 0,
 		 "last_action_price": 0
-		}
+		},
+	"transfer_flag": 0
 	}
 }
