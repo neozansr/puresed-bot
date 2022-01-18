@@ -212,7 +212,7 @@ def check_cut_loss(exchange, bot_name, config_system, config_params, config_para
         cont_flag = 0
         
         while available_budget < config_params['value']:
-            cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=False)
+            cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=False)
             quote_currency_free = get_quote_currency_free(exchange, quote_currency)
             available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
 

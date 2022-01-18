@@ -286,5 +286,5 @@ def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, conf
     cash_flow_list = pre_cash_flow_list + value_list  + post_cash_flow_list
     
     append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
-    update_budget(transfer, config_params, config_params_path)
+    update_budget(transfer, config_params, config_params_path, last_loop_path)
     update_transfer(config_params['taker_fee'], transfer_path)
