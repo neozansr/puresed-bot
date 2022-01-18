@@ -104,7 +104,7 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, queue_df, 
     adjusted_price = cal_adjusted_price(sell_order, fee, side='sell')
     profit = (adjusted_price - buy_price) * exe_amount
 
-    profit_df.loc[len(profit_df)] = [timestamp, buy_id, sell_id, symbol, exe_amount, buy_price, sell_price, profit]
+    profit_df.loc[len(profit_df)] = [timestamp, buy_id, sell_id, symbol, exe_amount, buy_price, sell_price, fee, profit]
     profit_df.to_csv(profit_df_path, index=False)
 
 
@@ -152,7 +152,7 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, queue_df_path
         else:
             queue_df.loc[order_index, 'amount'] = remaining_queue
 
-        queue_df.to_csv(queue_df_path, index=False)
+        queue_df.to_csv(queue_df_path.format(symbol), index=False)
         sell_amount -= exe_amount
     
 
