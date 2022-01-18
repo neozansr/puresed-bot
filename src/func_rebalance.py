@@ -152,7 +152,7 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, queue_df_path
         else:
             queue_df.loc[order_index, 'amount'] = remaining_queue
 
-        queue_df.to_csv(queue_df_path.format(symbol), index=False)
+        queue_df.to_csv(queue_df_path, index=False)
         sell_amount -= exe_amount
     
 
@@ -168,6 +168,7 @@ def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
     
 def clear_orders_rebalance(method, exchange, bot_name, symbol, config_system, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
+    base_currency = get_currency(symbol)
 
     if len(open_orders_df) > 0:
         order_id = open_orders_df['order_id'][0]
@@ -179,12 +180,12 @@ def clear_orders_rebalance(method, exchange, bot_name, symbol, config_system, la
     
         if order['side'] == 'buy':
             if method == 'lifo':
-                append_order(order, 'filled', queue_df_path.format(symbol))
+                append_order(order, 'filled', queue_df_path.format(base_currency))
             elif method == 'fifo':
-                update_hold(order, exchange, symbol, queue_df_path.format(symbol))
+                update_hold(order, exchange, symbol, queue_df_path.format(base_currency))
         
         elif order['side'] == 'sell':
-            update_queue(order, exchange, method, 'filled', symbol, queue_df_path.format(symbol), profit_df_path)
+            update_queue(order, exchange, method, 'filled', symbol, queue_df_path.format(base_currency), profit_df_path)
 
         last_loop = get_json(last_loop_path)
         last_loop['symbol'][symbol]['last_action_price'] = order['price']
