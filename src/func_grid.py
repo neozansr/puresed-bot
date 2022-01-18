@@ -190,7 +190,7 @@ def check_circuit_breaker(exchange, bot_name, config_system, config_params, last
     return cont_flag
 
 
-def check_cut_loss(exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, error_log_df_path, cash_flow_df_path):
+def check_cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, transfer_path, open_orders_df_path, error_log_df_path, cash_flow_df_path):
     cont_flag = 1
 
     _, quote_currency = get_currency(config_params['symbol'])
