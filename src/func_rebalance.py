@@ -109,7 +109,7 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, queue_df, 
 
 
 def update_hold(buy_order, exchange, symbol, queue_df_path):
-    queue_df = pd.read_csv(queue_df_path.format(symbol))
+    queue_df = pd.read_csv(queue_df_path)
 
     timestamp = get_time()
     hold_amount = queue_df.loc[0, 'amount']
@@ -133,7 +133,7 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, queue_df_path
     sell_amount = sell_order[amount_key]
 
     while sell_amount > 0:
-        queue_df = pd.read_csv(queue_df_path.format(symbol))
+        queue_df = pd.read_csv(queue_df_path)
         
         if method == 'fifo':
             order_index = 0
@@ -179,12 +179,12 @@ def clear_orders_rebalance(method, exchange, bot_name, symbol, config_system, la
     
         if order['side'] == 'buy':
             if method == 'lifo':
-                append_order(order, 'filled', queue_df_path)
+                append_order(order, 'filled', queue_df_path.format(symbol))
             elif method == 'fifo':
-                update_hold(order, exchange, symbol, queue_df_path)
+                update_hold(order, exchange, symbol, queue_df_path.format(symbol))
         
         elif order['side'] == 'sell':
-            update_queue(order, exchange, method, 'filled', symbol, queue_df_path, profit_df_path)
+            update_queue(order, exchange, method, 'filled', symbol, queue_df_path.format(symbol), profit_df_path)
 
         last_loop = get_json(last_loop_path)
         last_loop['symbol'][symbol]['last_action_price'] = order['price']
