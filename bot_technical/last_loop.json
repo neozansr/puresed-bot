@@ -1,8 +1,8 @@
 {
  "timestamp": 0,
- "signal_timestamp": 0,
- "close_price": 0,
- "signal_price": 0,
- "side": "start",
- "max_drawdown": 0.115
+ "signal_timestamp": {
+  "big": 0,
+  "small" 0
+  }
+ "symbol": {}
 }
