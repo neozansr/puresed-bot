@@ -1,8 +1,19 @@
 {
- "timestamp": 0,
- "signal_timestamp": {
-  "big": 0,
-  "small" 0
-  }
- "symbol": {}
+    "timestamp": 0,
+    "signal_timestamp": {
+        "big": 0, 
+        "small": 0
+    },  
+    "symbols": {
+        "LUNA-PREP": {
+            "position": "long", 
+            "amount": 50, 
+            "open_price": 100
+        }, 
+        "ETH-PREP": {
+            "position": "short", 
+            "amount": 30, 
+            "open_price": 3000
+        }
+    }
 }

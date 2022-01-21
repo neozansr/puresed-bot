@@ -1,22 +1,23 @@
 {
- "budget": 1000,
- "symbol": ["ETH-PERP", "SOL-PERP", "LUNA-PERP"],
- "lead_symbol": ["BTC-PERP", "ETH-PERP],
- "timeframe": {
-  "big": "1h",
-  "small": "15m"
- },
- "signal": {
-  "ema": {
-   "window": 50
-  },
-  "supertrend": {
-   "period": 20,
-   "mul": 5
-  },
-  "wt_cross": {
-   "overbought": 53
-   "oversold": -53
-  }
- "taker_fee": 0.07
+    "budget": 1000,
+    "symbols": ["ETH-PERP", "SOL-PERP", "LUNA-PERP"],
+    "lead_symbols": ["BTC-PERP", "ETH-PERP"],
+    "timeframe": {
+        "big": "1h",
+        "small": "15m"
+    }, 
+    "signal": {
+        "ema": {
+            "window": 50
+        },
+        "supertrend": {
+            "period": 20,
+            "mul": 5
+        },
+        "wt_cross": {
+            "overbought": 53, 
+            "oversold": -53
+        }, 
+    "taker_fee": 0.07
+    }
 }
