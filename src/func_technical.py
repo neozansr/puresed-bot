@@ -1,8 +1,8 @@
 import pandas as pd
 
-from func_get import get_json, get_time, get_order_fee
-from func_cal import cal_adjusted_price
-from func_update import append_order
+from func_get import get_base_currency_value, get_json, get_quote_currency_value, get_time, get_order_fee, get_last_price
+from func_cal import cal_adjusted_price, cal_end_balance, cal_unrealised_future
+from func_update import append_order, append_cash_flow_df, update_transfer
 
 
 def get_ohlcv():
@@ -186,6 +186,9 @@ def check_close_position(exchange, config_params_path, last_loop_path, transacti
 
 
 def check_open_position():
+    '''
+    
+    '''
     n_order = cal_budget_technical()
     coin_list = get_no_posion_symbol()
 
@@ -203,9 +206,47 @@ def check_open_position():
                 pass
 
 
-def update_end_date_technical():
+def update_end_date_technical(prev_date, bot_name, exchange, config_params_path, last_loop_path, transfer_path, cash_flow_df_path, profit_df_path):
     '''
     Update cash_flow file.
     Change budget in last_loop file if transfer occur.
     '''
-    pass
+    config_params = get_json(config_params_path)
+    last_loop = get_json(last_loop_path)
+    transfer = get_json(transfer_path)
+    
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+
+    symbols = symbols = list(last_loop['symbols'].keys()) 
+
+    unrealised = 0
+    base_currency_value = 0
+    quote_currency_value = 0
+
+    for symbol in symbols:
+        last_price = get_last_price(exchange, symbol)
+        position = last_loop['symbol']['position'] 
+         
+        unrealised += cal_unrealised_future(last_price, position)
+        
+        base_currency_value += get_base_currency_value(last_price, exchange, symbol)
+        quote_currency_value += get_quote_currency_value(last_price, exchange)
+
+    end_balance = cal_end_balance(base_currency_value, quote_currency_value, transfer)
+
+    profit_df = pd.read_csv(profit_df_path)
+    last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
+    profit = sum(last_profit_df['profit'])
+    
+    cash_flow_list = [
+        'prev_date', 
+        end_balance, 
+        unrealised, 
+        profit, 
+        transfer['deposit'], 
+        transfer['withdraw']
+    ]
+
+    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    update_transfer(config_params['taker_fee'], transfer_path)

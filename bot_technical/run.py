@@ -19,7 +19,7 @@ def run_bot(config_system, config_params_path, last_loop_path, cash_flow_df_path
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
     
     if end_date_flag == 1:
-        update_end_date_technical()
+        update_end_date_technical(prev_date, bot_name, exchange, config_params_path, last_loop_path, transfer_path, cash_flow_df_path, profit_df_path)
 
     check_close_position(exchange, config_params_path, last_loop_path, transactions_df_path, profit_df_path)
     check_open_position()
