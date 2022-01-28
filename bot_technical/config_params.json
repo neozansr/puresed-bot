@@ -1,5 +1,7 @@
 {
-    "budget": 1000,
+    "total_budget": 1000, 
+    "risk": 0.1, 
+    "leverage": 20, 
     "symbols": ["ETH-PERP", "SOL-PERP", "LUNA-PERP"],
     "lead_symbols": ["BTC-PERP", "ETH-PERP"],
     "timeframe": {
