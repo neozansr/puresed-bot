@@ -246,9 +246,8 @@ def open_position(exchange, symbol, action, n_positions, config_params_path):
     config_params = get_json(config_params_path)
 
     total_budget = config_params['total_budget']
-    risk = config_params['risk']
     leverage = config_params['leverage']
-    budget = cal_technical_budget(total_budget, n_positions, risk, leverage)
+    budget = cal_technical_budget(total_budget, n_positions, leverage)
 
     last_price = get_last_price(exchange, symbol)
     amount = budget / last_price
@@ -326,7 +325,7 @@ def get_stop_orders(exchange, symbol, last_loop_path):
     stop_orders = list()
     trades = exchange.fetch_my_trades(symbol).reverse()
 
-    n_trades, trade_amount = 0
+    n_trades = trade_amount = 0
     while trade_amount < open_amount:
         trade = trades[n_trades]
         trade_amount += trade['amount']
@@ -406,7 +405,7 @@ def check_open_position(exchange, config_params_path, last_loop_path, transactio
 
         if position != "no action":
             action = create_action(position, to_close=False)
-            order = open_position(exchange, symbol, action, config_params_path)
+            order = open_position(exchange, symbol, action, n_positions, config_params_path)
 
             append_order(order, 'filled', transactions_df_path)
             update_last_loop(exchange, order, last_loop_path)
