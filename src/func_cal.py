@@ -52,6 +52,9 @@ def cal_unrealised(last_price, grid, open_orders_df):
 
 
 def cal_unrealised_future(last_price, position):
+    '''
+    Calculate unrealised balance based on the lastest price.
+    '''
     if position['side'] == 'buy':
         margin = last_price - position['entry_price']
     elif position['side'] == 'sell':
