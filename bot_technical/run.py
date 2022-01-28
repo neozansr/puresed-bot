@@ -22,7 +22,7 @@ def run_bot(config_system, config_params_path, last_loop_path, cash_flow_df_path
         update_end_date_technical(prev_date, bot_name, exchange, config_params_path, last_loop_path, transfer_path, cash_flow_df_path, profit_df_path)
 
     check_close_position(exchange, config_params_path, last_loop_path, transactions_df_path, profit_df_path)
-    check_open_position()
+    check_open_position(exchange, config_params_path, last_loop_path, transactions_df_path)
         
     timestamp = get_time()
     print(f"Time: {timestamp}")
@@ -34,7 +34,6 @@ if __name__ == '__main__':
     config_params_path = 'config_params.json'
     last_loop_path = 'last_loop.json'
     transfer_path = 'transfer.json'
-    open_orders_df_path = 'open_orders.csv'
     transactions_df_path = 'transactions.csv'
     profit_df_path = 'profit.csv'
     error_log_df_path = 'error_log.csv'
@@ -46,7 +45,7 @@ if __name__ == '__main__':
         if config_system['run_flag'] == 1:
             print("Start loop")
             try:
-                run_bot(config_system, config_params_path, last_loop_path, cash_flow_df_path, transactions_df_path)
+                run_bot(config_system, config_params_path, last_loop_path, cash_flow_df_path, transactions_df_path, profit_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError, ccxt.ExchangeError):
                 append_error_log('ConnectionError', error_log_df_path)
                 print("No connection: Skip the loop")
