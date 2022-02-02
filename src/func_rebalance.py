@@ -104,33 +104,59 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, queue_df, 
     profit_df.to_csv(profit_df_path, index=False)
 
 
-def add_hold(added_amount, add_price, timestamp, queue_df):
+def cal_average_price(hold_amount, hold_price, added_amount, add_price):
+    new_hold_amount = hold_amount + added_amount
+    average_price = ((hold_amount * hold_price) + (added_amount * add_price)) / new_hold_amount
+
+    return average_price, new_hold_amount
+
+
+def update_average_cost(added_amount, add_price, exchange, symbol, last_loop_path):
+    last_loop = get_json(last_loop_path)
+
+    total_amount = get_base_currency_amount(exchange, symbol)
+    hold_amount = total_amount - added_amount
+    hold_price = last_loop['symbol'][symbol]['average_cost']
+
+    average_price, _ = cal_average_price(hold_amount, hold_price, added_amount, add_price)
+    last_loop['symbol'][symbol]['average_cost'] = average_price
+    
+    update_json(last_loop, last_loop_path)
+
+
+def update_hold_cost(added_amount, add_price, timestamp, queue_df):
     hold_amount = queue_df.loc[0, 'amount']
     hold_price = queue_df.loc[0, 'price']
 
-    new_hold_amount = hold_amount + added_amount
-    new_hold_price = ((hold_amount * hold_price) + (added_amount * add_price)) / new_hold_amount
+    average_price, new_hold_amount = cal_average_price(hold_amount, hold_price, added_amount, add_price)
 
     queue_df.loc[0, 'timestamp'] = timestamp
     queue_df.loc[0, 'amount'] = new_hold_amount
-    queue_df.loc[0, 'price'] = new_hold_price
+    queue_df.loc[0, 'price'] = average_price
 
     return queue_df
 
 
-def update_hold(buy_order, exchange, symbol, queue_df_path):
+def update_hold(buy_order, exchange, symbol, last_loop_path, queue_df_path):
     timestamp = get_time()
     queue_df = pd.read_csv(queue_df_path)
 
-    order_amount = buy_order['filled']
-    fee, _ = get_order_fee(buy_order, exchange, symbol)
-    buy_price = cal_adjusted_price(buy_order, fee, side='buy')
+    base_currency, quote_currency = get_currency(buy_order['symbol'])
+    fee, fee_currency = get_order_fee(buy_order, exchange, symbol)
 
-    queue_df = add_hold(order_amount, buy_price, timestamp, queue_df)
+    if fee_currency == quote_currency:
+        buy_amount = buy_order['filled']
+        buy_price = cal_adjusted_price(buy_order, fee, side='buy')
+    elif fee_currency == base_currency:
+        buy_amount = buy_order['filled'] - fee
+        buy_price = buy_order['price']
+
+    update_average_cost(buy_amount, buy_price, exchange, symbol, last_loop_path)
+    queue_df = update_hold_cost(buy_amount, buy_price, timestamp, queue_df)
     queue_df.to_csv(queue_df_path, index=False)
 
 
-def append_queue(buy_order, exchange, queue_df_path):
+def append_queue(buy_order, exchange, last_loop_path, queue_df_path):
     timestamp = get_time()
     queue_df = pd.read_csv(queue_df_path)
 
@@ -146,8 +172,9 @@ def append_queue(buy_order, exchange, queue_df_path):
         buy_price = buy_order['price']
 
         added_hold_amount = buy_amount - added_queue
-        queue_df = add_hold(added_hold_amount, buy_price, timestamp, queue_df)
+        queue_df = update_hold_cost(added_hold_amount, buy_price, timestamp, queue_df)
 
+    update_average_cost(buy_amount, buy_price, exchange, buy_order['symbol'], last_loop_path)
     queue_df.loc[len(queue_df)] = [timestamp, buy_order['id'], added_queue, buy_price]
     queue_df.to_csv(queue_df_path, index=False)
 
@@ -199,9 +226,9 @@ def clear_orders_rebalance(exchange, bot_name, symbol, last_loop_path, open_orde
             exchange.cancel_order(order_id)
 
         if (order['filled'] > 0) & (order['side'] == 'buy') & (method == 'lifo'):
-            append_queue(order, exchange, queue_df_path.format(base_currency))
+            append_queue(order, exchange, last_loop_path, queue_df_path.format(base_currency))
         elif (order['filled'] > 0) & (order['side'] == 'buy') & (method == 'fifo'):
-            update_hold(order, exchange, symbol, queue_df_path.format(base_currency))
+            update_hold(order, exchange, symbol, last_loop_path, queue_df_path.format(base_currency))
         elif (order['filled'] > 0) & (order['side'] == 'sell'):
             update_queue(order, exchange, method, 'filled', symbol, queue_df_path.format(base_currency), profit_df_path)
 
