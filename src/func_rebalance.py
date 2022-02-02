@@ -78,11 +78,7 @@ def update_budget(transfer, config_params, config_params_path, last_loop_path):
     net_transfer = transfer['deposit'] - transfer['withdraw']
 
     if net_transfer != 0:
-        budget = config_params['budget']
-        budget += net_transfer
-        
-        config_params = get_json(config_params_path)
-        config_params['budget'] = budget
+        config_params['budget'] += net_transfer
 
         last_loop = get_json(last_loop_path)
         last_loop['transfer_flag'] = 1
@@ -92,40 +88,68 @@ def update_budget(transfer, config_params, config_params_path, last_loop_path):
 
 
 def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, queue_df, profit_df_path):
-    profit_df = pd.read_csv(profit_df_path)
-    
     timestamp = get_time()
+    profit_df = pd.read_csv(profit_df_path)
+
     buy_id = queue_df['order_id'][len(queue_df) - 1]
     sell_id = sell_order['id']
     buy_price = queue_df['price'][len(queue_df) - 1]
     sell_price = sell_order['price']
 
-    fee = get_order_fee(sell_order, exchange, symbol)
-    adjusted_price = cal_adjusted_price(sell_order, fee, side='sell')
-    profit = (adjusted_price - buy_price) * exe_amount
+    # Sell order fee currency is always USD
+    fee, _ = get_order_fee(sell_order, exchange, symbol)
+    sell_price = cal_adjusted_price(sell_order, fee, side='sell')
+    profit = (sell_price - buy_price) * exe_amount
 
-    profit_df.loc[len(profit_df)] = [timestamp, buy_id, sell_id, symbol, exe_amount, buy_price, sell_price, fee, profit]
+    profit_df.loc[len(profit_df)] = [timestamp, buy_id, sell_id, symbol, exe_amount, buy_price, sell_price, profit]
     profit_df.to_csv(profit_df_path, index=False)
 
 
-def update_hold(buy_order, exchange, symbol, queue_df_path):
-    queue_df = pd.read_csv(queue_df_path)
-
-    timestamp = get_time()
+def add_hold(added_amount, add_price, timestamp, queue_df):
     hold_amount = queue_df.loc[0, 'amount']
     hold_price = queue_df.loc[0, 'price']
-    
-    order_amount = buy_order['filled']
-    
-    fee = get_order_fee(buy_order, exchange, symbol)
-    adjusted_price = cal_adjusted_price(buy_order, fee, side='buy')
 
-    new_hold_amount = hold_amount + order_amount
-    new_hold_price = ((hold_amount * hold_price) + (order_amount * adjusted_price)) / new_hold_amount
+    new_hold_amount = hold_amount + added_amount
+    new_hold_price = ((hold_amount * hold_price) + (added_amount * add_price)) / new_hold_amount
 
     queue_df.loc[0, 'timestamp'] = timestamp
     queue_df.loc[0, 'amount'] = new_hold_amount
     queue_df.loc[0, 'price'] = new_hold_price
+
+    return queue_df
+
+
+def update_hold(buy_order, exchange, symbol, queue_df_path):
+    timestamp = get_time()
+    queue_df = pd.read_csv(queue_df_path)
+
+    order_amount = buy_order['filled']
+    fee, _ = get_order_fee(buy_order, exchange, symbol)
+    buy_price = cal_adjusted_price(buy_order, fee, side='buy')
+
+    queue_df = add_hold(order_amount, buy_price, timestamp, queue_df)
+    queue_df.to_csv(queue_df_path, index=False)
+
+
+def append_queue(buy_order, exchange, queue_df_path):
+    timestamp = get_time()
+    queue_df = pd.read_csv(queue_df_path)
+
+    base_currency, quote_currency = get_currency(buy_order['symbol'])
+    fee, fee_currency = get_order_fee(buy_order, exchange, buy_order['symbol'])
+
+    if fee_currency == quote_currency:
+        added_queue = buy_order['filled']
+        buy_price = cal_adjusted_price(buy_order, fee, side='buy')
+    elif fee_currency == base_currency:
+        buy_amount = buy_order['filled'] - fee
+        added_queue = exchange.amount_to_precision(buy_order['symbol'], buy_amount)
+        buy_price = buy_order['price']
+
+        added_hold_amount = buy_amount - added_queue
+        queue_df = add_hold(added_hold_amount, buy_price, timestamp, queue_df)
+
+    queue_df.loc[len(queue_df)] = [timestamp, buy_order['id'], added_queue, buy_price]
     queue_df.to_csv(queue_df_path, index=False)
 
 
@@ -154,37 +178,32 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, queue_df_path
 
         queue_df.to_csv(queue_df_path, index=False)
         sell_amount -= exe_amount
-    
-
-def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
-    last_loop = get_json(last_loop_path)
-
-    amount = get_base_currency_amount(exchange, symbol)
-    grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
-    min_value = grid * amount
-
-    return min_value
 
     
-def clear_orders_rebalance(method, exchange, bot_name, symbol, config_system, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
+def clear_orders_rebalance(exchange, bot_name, symbol, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     base_currency, _ = get_currency(symbol)
 
-    if len(open_orders_df) > 0:
-        order_id = open_orders_df['order_id'][0]
+    last_loop = get_json(last_loop_path)
+
+    if last_loop['transfer_flag'] == 1:
+        method = 'fifo'
+        last_loop['transfer_flag'] = 0
+        update_json(last_loop, last_loop_path)
+    else:
+        method = 'lifo'
+
+    for order_id in open_orders_df['order_id'].unique():
         order = exchange.fetch_order(order_id, symbol)
 
-        while order['status'] != 'closed':
-            order = exchange.fetch_order(order_id, symbol)
-            time.sleep(config_system['idle_stage'])
-    
-        if order['side'] == 'buy':
-            if method == 'lifo':
-                append_order(order, 'filled', queue_df_path.format(base_currency))
-            elif method == 'fifo':
-                update_hold(order, exchange, symbol, queue_df_path.format(base_currency))
-        
-        elif order['side'] == 'sell':
+        if order['status'] != 'closed':
+            exchange.cancel_order(order_id)
+
+        if (order['filled'] > 0) & (order['side'] == 'buy') & (method == 'lifo'):
+            append_queue(order, exchange, queue_df_path.format(base_currency))
+        elif (order['filled'] > 0) & (order['side'] == 'buy') & (method == 'fifo'):
+            update_hold(order, exchange, symbol, queue_df_path.format(base_currency))
+        elif (order['filled'] > 0) & (order['side'] == 'sell'):
             update_queue(order, exchange, method, 'filled', symbol, queue_df_path.format(base_currency), profit_df_path)
 
         last_loop = get_json(last_loop_path)
@@ -194,9 +213,19 @@ def clear_orders_rebalance(method, exchange, bot_name, symbol, config_system, la
         append_order(order, 'filled', transactions_df_path)
         update_json(last_loop, last_loop_path)
         noti_success_order(order, bot_name, symbol)
+
+
+def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
+    last_loop = get_json(last_loop_path)
+
+    amount = get_base_currency_amount(exchange, symbol)
+    grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
+    min_value = grid * amount
+
+    return min_value
     
 
-def rebalance(exchange, bot_name, symbol, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
+def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path):
     rebalance_flag = 1
 
     base_currency, quote_currency = get_currency(symbol)
@@ -228,23 +257,10 @@ def rebalance(exchange, bot_name, symbol, config_system, config_params, last_loo
 
         if rounded_amount > 0:
             print(f"Diff value: {diff_value} USD")
-            order = exchange.create_order(symbol, 'market', side, rounded_amount)
+            order = exchange.create_order(symbol, 'limit', side, rounded_amount, price)
             append_order(order, 'amount', open_orders_df_path)
         else:
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
-
-    time.sleep(config_system['idle_stage'])
-
-    last_loop = get_json(last_loop_path)
-
-    if last_loop['transfer_flag'] == 1:
-        method = 'fifo'
-        last_loop['transfer_flag'] = 0
-        update_json(last_loop, last_loop_path)
-    else:
-        method = 'lifo'
-
-    clear_orders_rebalance(method, exchange, bot_name, symbol, config_system, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
 
 
 def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):

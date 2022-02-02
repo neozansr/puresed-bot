@@ -216,23 +216,20 @@ def get_total_value(exchange, config_params):
 
 def get_order_fee(order, exchange, symbol):
     # Trades can be queried 200 at most.
-    _, quote_currency = get_currency(symbol)
-
     trades = exchange.fetch_my_trades(symbol, limit=200)
     trades_df = pd.DataFrame(trades)
     order_trade = trades_df[trades_df['order'] == order['id']].reset_index(drop=True)
     
     fee = 0
+    fee_currency = order_trade['fee'][0]['currency']
     
     for i in range(len(order_trade)):
-        if (order_trade['fee'][i]['currency'] == quote_currency) | (order_trade['fee'][i]['cost'] == 0):
-            fee += order_trade['fee'][i]['cost']
-        else:
-            # Taker fee should be charged as quote currency.
-            # Maker fee should be 0 for FTT stakers.
-            raise ValueError("Fee is not quote currency!!!")
+        fee += order_trade['fee'][i]['cost']
 
-    return fee
+        if order_trade['fee'][i]['currency'] != fee_currency:
+            raise ValueError("Different currency fee!!!")
+
+    return fee, fee_currency
 
 
 def get_pending_order(open_orders_df_path):

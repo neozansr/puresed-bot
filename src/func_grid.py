@@ -151,7 +151,7 @@ def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, tr
             order = exchange.fetch_order(order_id, config_params['symbol'])
             
             try:
-                exchange.cancel_order(order_id, config_params['symbol'])
+                exchange.cancel_order(order_id)
                 print(f"Cancel order {order_id}")
                 
                 if order['filled'] > 0:
@@ -241,7 +241,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
     buy_value = buy_price * buy_amount
 
     try:
-        exchange.cancel_order(canceled_id, config_params['symbol'])
+        exchange.cancel_order(canceled_id)
         time.sleep(config_system['idle_stage'])
         canceled_order = exchange.fetch_order(canceled_id, config_params['symbol'])
 

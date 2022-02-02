@@ -19,7 +19,7 @@ def append_order(order, amount_key, df_path):
         # Used for open_orders_df only.
         value = None
     else:
-        value = order['amount'] * order['price']
+        value = order['cost']
 
     df.loc[len(df)] = [timestamp, order['id'], order['symbol'], order['type'], order['side'], order[amount_key], order['price'], value]
     df.to_csv(df_path, index=False)

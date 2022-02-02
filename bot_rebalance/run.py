@@ -9,12 +9,15 @@ sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json, get_time, get_exchange, get_cash_value, check_end_date
 from func_update import append_error_log, update_timestamp
-from func_rebalance import get_sequence_loop, reset_order_loop, rebalance, update_end_date_rebalance
+from func_rebalance import get_sequence_loop, reset_order_loop, rebalance, clear_orders_rebalance, update_end_date_rebalance
 
 
 def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(config_system)
+
+    for symbol in config_params['symbol'].keys():
+        clear_orders_rebalance(exchange, bot_name, symbol, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
     
     end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
 
@@ -23,7 +26,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     
     for symbol in config_params['symbol'].keys():
         print(symbol)
-        rebalance(exchange, bot_name, symbol, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path)
+        rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path)
 
     cash = get_cash_value(exchange)
     print(f"Cash: {cash} USD")
