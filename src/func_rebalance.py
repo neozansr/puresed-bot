@@ -94,7 +94,6 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, queue_df, 
     buy_id = queue_df['order_id'][len(queue_df) - 1]
     sell_id = sell_order['id']
     buy_price = queue_df['price'][len(queue_df) - 1]
-    sell_price = sell_order['price']
 
     # Sell order fee currency is always USD
     fee, _ = get_order_fee(sell_order, exchange, symbol)
@@ -223,7 +222,7 @@ def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
     min_value = grid * amount
 
     return min_value
-    
+
 
 def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path):
     rebalance_flag = 1
