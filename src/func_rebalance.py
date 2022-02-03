@@ -74,8 +74,8 @@ def update_sequence_loop(config_params, last_loop_path):
 def reset_order_loop(last_loop_path):
     last_loop = get_json(last_loop_path)
     last_loop['order_loop'] = 0
-    last_loop['last_rebalance_timestamp'] == 0
-    last_loop['next_rebalance_timestamp'] == 0
+    last_loop['last_rebalance_timestamp'] = 0
+    last_loop['next_rebalance_timestamp'] = 0
 
     update_json(last_loop, last_loop_path)
 
