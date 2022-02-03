@@ -1,4 +1,5 @@
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_amount, get_base_currency_value, get_cash_value, get_total_value, get_order_fee, get_available_cash_flow, get_funding_payment
@@ -7,8 +8,8 @@ from func_update import update_json, append_order, remove_order, append_cash_flo
 from func_noti import noti_success_order
 
 
-def gen_fix_sequence(config_system):
-    sequence = [config_system['idle_loop']]
+def gen_fix_sequence(idel_sequence=10):
+    sequence = [idel_sequence]
 
     return sequence
 
@@ -40,22 +41,6 @@ def gen_hexa_sequence(n=18, limit_min=4):
     return sequence
 
 
-def get_sequence_loop(config_params, config_system, last_loop_path):
-    last_loop = get_json(last_loop_path)
-
-    if config_params['sequence_rule'] == 'fix':
-        sequence = gen_fix_sequence(config_system)
-    elif config_params['sequence_rule'] == 'hexa':
-        sequence = gen_hexa_sequence()
-
-    order_loop = last_loop['order_loop']
-    sequence_loop = sequence[order_loop]
-
-    update_order_loop(order_loop, sequence, last_loop, last_loop_path)
-    
-    return sequence_loop
-
-
 def update_order_loop(order_loop, sequence, last_loop, last_loop_path):
     order_loop += 1
     if order_loop >= len(sequence):
@@ -66,11 +51,48 @@ def update_order_loop(order_loop, sequence, last_loop, last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
+def update_sequence_loop(config_params, last_loop_path):
+    last_loop = get_json(last_loop_path)
+
+    if config_params['sequence_rule'] == 'fix':
+        sequence = gen_fix_sequence()
+    elif config_params['sequence_rule'] == 'hexa':
+        sequence = gen_hexa_sequence()
+
+    order_loop = last_loop['order_loop']
+    sequence_loop = sequence[order_loop]
+    
+    update_order_loop(order_loop, sequence, last_loop, last_loop_path)
+
+    timestamp = get_time()
+    last_loop['last_rebalance_timestamp'] = timestamp
+    last_loop['next_rebalance_timestamp'] = timestamp + relativedelta(seconds=sequence_loop)
+
+    update_json(last_loop, last_loop_path)
+
+
 def reset_order_loop(last_loop_path):
     last_loop = get_json(last_loop_path)
     last_loop['order_loop'] = 0
+    last_loop['last_rebalance_timestamp'] == 0
+    last_loop['next_rebalance_timestamp'] == 0
 
     update_json(last_loop, last_loop_path)
+
+
+def get_rebalance_flag(last_loop_path):
+    last_loop = get_json(last_loop_path)
+    timestamp = get_time()
+
+    if last_loop['next_rebalance_timestamp'] == 0:
+        # First loop
+        rebalance_flag = True
+    elif timestamp >= last_loop['next_rebalance_timestamp']:
+        rebalance_flag = True
+    else:
+        rebalance_flag = False
+
+    return rebalance_flag
 
 
 def update_budget(transfer, config_params, config_params_path, last_loop_path):
@@ -204,7 +226,17 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, queue_df_path
         queue_df.to_csv(queue_df_path, index=False)
         sell_amount -= exe_amount
 
+
+def resend_order(order, exchange, symbol, open_orders_df_path):
+    if order['side'] == 'buy':
+        price = get_bid_price(exchange, symbol)
+    elif order['side'] == 'sell':
+        price = get_ask_price(exchange, symbol)
     
+    order = exchange.create_order(symbol, 'limit', order['side'], order['remaining'], price)
+    append_order(order, 'amount', open_orders_df_path)
+
+
 def clear_orders_rebalance(exchange, bot_name, symbol, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     base_currency, _ = get_currency(symbol)
@@ -223,6 +255,9 @@ def clear_orders_rebalance(exchange, bot_name, symbol, last_loop_path, open_orde
 
         if order['status'] != 'closed':
             exchange.cancel_order(order_id)
+
+            if order['remaining'] > 0:
+                resend_order(order, exchange, symbol, open_orders_df_path)
 
         if (order['filled'] > 0) & (order['side'] == 'buy') & (method == 'lifo'):
             append_queue(order, exchange, last_loop_path, queue_df_path.format(base_currency))

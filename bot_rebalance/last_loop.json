@@ -1,6 +1,8 @@
 {
  "timestamp": 0,
  "order_loop": 0,
+ "last_rebalance_timestamp": 0,
+ "next_rebalance_timestamp": 0,
  "symbol": {
 	 "ETH/USD": {
 		 "last_action_price": 0,
