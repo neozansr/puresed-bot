@@ -1,6 +1,6 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_pending_order, get_available_cash_flow, get_position
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_pending_order, get_available_cash_flow, get_position, get_funding_payment
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
@@ -84,9 +84,9 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     profit_df = pd.read_csv(bot_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
     today_cash_flow = sum(today_profit_df['profit'])
+    funding_payment, funding_dict = get_funding_payment(exchange, range='today')
 
     last_loop = get_json(bot_path + last_loop_path)
-    last_timestamp = last_loop['timestamp']
 
     text += f"\nBalance: {balance_value} USD"
 
@@ -95,13 +95,18 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
 
         text += f"\n\n{symbol}"
         text += f"\n   Last price: {last_price} USD"
+        text += f"\n   Average cost: {last_loop['symbol'][symbol]['average_cost']} USD"
         text += f"\n   Fix value: {value_dict[symbol]['fix_value']} USD"
         text += f"\n   Current value: {value_dict[symbol]['current_value']} USD"
     
     text += f"\n\nCash: {cash} USD"
     text += f"\nToday cash flow: {today_cash_flow} USD"
+    text += f"\nFunding payment: {funding_payment} USD"
+    
+    for symbol in funding_dict.keys():
+        text += f"\n{symbol} : {funding_dict[symbol]} USD"
 
-    text += f"\n\nLast active: {last_timestamp}"
+    text += f"\n\nLast active: {last_loop['timestamp']}"
 
     return text
 
@@ -132,7 +137,6 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     today_cash_flow = sum(today_sell_df['amount'] * config_params['grid'])
 
     last_loop = get_json(bot_path + last_loop_path)
-    last_timestamp = last_loop['timestamp']
     
     text += f"\nBalance: {balance_value} {quote_currency}"
     text += f"\nCash: {cash} {quote_currency}"
@@ -145,7 +149,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nMin sell price: {min_sell_price} {quote_currency}"
     text += f"\nMax sell price: {max_sell_price} {quote_currency}"
 
-    text += f"\n\nLast active: {last_timestamp}"
+    text += f"\n\nLast active: {last_loop['timestamp']}"
     
     return text
 
@@ -164,20 +168,16 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
     balance_value = get_cash_value(exchange)
 
     last_loop = get_json(bot_path + last_loop_path)
-    last_timestamp = last_loop['timestamp']
-    last_signal_timestamp = last_loop['signal_timestamp']
-    close_price = last_loop['close_price']
-    signal_price = last_loop['signal_price']
-
+    
     cur_date = get_date()
     profit_df = pd.read_csv(bot_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
     today_profit = sum(today_profit_df['profit'])
 
     text += f"\nBalance: {balance_value} {quote_currency}"
-    text += f"\nLast timestamp: {last_signal_timestamp}"
-    text += f"\nClose price: {close_price} {quote_currency}"
-    text += f"\nSignal price: {signal_price} {quote_currency}"
+    text += f"\nLast timestamp: {last_loop['signal_timestamp']}"
+    text += f"\nClose price: {last_loop['close_price']} {quote_currency}"
+    text += f"\nSignal price: {last_loop['signal_price']} {quote_currency}"
     
     position = get_json(bot_path + position_path)
 
@@ -203,6 +203,6 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
 
     text += f"\nToday profit: {today_profit} {quote_currency}"
     
-    text += f"\n\nLast active: {last_timestamp}"
+    text += f"\n\nLast active: {last_loop['timestamp']}"
     
     return text
