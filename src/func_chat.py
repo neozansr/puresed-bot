@@ -1,6 +1,6 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_pending_order, get_available_cash_flow, get_position
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_pending_order, get_available_cash_flow, get_position, get_funding_payment
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
 
 
@@ -84,6 +84,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     profit_df = pd.read_csv(bot_path + profit_df_path)
     today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
     today_cash_flow = sum(today_profit_df['profit'])
+    funding_payment, funding_dict = get_funding_payment(exchange, range='today')
 
     last_loop = get_json(bot_path + last_loop_path)
 
@@ -100,6 +101,10 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     
     text += f"\n\nCash: {cash} USD"
     text += f"\nToday cash flow: {today_cash_flow} USD"
+    text += f"\nFunding payment: {funding_payment} USD"
+    
+    for symbol in funding_dict.keys():
+        text += f"\n{symbol} : {funding_dict[symbol]} USD"
 
     text += f"\n\nLast active: {last_loop['timestamp']}"
 

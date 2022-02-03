@@ -39,6 +39,17 @@ def convert_tz(utc):
     return utc
 
 
+def get_unix_date(dt_date):
+    if type(dt_date) == dt.datetime:
+        dt_datetime = dt.datetime(dt_date.year, dt_date.month, dt_date.day, dt_date.hour, dt_date.minute)
+    elif type(dt_date) == dt.date:
+        dt_datetime = dt.datetime(dt_date.year, dt_date.month, dt_date.day, 0, 0)
+        
+    unix_datetime = dt_datetime.timestamp() * 1000
+    
+    return unix_datetime
+
+
 def get_exchange(config_system, future=False):
     keys_dict = get_json(config_system['keys_path'])
     
@@ -257,6 +268,32 @@ def get_available_cash_flow(transfer, cash_flow_df):
     avaialble_cash_flow = last_cash_flow - withdraw_cash_flow
 
     return avaialble_cash_flow
+
+
+def get_funding_payment(exchange, range):
+    if range == 'end_date':
+        request = {
+            'start_time': int(get_unix_date(dt.date.today() - relativedelta(days=1)) / 1000),
+            'end_time': int(get_unix_date(dt.date.today() - relativedelta(seconds=1)) / 1000)
+            }
+    elif range == 'today':
+        request = {
+            'start_time': int(get_unix_date(dt.date.today()) / 1000)
+            }
+
+    funding_df = pd.DataFrame(exchange.private_get_funding_payments(request)['result'])
+    funding_df['payment'] = funding_df['payment'].astype(float)
+
+    funding_dict = {}
+
+    for symbol in funding_df['future'].unique():
+        sub_payment = funding_df.loc[funding_df['future'] == symbol, 'payment'].sum()
+
+        funding_dict[symbol] = sub_payment
+
+    funding_payment = sum(funding_df['payment'])
+    
+    return funding_payment, funding_dict
 
 
 def get_greed_index(default_index=0.5):
