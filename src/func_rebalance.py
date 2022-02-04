@@ -65,8 +65,8 @@ def update_sequence_loop(config_params, last_loop_path):
     update_order_loop(order_loop, sequence, last_loop, last_loop_path)
 
     timestamp = get_time()
-    last_loop['last_rebalance_timestamp'] = timestamp
-    last_loop['next_rebalance_timestamp'] = timestamp + relativedelta(seconds=sequence_loop)
+    last_loop['last_rebalance_timestamp'] = str(timestamp)
+    last_loop['next_rebalance_timestamp'] = str(timestamp + relativedelta(seconds=sequence_loop))
 
     update_json(last_loop, last_loop_path)
 
@@ -87,7 +87,7 @@ def get_rebalance_flag(last_loop_path):
     if last_loop['next_rebalance_timestamp'] == 0:
         # First loop
         rebalance_flag = True
-    elif timestamp >= last_loop['next_rebalance_timestamp']:
+    elif timestamp >= pd.to_datetime(last_loop['next_rebalance_timestamp']):
         rebalance_flag = True
     else:
         rebalance_flag = False
