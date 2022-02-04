@@ -9,6 +9,9 @@ from bs4 import BeautifulSoup
 
 
 def get_json(file_path):
+    '''
+    Open json file to python dictionary.
+    '''
     with open(file_path) as file:
         json_dict = json.load(file)
 
@@ -22,6 +25,9 @@ def get_time(timezone='Asia/Bangkok'):
 
 
 def get_date(timezone='Asia/Bangkok'):
+    '''
+    Get current date.
+    '''
     timestamp = get_time(timezone=timezone)
     date = timestamp.date()
     
@@ -82,6 +88,9 @@ def get_currency(symbol):
 
 
 def get_last_price(exchange, symbol):
+    '''
+    Get the lastest price on specific symbol from ticker.
+    '''
     ticker = exchange.fetch_ticker(symbol)
     last_price = ticker['last']
     
@@ -131,6 +140,9 @@ def get_base_currency_amount(exchange, symbol):
 
 
 def get_base_currency_value(last_price, exchange, symbol):
+    '''
+    Get lastest value on base currency fetching from exchange.
+    '''
     base_currency, _ = get_currency(symbol)
     
     if '-PERP' in symbol:
@@ -163,6 +175,9 @@ def get_quote_currency_value(exchange, quote_currency):
 
 
 def get_cash_value(exchange):
+    '''
+    Get lastest cash value (USD) fetching from exchange. 
+    '''
     balance = exchange.fetch_balance()
     
     try:

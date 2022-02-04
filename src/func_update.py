@@ -15,6 +15,9 @@ def append_csv(value_list, df, df_path):
 
 
 def append_order(order, amount_key, df_path):
+    '''
+    Add success order record.
+    '''
     df = pd.read_csv(df_path)
 
     timestamp = get_time()
@@ -62,12 +65,16 @@ def update_timestamp(last_loop_path):
 
 
 def update_transfer(taker_fee, transfer_path):
+    '''
+    Update transfer when withdraw happens
+    Change withdraw amount to pending withdraw
+    Set others to zero
+    '''
     transfer = get_json(transfer_path)
     withdraw = transfer['withdraw']
 
     transfer['deposit'] = 0
     transfer['withdraw'] = 0
-    transfer['withdraw_cash_flow'] = 0
 
     fee = withdraw * (taker_fee / 100)
     adjusted_withdraw = withdraw - fee

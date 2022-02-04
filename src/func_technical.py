@@ -1,3 +1,11 @@
+import math
+import pandas as pd
+
+from func_get import get_base_currency_value, get_cash_value, get_json, get_time, get_order_fee, get_last_price, get_base_currency_amount
+from func_cal import cal_adjusted_price, cal_end_balance, cal_unrealised_future
+from func_update import append_order, append_cash_flow_df, update_transfer, update_json
+
+
 def get_ohlcv():
     '''
     Fetch candle stick from exchange at the longest windows signal
@@ -33,109 +41,425 @@ def get_signal():
     add_wt_cross()
 
 
-def append_profit_technical():
+def cal_technical_trigger_price(price_conditions, order_type, action, trigger_only):
     '''
-    Cal profit from close order.
+    Calculate trigger price and order price based on price conditions.
+    '''
+    last_price = price_conditions['price']
+    price_changes = price_conditions['price_changes']
+    decimals = price_conditions['decimals']
+
+    if (action == 'buy' and order_type == 'stop') or (action == 'sell' and order_type == 'takeProfit'): 
+        trigger_price = last_price * (1 - price_changes)
+    elif (action == 'sell' and order_type == 'stop') or (action == 'buy' and order_type == 'takeProfit'):
+        trigger_price = last_price * (1 + price_changes)
+    else:
+        raise ValueError('order type or action is invalid!!!')
+
+    if trigger_only:
+        return trigger_price
+    else:
+        if trigger_price < last_price:
+            order_price = math.floor(trigger_price * decimals) / decimals
+        else:
+            order_price = math.ceil(trigger_price * decimals) / decimals
+
+        return trigger_price, order_price
+
+
+def create_trigger_action(action, order_type):
+    '''
+    Check action and type of order
+    Return whether how to place trigger action in advance "buy" or "sell"
+    '''
+    if (action == 'buy' and order_type == 'stop') or (action == 'buy' and order_type == 'takeProfit'):
+        trigger_action = 'sell'
+    elif (action == 'sell' and order_type == 'stop') or (action == 'sell' and order_type == 'takeProfit'):
+        trigger_action = 'buy'
+    else:
+        raise ValueError('order type or action is invalid!!!') 
+
+    return trigger_action
+
+
+def place_order(exchange, symbol, order_type, action, amount, price=None, params={}):
+    '''
+    Place order.
+    '''
+    order = exchange.create_order(symbol, order_type, action, amount, price, params)
+
+    return order
+
+
+def place_trigger_order(exchange, symbol, order_type, action, amount, price, trigger_only):
+    '''
+    Place trigger order in advance.
+    '''
+    price_conditions = {
+        'price': price, 
+        'price_changes': 0.05, 
+        'decimals': 1
+    }
+    trigger_action = create_trigger_action(order_type, action)
+
+    if trigger_only:
+        trigger_price = cal_technical_trigger_price(price_conditions, order_type, action, trigger_only)
+        params = {
+            'triggerPrice': trigger_price
+        }
+    else:
+        trigger_price, order_price = cal_technical_trigger_price(price_conditions, order_type, action, trigger_only)
+        params = {
+            'triggerPrice': trigger_price, 
+            'orderPrice': order_price
+        }
+
+    trigger_order = place_order(exchange, symbol, order_type, trigger_action, amount, params=params)
+
+    return trigger_order
+
+def cal_technical_budget(total_budget, n_position, leverage):
+    '''
+    Find budget per number of positions that can be opened and
+    If not a future market leverage should be set to 1. 
+    '''
+    budget = (total_budget / n_position) * leverage
+
+    return budget
+
+
+def find_n_remaining(symbols, config_params_path):
+    '''
+    Find maximum number of remaining can be open.
+    '''
+    config_params = get_json(config_params_path)
+    n_orders = config_params['risk'] * 100
+    n_symbols = len(symbols)
+
+    n_remaining = min(n_orders, n_symbols)
+
+    return n_remaining
+
+
+def cal_technical_profit(exchange, order, last_loop_dict):
+    '''
+    Calculate profit after closing position
+    '''
+    symbol = order['symbol']
+    side = order['side']
+    amount = order['amount']
+
+    fee = get_order_fee(order, exchange, symbol)
+    open_price = last_loop_dict[symbol]['open_price']
+    close_price = cal_adjusted_price(order, fee, side)
+
+    profit = (close_price - open_price) * amount
+
+    return profit
+
+
+def append_technical_profit(exchange, order, last_loop_dict, profit_df_path):
+    '''
+    Calculate profit from close order.
     Record profit on profit file.
     '''
-    pass
+    profit_df = pd.read_csv(profit_df_path)
+
+    timestamp = get_time()
+    order_id = order['id']    
+    symbol = order['symbol']
+    side = order['side']
+    amount = order['amount']
+    
+    fee = get_order_fee(order, exchange, symbol)
+    open_price = last_loop_dict[symbol]['open_price']
+    close_price = cal_adjusted_price(order, fee, side)
+    profit = cal_technical_profit(exchange, order, last_loop_dict)    
+
+    profit_df.loc[len(profit_df)] = [timestamp, order_id, symbol, side, amount, open_price, close_price, fee, profit]
+    profit_df.to_csv(profit_df_path, index=False)
 
 
-def cal_budget_technical():
+def get_no_position_symbols(config_params_path, last_loop_path):
     '''
-    Get max entry position.
+    Return list of coins with no position.
     '''
-    pass
+    config_params = get_json(config_params_path)
+    last_loop = get_json(last_loop_path)
+
+    all_symbols = config_params['symbols']
+    opened_position_symbols = list(last_loop['symbols'].keys())
+
+    no_position_symbols = [symbol for symbol in all_symbols if symbol not in opened_position_symbols]
+
+    return no_position_symbols 
 
 
-def get_no_posion_symbol():
-    '''
-    Return list of coins with no position
-    '''
-    pass
-
-
-def check_symbol_signal(timeframe):
-    '''
-    Get entry flag each symbol each timeframe.
-    '''
-    pass
-
-
-def check_lead_symbol_signal(timeframe):
-    '''
-    Confirm lead symbols to get entry flag.
-    '''
-    pass
-
-
-def check_close_position_condition():
-    '''
-    Close position if one of criteria occur.
-    Return clost_position flag.
-    '''
-    get_signal()
-    pass
-
-
-def check_long_entry_position_condition():
+def check_close_signals(exchange, config_params_path, position):
     '''
     Close position if one of criteria occur.
-    Return clost_position flag.
+    Return close_position flag.
     '''
-    get_signal()
-    pass
+    is_close_position = False
+    supertrend_signal, wt_cross_signal = get_signal(exchange, config_params_path, position)
+
+    if supertrend_signal or wt_cross_signal:
+        is_close_position = True        
+
+    return is_close_position
 
 
-def check_short_entry_position_condition():
+def check_open_signals(exchange, config_params_path):
     '''
-    Close position if one of criteria occur.
-    Return clost_position flag.
+    Open position if all criteria are met.
+    Return position whether it is "short" "long" or "no action" needed.
     '''
-    get_signal()
-    pass
+    small_ema_long_signal, small_supertrend_long_signal, small_wt_cross_long_signal, big_ema_long_signal, big_supertrend_long_signal, big_wt_cross_long_signal, lead_wt_cross_long_signal = get_signal(exchange, config_params_path, position='long')
+    small_ema_short_signal, small_supertrend_short_signal, small_wt_cross_short_signal, big_ema_short_signal, big_supertrend_short_signal, big_wt_cross_short_signal, lead_wt_cross_short_signal = get_signal(exchange, config_params_path, position='short')
 
-
-def check_current_position():
-    '''
-    Check all coins in last_loop
-    if exist:
-        check_close_position_condition()
-            if match condition:
-                Close order()
-                append_order(transaction_file)
-                append_profit_technical(profit_file)
+    if small_ema_long_signal and small_supertrend_long_signal and small_wt_cross_long_signal and big_ema_long_signal and big_supertrend_long_signal and big_wt_cross_long_signal and lead_wt_cross_long_signal:
+        position = 'long'
+    elif small_ema_short_signal and small_supertrend_short_signal and small_wt_cross_short_signal and big_ema_short_signal and big_supertrend_short_signal and big_wt_cross_short_signal and lead_wt_cross_short_signal:
+        position = 'short'
     else:
-        Fetch lastest symbol transaction
-        append_order(transaction_file)
-        append_profit_technical(profit_file)
+        position = 'no action'
 
-    Remove symbol from last_loop
+    return position
+
+
+def close_position(exchange, symbol, action, last_loop_path):
     '''
-    pass
+    Create order to close position.
+    '''
+    last_loop = get_json(last_loop_path)
+
+    amount = last_loop['symbols'][symbol]
+    order = exchange.create_order(symbol, 'market', action, amount)
+
+    return order
 
 
-def open_position():
-    n_order = cal_budget_technical()
-    coin_list = get_no_posion_symbol()
+def open_position(exchange, symbol, action, n_positions, config_params_path):
+    '''
+    Create order to open position.
+    '''
+    config_params = get_json(config_params_path)
 
-    for i in range(min(n_order, len(coin_list))):
-        long_entry_position_flag = check_long_entry_position_condition()
+    total_budget = config_params['total_budget']
+    leverage = config_params['leverage']
+    budget = cal_technical_budget(total_budget, n_positions, leverage)
 
-        if long_entry_position_flag == 1:
-            # Open long position
-            pass
+    last_price = get_last_price(exchange, symbol)
+    amount = budget / last_price
+
+    order = place_order(exchange, symbol, 'market', action, amount)
+    stop_loss_order = place_trigger_order(exchange, symbol, 'stop', action, amount, last_price, trigger_only=False)
+    take_profit_order = place_trigger_order(exchange, symbol, 'takeProfit', action, amount, last_price, trigger_only=False)
+
+    return order, stop_loss_order, take_profit_order 
+
+
+def create_action(position, to_close=True):
+    '''
+    Check current position and purpose of the action
+    Return whether "buy" or "sell" action
+    '''
+    if (to_close and position == 'long') or (not to_close and position == 'short'):
+        action = 'sell'
+    elif (to_close and position == 'short') or (not to_close and position == 'long'):
+        action = 'buy'
+    else:
+        raise ValueError('position should be long or short only!!!')
+
+    return action
+
+
+def clear_position_symbol(symbol, last_loop_dict):
+    '''
+    Remove position of symbol before entering
+    a new position.
+    '''
+    last_loop_dict.pop(symbol)
+
+
+def update_last_loop(exchange, order, last_loop_path):
+    '''
+    Update position amount and price for each symbol after opening the position.
+    '''
+    last_loop = get_json(last_loop_path)
+
+    symbol = order['symbol']
+    side = order['side']
+    position = 'long' if side == 'buy' else 'short'
+    amount = order['amount']
+
+    fee = get_order_fee(order, exchange, symbol)
+    open_price = cal_adjusted_price(order, fee, side)
+
+    last_loop['symbols'][symbol] = {
+        'position': position, 
+        'amount': amount, 
+        'open_price': open_price 
+    }
+
+
+def update_technical_budget(net_change, config_params_path):
+    '''
+    Update budget due to net change
+        Net transfer
+        Net profit
+    '''
+    config_params = get_json(config_params_path)
+    config_params['budget'] += net_change
+
+    update_json(config_params, config_params_path)
+    
+
+def get_stop_orders(exchange, symbol, last_loop_path):
+    '''
+    Get take profit or stop loss order.
+    '''
+    last_loop = get_json(last_loop_path)
+    open_amount = last_loop['amount']
+
+    stop_orders = list()
+    trades = exchange.fetch_my_trades(symbol).reverse()
+
+    n_trades = trade_amount = 0
+    while trade_amount < open_amount:
+        trade = trades[n_trades]
+        trade_amount += trade['amount']
+        stop_orders.append(trade)
+
+        n_trades += 1
+
+    return stop_orders
+    
+
+def check_close_position(exchange, config_params_path, last_loop_path, transactions_df_path, profit_df_path):
+    '''
+    For each symbol opened position in last loop
+    If that symbol automatically close by trigger orders
+        Fetch all trigger orders
+        Keep success orders as transactions
+        Record profit
+        Update budget from profit
+    Otherwise
+        Check close signals
+        Close positions if matched
+        Keep success orders as transactions
+        Record profit
+        Update budget from profit
+    Remove symbol from last loop
+    '''
+    last_loop = get_json(last_loop_path)
+    symbols = list(last_loop['symbols'].keys())
+    
+    for symbol in symbols:
+        last_loop_amount = last_loop[symbol]['amount']
+        balance_amount = get_base_currency_amount(exchange, symbol)
+
+        if balance_amount != last_loop_amount:
+            orders = get_stop_orders(exchange, symbol, last_loop_path)
+
+            net_profit = 0
+            for order in orders:
+                append_order(order, 'filled', transactions_df_path)
+                append_technical_profit(exchange, order, last_loop, profit_df_path)
+
+                net_profit += cal_technical_profit(exchange, order, last_loop)
+
+            update_technical_budget(net_profit, config_params_path)
         else:
-            short_entry_position_flag = check_short_entry_position_condition()
+            position = symbol['position']
+            is_close_position = check_close_signals(exchange, config_params_path, position)
+                
+            if is_close_position:
+                action = create_action(position, to_close=True)
+                order = close_position(exchange, symbol, action, last_loop_path)
 
-            if short_entry_position_flag == 1:
-                # Open short position
-                pass
+                append_order(order, 'filled', transactions_df_path)    
+                append_technical_profit(exchange, order, last_loop, profit_df_path)
+
+                net_profit = cal_technical_profit(exchange, order, last_loop)
+                update_technical_budget(net_profit, config_params_path)
+
+        clear_position_symbol(symbol, last_loop)
 
 
-def update_end_date_technical():
+def check_open_position(exchange, config_params_path, last_loop_path, transactions_df_path):
+    '''    
+    Find maximum number of positions that can be opened
+    Each coin, Check how many positions can be opened?
+        Check long position first then short positon
+        Open order
+        Save transaction
+        Update positions
     '''
-    Update cash_flow file.
-    Change budget in last_loop file if transfer occur.
+    no_position_symbols = get_no_position_symbols(config_params_path, last_loop_path)
+    n_remaining = find_n_remaining(no_position_symbols, config_params_path)
+
+    for n in range(n_remaining):
+        symbol = no_position_symbols[n]
+        position = check_open_signals(exchange, config_params_path)
+
+        if position != "no action":
+            action = create_action(position, to_close=False)
+            order = open_position(exchange, symbol, action, n_positions, config_params_path)
+
+            append_order(order, 'filled', transactions_df_path)
+            update_last_loop(exchange, order, last_loop_path)
+
+        else:
+            print(f"No action on {symbol}")
+
+
+def update_end_date_technical(prev_date, bot_name, exchange, config_params_path, last_loop_path, transfer_path, cash_flow_df_path, profit_df_path):
     '''
-    pass
+    Update cash flow before beginning trading in the next day
+        Sum up unrealised for all opened position symbols
+        Update end date balance
+        Sum up all profit got from the previous day
+    Update transfer funding
+    Update budget on for trading in the next day
+    '''
+    config_params = get_json(config_params_path)
+    last_loop = get_json(last_loop_path)
+    transfer = get_json(transfer_path)
+    
+    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+    cash_flow_df = pd.read_csv(cash_flow_df_path)
+
+    symbols = list(last_loop['symbols'].keys()) 
+    
+    unrealised = 0
+    base_currency_value = 0
+
+    for symbol in symbols:
+        last_price = get_last_price(exchange, symbol)
+        position = last_loop['symbol']['position'] 
+         
+        unrealised += cal_unrealised_future(last_price, position)
+        base_currency_value += get_base_currency_value(last_price, exchange, symbol)
+
+    cash = get_cash_value(exchange)
+    end_balance = cal_end_balance(base_currency_value, cash, transfer)
+
+    profit_df = pd.read_csv(profit_df_path)
+    last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
+    profit = sum(last_profit_df['profit'])
+    
+    net_transfer = transfer['deposit'] - transfer['withdraw']
+
+    cash_flow_list = [
+        'prev_date', 
+        end_balance, 
+        unrealised, 
+        profit, 
+        transfer['deposit'], 
+        transfer['withdraw']
+    ]
+
+    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    update_technical_budget(net_transfer, config_params_path)
+    update_transfer(config_params['taker_fee'], transfer_path)
