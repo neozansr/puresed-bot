@@ -260,20 +260,22 @@ def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_pa
             if order['remaining'] > 0:
                 resend_order(order, exchange, symbol, open_orders_df_path)
 
-        if (order['filled'] > 0) & (order['side'] == 'buy') & (method == 'lifo'):
-            append_queue(order, exchange, last_loop_path, queue_df_path.format(base_currency))
-        elif (order['filled'] > 0) & (order['side'] == 'buy') & (method == 'fifo'):
-            update_hold(order, exchange, symbol, last_loop_path, queue_df_path.format(base_currency))
-        elif (order['filled'] > 0) & (order['side'] == 'sell'):
-            update_queue(order, exchange, method, 'filled', symbol, queue_df_path.format(base_currency), profit_df_path)
+        if order['filled'] > 0:
+            if (order['side'] == 'buy') & (method == 'lifo'):
+                append_queue(order, exchange, last_loop_path, queue_df_path.format(base_currency))
+            elif (order['side'] == 'buy') & (method == 'fifo'):
+                update_hold(order, exchange, symbol, last_loop_path, queue_df_path.format(base_currency))
+            elif order['side'] == 'sell':
+                update_queue(order, exchange, method, 'filled', symbol, queue_df_path.format(base_currency), profit_df_path)
 
-        last_loop = get_json(last_loop_path)
-        last_loop['symbol'][symbol]['last_action_price'] = order['price']
+            last_loop = get_json(last_loop_path)
+            last_loop['symbol'][symbol]['last_action_price'] = order['price']
+
+            append_order(order, 'filled', transactions_df_path)
+            update_json(last_loop, last_loop_path)
+            noti_success_order(order, bot_name, symbol)
 
         remove_order(order_id, open_orders_df_path)
-        append_order(order, 'filled', transactions_df_path)
-        update_json(last_loop, last_loop_path)
-        noti_success_order(order, bot_name, symbol)
 
 
 def cal_min_value(exchange, symbol, grid_percent, last_loop_path):

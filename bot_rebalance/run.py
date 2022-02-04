@@ -66,8 +66,10 @@ if __name__ == '__main__':
         
             print("End loop")
 
+            last_loop = get_json(last_loop_path)
             timestamp = get_time()
             print(f"Time: {timestamp}")
+            print(f"Next rebalance: {last_loop['next_rebalance_timestamp']}")
             print(f"Wait {idle_loop} seconds")
         else:
             print("Stop process")
