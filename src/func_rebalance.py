@@ -4,7 +4,7 @@ import sys
 
 from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_amount, get_base_currency_value, get_cash_value, get_total_value, get_order_fee, get_available_cash_flow, get_funding_payment
 from func_cal import round_amount, cal_adjusted_price, cal_end_balance, cal_end_cash
-from func_update import update_json, append_order, remove_order, append_cash_flow_df, update_transfer
+from func_update import update_json, append_csv, append_order, remove_order, update_transfer
 from func_noti import noti_success_order
 
 
@@ -237,10 +237,8 @@ def resend_order(order, exchange, symbol, open_orders_df_path):
     append_order(order, 'amount', open_orders_df_path)
 
 
-def clear_orders_rebalance(exchange, bot_name, symbol, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
+def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    base_currency, _ = get_currency(symbol)
-
     last_loop = get_json(last_loop_path)
 
     if last_loop['transfer_flag'] == 1:
@@ -251,6 +249,8 @@ def clear_orders_rebalance(exchange, bot_name, symbol, last_loop_path, open_orde
         method = 'lifo'
 
     for order_id in open_orders_df['order_id'].unique():
+        symbol = open_orders_df.loc[open_orders_df['order_id'] == order_id, 'symbol'].item()
+        base_currency, _ = get_currency(symbol)
         order = exchange.fetch_order(order_id, symbol)
 
         if order['status'] != 'closed':
@@ -323,8 +323,7 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
 
 
-def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
-    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+def update_end_date_rebalance(prev_date, exchange, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transfer = get_json(transfer_path)
     
@@ -366,6 +365,6 @@ def update_end_date_rebalance(prev_date, exchange, bot_name, config_params, conf
 
     cash_flow_list = pre_cash_flow_list + value_list  + post_cash_flow_list
     
-    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_budget(transfer, config_params, config_params_path, last_loop_path)
     update_transfer(config_params['taker_fee'], transfer_path)

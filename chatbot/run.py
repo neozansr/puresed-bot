@@ -23,7 +23,7 @@ transfer_path = 'transfer.json'
 open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
 profit_df_path = 'profit.csv'
-cash_flow_path = home_path + 'cash_flow/{}.csv'
+cash_flow_path = 'cash_flow.csv'
 
 
 bot = telebot.TeleBot(token)

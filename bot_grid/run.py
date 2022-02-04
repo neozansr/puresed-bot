@@ -28,7 +28,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
         if cont_flag == 1:
             open_buy_orders_grid(exchange, bot_name, config_params, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
 
-    end_date_flag, prev_date = check_end_date(bot_name, cash_flow_df_path, transactions_df_path)
+    end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
 
     if end_date_flag == 1:
         update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     open_orders_df_path = 'open_orders.csv'
     transactions_df_path = 'transactions.csv'
     error_log_df_path = 'error_log.csv'
-    cash_flow_df_path = home_path + 'cash_flow/{}.csv'
+    cash_flow_df_path = home_path + 'cash_flow.csv'
 
     while True:
         config_system = get_json(config_system_path)

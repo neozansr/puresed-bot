@@ -9,6 +9,11 @@ def update_json(input_dict, file_path):
         json.dump(input_dict, file, indent=1)
 
 
+def append_csv(value_list, df, df_path):
+    df.loc[len(df)] = value_list
+    df.to_csv(df_path, index=False)
+
+
 def append_order(order, amount_key, df_path):
     df = pd.read_csv(df_path)
 
@@ -39,11 +44,6 @@ def append_error_log(error_log, error_log_df_path):
     timestamp = get_time()
     df.loc[len(df)] = [timestamp, error_log]
     df.to_csv(error_log_df_path, index=False)
-
-
-def append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path):
-    cash_flow_df.loc[len(cash_flow_df)] = cash_flow_list
-    cash_flow_df.to_csv(cash_flow_df_path, index=False)
 
 
 def update_last_loop_price(exchange, symbol, last_loop_path):

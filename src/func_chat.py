@@ -39,7 +39,7 @@ def get_balance_text(bot_list, config_system_path):
     return text
 
 
-def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_path):
+def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path):
     text = "Cash flow\n"
     
     all_cash_flow = 0
@@ -48,15 +48,10 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_path):
     for bot_name in bot_list:
         bot_path = f"{home_path}{bot_name}/"
 
-        try:
-            cash_flow_df_path = cash_flow_path.format(bot_name)
-            cash_flow_df = pd.read_csv(cash_flow_df_path)
-            transfer = get_json(bot_path + transfer_path)
-            available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-            cash_flow_dict[bot_name] = available_cash_flow
-        except FileNotFoundError:
-            # Not bot
-            pass
+        cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
+        transfer = get_json(bot_path + transfer_path)
+        available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+        cash_flow_dict[bot_name] = available_cash_flow
 
         all_cash_flow += available_cash_flow
 

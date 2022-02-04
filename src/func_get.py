@@ -317,8 +317,7 @@ def get_greed_index(default_index=0.5):
     return greed_index
     
 
-def check_end_date(bot_name, cash_flow_df_path, transactions_df_path):
-    cash_flow_df_path = cash_flow_df_path.format(bot_name)
+def check_end_date(cash_flow_df_path, transactions_df_path):
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
     

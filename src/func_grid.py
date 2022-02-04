@@ -5,7 +5,7 @@ import time
 
 from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_order_fee, get_greed_index, get_available_cash_flow
 from func_cal import round_amount, cal_unrealised, cal_available_budget, cal_end_balance
-from func_update import update_json, append_order, remove_order, append_error_log, append_cash_flow_df, update_last_loop_price, update_transfer
+from func_update import update_json, append_csv, append_order, remove_order, append_error_log, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
 
 
@@ -350,7 +350,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         available_cash_flow
         ]
 
-    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_reinvest(new_value, config_params_path)
     reset_loss(last_loop_path)
     update_transfer(config_params['taker_fee'], transfer_path)
