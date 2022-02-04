@@ -276,6 +276,7 @@ def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
 
 
 def resend_order(order, exchange, symbol, config_params, last_loop_path, open_orders_df_path):
+    print(f"Resend {order['symbol']}")
     action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path)
 
     if (action_flag == 1) & (side == order['side']):
@@ -297,7 +298,6 @@ def check_cancel_order(order, exchange, config_params, last_loop_path, open_orde
         exchange.cancel_order(order['id'])
 
         if (resend_flag == True) & (order['remaining'] > 0):
-            print(f"Resend {order['symbol']}")
             resend_order(order, exchange, order['symbol'], config_params, last_loop_path, open_orders_df_path)
 
 
@@ -338,10 +338,10 @@ def clear_orders_rebalance(exchange, bot_name, config_params, last_loop_path, op
 
 
 def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path):
+    print(f"Rebalance {symbol}")
+
     base_currency, _ = get_currency(symbol)
     action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path)
-        
-    print(f"Rebalance {symbol}")
 
     if action_flag == 1:
         amount = diff_value / price
