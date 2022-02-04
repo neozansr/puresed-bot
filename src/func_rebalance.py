@@ -233,7 +233,7 @@ def resend_order(order, exchange, symbol, open_orders_df_path):
     elif order['side'] == 'sell':
         price = get_ask_price(exchange, symbol)
     
-    order = exchange.create_order(symbol, 'limit', order['side'], order['remaining'], price)
+    order = exchange.create_order(symbol, 'limit', order['side'], order['remaining'], price, params={'post_only': True})
     append_order(order, 'amount', open_orders_df_path)
 
 
@@ -317,7 +317,7 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
 
         if rounded_amount > 0:
             print(f"Diff value: {diff_value} USD")
-            order = exchange.create_order(symbol, 'limit', side, rounded_amount, price)
+            order = exchange.create_order(symbol, 'limit', side, rounded_amount, price, params={'post_only': True})
             append_order(order, 'amount', open_orders_df_path)
         else:
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
