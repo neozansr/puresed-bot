@@ -317,10 +317,12 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
         side = 'buy'
         diff_value = fix_value - current_value
         price = get_bid_price(exchange, symbol)
+        print(f"Send buy order")
     elif current_value > fix_value + min_value:
         side = 'sell'
         diff_value = current_value - fix_value
         price = get_ask_price(exchange, symbol)
+        print(f"Send sell order")
     else:
         action_flag = 0
         print("No action")
