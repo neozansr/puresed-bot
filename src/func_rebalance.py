@@ -85,12 +85,12 @@ def get_rebalance_flag(last_loop_path):
     timestamp = get_time()
 
     if last_loop['next_rebalance_timestamp'] == 0:
-        # First loop
-        rebalance_flag = True
+        # First loop.
+        rebalance_flag = 1
     elif timestamp >= pd.to_datetime(last_loop['next_rebalance_timestamp']):
-        rebalance_flag = True
+        rebalance_flag = 1
     else:
-        rebalance_flag = False
+        rebalance_flag = 0
 
     return rebalance_flag
 
@@ -238,11 +238,22 @@ def resend_order(order, exchange, symbol, open_orders_df_path):
     elif order['side'] == 'sell':
         price = get_ask_price(exchange, symbol)
     
-    order = exchange.create_order(symbol, 'limit', order['side'], order['remaining'], price, params={'post_only': True})
-    append_order(order, 'amount', open_orders_df_path)
+    rounded_amount = round_amount(order['remaining'], exchange, symbol, type='down')
+
+    if rounded_amount > 0:
+        order = exchange.create_order(symbol, 'limit', order['side'], rounded_amount, price, params={'post_only': True})
+        append_order(order, 'amount', open_orders_df_path)
 
 
-def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path):
+def check_cancel_order(order, exchange, open_orders_df_path, resend_flag):
+    if order['status'] != 'closed':
+        exchange.cancel_order(order['order_id'])
+
+        if (resend_flag == True) & (order['remaining'] > 0):
+            resend_order(order, exchange, order['symbol'], open_orders_df_path)
+
+
+def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
     last_loop = get_json(last_loop_path)
 
@@ -258,11 +269,7 @@ def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_pa
         base_currency, _ = get_currency(symbol)
         order = exchange.fetch_order(order_id, symbol)
 
-        if order['status'] != 'closed':
-            exchange.cancel_order(order_id)
-
-            if order['remaining'] > 0:
-                resend_order(order, exchange, symbol, open_orders_df_path)
+        check_cancel_order(order, exchange, open_orders_df_path, resend_flag)
 
         if order['filled'] > 0:
             if (order['side'] == 'buy') & (method == 'lifo'):
@@ -293,7 +300,7 @@ def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
 
 
 def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path):
-    rebalance_flag = 1
+    action_flag = 1
 
     base_currency, quote_currency = get_currency(symbol)
     last_price = get_last_price(exchange, symbol)
@@ -315,10 +322,10 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
         diff_value = current_value - fix_value
         price = get_ask_price(exchange, symbol)
     else:
-        rebalance_flag = 0
+        action_flag = 0
         print("No action")
         
-    if rebalance_flag == 1:
+    if action_flag == 1:
         amount = diff_value / price
         rounded_amount = round_amount(amount, exchange, symbol, type='down')
 

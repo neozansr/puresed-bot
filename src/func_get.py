@@ -66,7 +66,7 @@ def get_exchange(config_system, future=False):
         })
 
     if 'subaccount' in list(keys_dict.keys()):
-        exchange.headers = {'FTX-SUBACCOUNT': keys_dict['subaccount'],}
+        exchange.headers = {'FTX-SUBACCOUNT': keys_dict['subaccount']}
 
     if future == True:
         exchange.options = {'defaultType': 'future'}
