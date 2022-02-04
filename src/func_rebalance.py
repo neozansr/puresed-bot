@@ -116,7 +116,7 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, queue_df, 
     sell_id = sell_order['id']
     buy_price = queue_df['price'][len(queue_df) - 1]
 
-    # Sell order fee currency is always USD
+    # Sell order fee currency is always USD.
     fee, _ = get_order_fee(sell_order, exchange, symbol)
     sell_price = cal_adjusted_price(sell_order, fee, side='sell')
     profit = (sell_price - buy_price) * exe_amount
@@ -190,7 +190,13 @@ def append_queue(buy_order, exchange, last_loop_path, queue_df_path):
         buy_price = cal_adjusted_price(buy_order, fee, side='buy')
     elif fee_currency == base_currency:
         buy_amount = buy_order['filled'] - fee
-        added_queue = float(exchange.amount_to_precision(buy_order['symbol'], buy_amount))
+
+        if len(queue_df) > 0:
+            added_queue = float(exchange.amount_to_precision(buy_order['symbol'], buy_amount))
+        else:
+            # Fist loop.
+            added_queue = buy_amount
+
         buy_price = buy_order['price']
 
         added_hold_amount = buy_amount - added_queue
