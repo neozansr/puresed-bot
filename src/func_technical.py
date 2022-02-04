@@ -405,7 +405,7 @@ def check_open_position(exchange, config_params_path, last_loop_path, transactio
 
         if position != "no action":
             action = create_action(position, to_close=False)
-            order = open_position(exchange, symbol, action, n_positions, config_params_path)
+            order = open_position(exchange, symbol, action, n_remaining, config_params_path)
 
             append_order(order, 'filled', transactions_df_path)
             update_last_loop(exchange, order, last_loop_path)
@@ -414,7 +414,7 @@ def check_open_position(exchange, config_params_path, last_loop_path, transactio
             print(f"No action on {symbol}")
 
 
-def update_end_date_technical(prev_date, bot_name, exchange, config_params_path, last_loop_path, transfer_path, cash_flow_df_path, profit_df_path):
+def update_end_date_technical(prev_date, exchange, config_params_path, last_loop_path, transfer_path, cash_flow_df_path, profit_df_path):
     '''
     Update cash flow before beginning trading in the next day
         Sum up unrealised for all opened position symbols
@@ -426,8 +426,6 @@ def update_end_date_technical(prev_date, bot_name, exchange, config_params_path,
     config_params = get_json(config_params_path)
     last_loop = get_json(last_loop_path)
     transfer = get_json(transfer_path)
-    
-    cash_flow_df_path = cash_flow_df_path.format(bot_name)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
 
     symbols = list(last_loop['symbols'].keys()) 
@@ -452,11 +450,11 @@ def update_end_date_technical(prev_date, bot_name, exchange, config_params_path,
     net_transfer = transfer['deposit'] - transfer['withdraw']
 
     cash_flow_list = [
-        'prev_date', 
+        prev_date, 
         end_balance, 
         unrealised, 
         profit, 
-        transfer['deposit'], 
+        transfer['deposit'],
         transfer['withdraw']
     ]
 
