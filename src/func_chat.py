@@ -102,8 +102,8 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
         text += f"\n   {symbol} : {funding_dict[symbol]} USD"
 
     text += f"\n\nLast active: {last_loop['timestamp']}"
-    text += f"Last rebalalnce: {last_loop['last_rebalance_timestamp']}"
-    text += f"Next rebalance: {last_loop['next_rebalance_timestamp']}"
+    text += f"\nLast rebalalnce: {last_loop['last_rebalance_timestamp']}"
+    text += f"\nNext rebalance: {last_loop['next_rebalance_timestamp']}"
 
     return text
 
