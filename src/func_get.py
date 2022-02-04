@@ -125,7 +125,7 @@ def get_base_currency_amount(exchange, symbol):
     if '-PERP' in symbol:
         try:
             position = get_position(exchange, symbol)
-            amount = float(position['netSize'])
+            amount = float(position['size'])
         except TypeError:
             amount = 0
     else:
