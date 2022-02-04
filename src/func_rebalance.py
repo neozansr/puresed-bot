@@ -189,7 +189,7 @@ def append_queue(buy_order, exchange, last_loop_path, queue_df_path):
         buy_price = cal_adjusted_price(buy_order, fee, side='buy')
     elif fee_currency == base_currency:
         buy_amount = buy_order['filled'] - fee
-        added_queue = exchange.amount_to_precision(buy_order['symbol'], buy_amount)
+        added_queue = float(exchange.amount_to_precision(buy_order['symbol'], buy_amount))
         buy_price = buy_order['price']
 
         added_hold_amount = buy_amount - added_queue
