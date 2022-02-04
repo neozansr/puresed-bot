@@ -141,19 +141,18 @@ def find_n_remaining(symbols, config_params_path):
     return n_remaining
 
 
-def cal_technical_profit(exchange, order, last_loop_dict):
+def cal_technical_profit(exchange, close_order, last_loop_dict):
     '''
     Calculate profit after closing position
     '''
-    symbol = order['symbol']
-    side = order['side']
-    amount = order['amount']
+    fee = get_order_fee(close_order, exchange, close_order['symbol'])
+    open_price = last_loop_dict[close_order['symbol']]['open_price']
+    close_price = cal_adjusted_price(close_order, fee, close_order['side'])
 
-    fee = get_order_fee(order, exchange, symbol)
-    open_price = last_loop_dict[symbol]['open_price']
-    close_price = cal_adjusted_price(order, fee, side)
-
-    profit = (close_price - open_price) * amount
+    if close_order['side'] == 'sell':
+        profit = (close_price - open_price) * close_order['amount']
+    elif close_order['side'] == 'buy':
+        profit = (open_price - close_price) * close_order['amount']
 
     return profit
 
