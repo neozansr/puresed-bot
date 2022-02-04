@@ -232,28 +232,75 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, queue_df_path
         sell_amount -= exe_amount
 
 
-def resend_order(order, exchange, symbol, open_orders_df_path):
-    if order['side'] == 'buy':
+def get_rebalance_action(exchange, symbol, config_params, last_loop_path):
+    last_price = get_last_price(exchange, symbol)
+    current_value = get_base_currency_value(last_price, exchange, symbol)
+    min_value = cal_min_value(exchange, symbol, config_params['grid_percent'], last_loop_path)
+    fix_value = config_params['budget'] * config_params['symbol'][symbol]
+
+    print(f"Last price: {last_price} USD")
+    print(f"Fix value: {fix_value} USD")
+    print(f"Min value: {min_value} USD")
+    print(f"Current value: {current_value} USD")
+
+    if current_value < fix_value - min_value:
+        action_flag = 1
+        side = 'buy'
+        diff_value = fix_value - current_value
         price = get_bid_price(exchange, symbol)
-    elif order['side'] == 'sell':
+        print(f"Send buy order")
+    elif current_value > fix_value + min_value:
+        action_flag = 1
+        side = 'sell'
+        diff_value = current_value - fix_value
         price = get_ask_price(exchange, symbol)
-    
-    rounded_amount = round_amount(order['remaining'], exchange, symbol, type='down')
+        print(f"Send sell order")
+    else:
+        action_flag = 0
+        side = None
+        diff_value = None
+        price = None
+        print("No action")
+
+    return action_flag, side, diff_value, price
+
+
+def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
+    last_loop = get_json(last_loop_path)
+
+    amount = get_base_currency_amount(exchange, symbol)
+    grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
+    min_value = grid * amount
+
+    return min_value
+
+
+def resend_order(order, exchange, symbol, config_params, last_loop_path, open_orders_df_path):
+    action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path)
+
+    if (action_flag == 1) & (side == order['side']):
+        amount = diff_value / price
+        rounded_amount = round_amount(amount, exchange, symbol, type='down')
 
     if rounded_amount > 0:
-        order = exchange.create_order(symbol, 'limit', order['side'], rounded_amount, price, params={'post_only': True})
+        if order['side'] == 'buy':
+            price = get_bid_price(exchange, symbol)
+        elif order['side'] == 'sell':
+            price = get_ask_price(exchange, symbol)
+        
+        order = exchange.create_order(symbol, 'limit', side, rounded_amount, price, params={'postOnly': True})
         append_order(order, 'amount', open_orders_df_path)
 
 
-def check_cancel_order(order, exchange, open_orders_df_path, resend_flag):
+def check_cancel_order(order, exchange, config_params, last_loop_path, open_orders_df_path, resend_flag):
     if order['status'] != 'closed':
         exchange.cancel_order(order['id'])
 
         if (resend_flag == True) & (order['remaining'] > 0):
-            resend_order(order, exchange, order['symbol'], open_orders_df_path)
+            resend_order(order, exchange, order['symbol'], config_params, last_loop_path, open_orders_df_path)
 
 
-def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag):
+def clear_orders_rebalance(exchange, bot_name, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
     last_loop = get_json(last_loop_path)
 
@@ -269,7 +316,7 @@ def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_pa
         base_currency, _ = get_currency(symbol)
         order = exchange.fetch_order(order_id, symbol)
 
-        check_cancel_order(order, exchange, open_orders_df_path, resend_flag)
+        check_cancel_order(order, exchange, config_params, last_loop_path, open_orders_df_path, resend_flag)
 
         if order['filled'] > 0:
             if (order['side'] == 'buy') & (method == 'lifo'):
@@ -289,43 +336,9 @@ def clear_orders_rebalance(exchange, bot_name, last_loop_path, open_orders_df_pa
         remove_order(order_id, open_orders_df_path)
 
 
-def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
-    last_loop = get_json(last_loop_path)
-
-    amount = get_base_currency_amount(exchange, symbol)
-    grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
-    min_value = grid * amount
-
-    return min_value
-
-
 def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path):
-    action_flag = 1
-
-    base_currency, quote_currency = get_currency(symbol)
-    last_price = get_last_price(exchange, symbol)
-    current_value = get_base_currency_value(last_price, exchange, symbol)
-    min_value = cal_min_value(exchange, symbol, config_params['grid_percent'], last_loop_path)
-    fix_value = config_params['budget'] * config_params['symbol'][symbol]
-
-    print(f"Last price: {last_price} {quote_currency}")
-    print(f"Fix value: {fix_value} USD")
-    print(f"Min value: {min_value} USD")
-    print(f"Current value: {current_value} USD")
-
-    if current_value < fix_value - min_value:
-        side = 'buy'
-        diff_value = fix_value - current_value
-        price = get_bid_price(exchange, symbol)
-        print(f"Send buy order")
-    elif current_value > fix_value + min_value:
-        side = 'sell'
-        diff_value = current_value - fix_value
-        price = get_ask_price(exchange, symbol)
-        print(f"Send sell order")
-    else:
-        action_flag = 0
-        print("No action")
+    base_currency, _ = get_currency(symbol)
+    action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path)
         
     if action_flag == 1:
         amount = diff_value / price
@@ -333,7 +346,7 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
 
         if rounded_amount > 0:
             print(f"Diff value: {diff_value} USD")
-            order = exchange.create_order(symbol, 'limit', side, rounded_amount, price, params={'post_only': True})
+            order = exchange.create_order(symbol, 'limit', side, rounded_amount, price, params={'postOnly': True})
             append_order(order, 'amount', open_orders_df_path)
         else:
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
