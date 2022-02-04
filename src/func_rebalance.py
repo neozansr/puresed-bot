@@ -297,6 +297,7 @@ def check_cancel_order(order, exchange, config_params, last_loop_path, open_orde
         exchange.cancel_order(order['id'])
 
         if (resend_flag == True) & (order['remaining'] > 0):
+            print(f"Resend {order['symbol']}")
             resend_order(order, exchange, order['symbol'], config_params, last_loop_path, open_orders_df_path)
 
 
@@ -340,6 +341,8 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
     base_currency, _ = get_currency(symbol)
     action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path)
         
+    print(f"Rebalance {symbol}")
+
     if action_flag == 1:
         amount = diff_value / price
         rounded_amount = round_amount(amount, exchange, symbol, type='down')
