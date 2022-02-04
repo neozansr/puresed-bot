@@ -185,6 +185,7 @@ def append_queue(buy_order, exchange, last_loop_path, queue_df_path):
     fee, fee_currency = get_order_fee(buy_order, exchange, buy_order['symbol'])
 
     if fee_currency == quote_currency:
+        buy_amount = buy_order['filled']
         added_queue = buy_order['filled']
         buy_price = cal_adjusted_price(buy_order, fee, side='buy')
     elif fee_currency == base_currency:
