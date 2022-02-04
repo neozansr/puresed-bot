@@ -185,22 +185,20 @@ def append_queue(buy_order, exchange, last_loop_path, queue_df_path):
     fee, fee_currency = get_order_fee(buy_order, exchange, buy_order['symbol'])
 
     if fee_currency == quote_currency:
+        buy_price = cal_adjusted_price(buy_order, fee, side='buy')
         buy_amount = buy_order['filled']
         added_queue = buy_order['filled']
-        buy_price = cal_adjusted_price(buy_order, fee, side='buy')
     elif fee_currency == base_currency:
+        buy_price = buy_order['price']
         buy_amount = buy_order['filled'] - fee
 
         if len(queue_df) > 0:
             added_queue = float(exchange.amount_to_precision(buy_order['symbol'], buy_amount))
+            added_hold_amount = buy_amount - added_queue
+            queue_df = update_hold_cost(added_hold_amount, buy_price, timestamp, queue_df)
         else:
             # Fist loop.
             added_queue = buy_amount
-
-        buy_price = buy_order['price']
-
-        added_hold_amount = buy_amount - added_queue
-        queue_df = update_hold_cost(added_hold_amount, buy_price, timestamp, queue_df)
 
     update_average_cost(buy_amount, buy_price, exchange, buy_order['symbol'], last_loop_path)
     queue_df.loc[len(queue_df)] = [timestamp, buy_order['id'], added_queue, buy_price]
