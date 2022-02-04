@@ -247,7 +247,7 @@ def resend_order(order, exchange, symbol, open_orders_df_path):
 
 def check_cancel_order(order, exchange, open_orders_df_path, resend_flag):
     if order['status'] != 'closed':
-        exchange.cancel_order(order['order_id'])
+        exchange.cancel_order(order['id'])
 
         if (resend_flag == True) & (order['remaining'] > 0):
             resend_order(order, exchange, order['symbol'], open_orders_df_path)
