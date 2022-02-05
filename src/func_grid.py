@@ -98,7 +98,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         append_order(sell_order, 'amount', open_orders_df_path)
     except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
         # InvalidOrder: Filled with small amount before force closed.
-        # InvalidOrder: The order is closed by system (could caused by post_only param for buy orders).
+        # InvalidOrder: The order has already been closed by postOnly param.
         # InvalidOrder: Exchange fail to update actual filled amount.
         # InsufficientFunds: Not available amount to sell (could caused by decimal).
         free_amount = get_base_currency_free(exchange, base_currency)

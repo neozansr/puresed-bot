@@ -1,3 +1,4 @@
+import ccxt
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 import sys
@@ -297,7 +298,12 @@ def resend_order(order, exchange, symbol, config_params, last_loop_path, open_or
 
 def check_cancel_order(order, exchange, config_params, last_loop_path, open_orders_df_path, resend_flag):
     if order['status'] != 'closed':
-        exchange.cancel_order(order['id'])
+        try:
+            exchange.cancel_order(order['id'])
+        except ccxt.InvalidOrder:
+            # The order has already been closed by postOnly param.
+            pass
+
 
         if (resend_flag == True) & (order['remaining'] > 0):
             resend_order(order, exchange, order['symbol'], config_params, last_loop_path, open_orders_df_path)
