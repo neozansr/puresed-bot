@@ -282,6 +282,8 @@ def resend_order(order, exchange, symbol, config_params, last_loop_path, open_or
     if (action_flag == 1) & (side == order['side']):
         amount = diff_value / price
         rounded_amount = round_amount(amount, exchange, symbol, type='down')
+    else:
+        rounded_amount = 0
 
     if rounded_amount > 0:
         if order['side'] == 'buy':
