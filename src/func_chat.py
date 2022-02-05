@@ -34,7 +34,7 @@ def get_balance_text(bot_list, config_system_path):
         
         for asset in sub_account_df['asset'].unique():
             asset_value = sub_account_df[sub_account_df['asset'] == asset]['value'].sum()
-            text += f"\n{sub_account} {asset}: {asset_value} USD"
+            text += f"\n   {sub_account} {asset}: {asset_value} USD"
 
     return text
 
