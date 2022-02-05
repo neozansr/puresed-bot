@@ -65,7 +65,7 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path):
 
 def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, profit_df_path):
     bot_path = f"{home_path}{bot_name}/"
-    text = f"{bot_name.title()}\n{bot_type.title()}\n"
+    text = f"{bot_name.upper()}\n{bot_type.title()}\n"
 
     config_system = get_json(bot_path + config_system_path)
     config_params = get_json(bot_path + config_params_path)
@@ -110,7 +110,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
 
 def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path):
     bot_path = f"{home_path}{bot_name}/"
-    text = f"{bot_name.title()}\n{bot_type.title()}\n"
+    text = f"{bot_name.upper()}\n{bot_type.title()}\n"
 
     config_system = get_json(bot_path + config_system_path)
     config_params = get_json(bot_path + config_params_path)
@@ -153,7 +153,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
 
 def get_technical_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, position_path, profit_df_path):
     bot_path = f"{home_path}{bot_name}/"
-    text = f"{bot_name.title()}\n{bot_type.title()}\n"
+    text = f"{bot_name.upper()}\n{bot_type.title()}\n"
 
     config_system = get_json(bot_path + config_system_path)
     config_params = get_json(bot_path + config_params_path)
