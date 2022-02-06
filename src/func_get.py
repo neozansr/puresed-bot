@@ -6,6 +6,7 @@ from dateutil import tz
 import json
 import requests
 from bs4 import BeautifulSoup
+import time
 
 
 def get_json(file_path):
@@ -240,20 +241,38 @@ def get_total_value(exchange, config_params):
     return total_value, value_dict
     
 
-def get_order_fee(order, exchange, symbol):
+def get_order_trade(order, exchange, symbol):
     # Trades can be queried 200 at most.
     trades = exchange.fetch_my_trades(symbol, limit=200)
     trades_df = pd.DataFrame(trades)
     order_trade = trades_df[trades_df['order'] == order['id']].reset_index(drop=True)
-    
-    fee = 0
-    fee_currency = order_trade['fee'][0]['currency']
-    
-    for i in range(len(order_trade)):
-        fee += order_trade['fee'][i]['cost']
 
-        if order_trade['fee'][i]['currency'] != fee_currency:
-            raise ValueError("Different currency fee!!!")
+    return order_trade
+
+
+def get_order_fee(order, exchange, symbol, config_system, try_num=5):
+    fee = 0
+    try_counter = 0
+
+    while try_counter < try_num:
+        order_trade = get_order_trade(order, exchange, symbol)
+
+        if len(order_trade) == 0:
+            try_counter += 1
+            time.sleep(config_system['idle_stage'])
+        else:
+            try_counter = try_num
+
+    if len(order_trade) > 0:
+        fee_currency = order_trade['fee'][0]['currency']
+        
+        for i in range(len(order_trade)):
+            fee += order_trade['fee'][i]['cost']
+
+            if order_trade['fee'][i]['currency'] != fee_currency:
+                raise ValueError("Different currency fee!!!")
+    else:
+        fee_currency = 'USD'
 
     return fee, fee_currency
 

@@ -1,3 +1,4 @@
 {
+ "idle_loop": 15,
  "keys_path": "../../_keys/ftx/ftx_read_keys.json"
 }
