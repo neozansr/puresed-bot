@@ -19,7 +19,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     rebalance_flag = get_rebalance_flag(last_loop_path)
 
     if rebalance_flag == 1:
-        clear_orders_rebalance(exchange, bot_name, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=False)
+        clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=False)
 
         end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
 
@@ -34,7 +34,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
         cash = get_cash_value(exchange)
         print(f"Cash: {cash} USD")
     else:
-        clear_orders_rebalance(exchange, bot_name, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=True)
+        clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=True)
 
     update_timestamp(last_loop_path)
 
