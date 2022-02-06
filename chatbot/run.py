@@ -104,4 +104,4 @@ while True:
         bot.polling()
     except Exception:
         config_system = get_json(config_system_path)
-        time.sleep(time.sleep(config_system['idle_loop']))
+        time.sleep(config_system['idle_loop'])
