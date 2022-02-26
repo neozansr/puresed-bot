@@ -233,6 +233,27 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, config_system
         sell_amount -= exe_amount
 
 
+def manage_queue(order, method, exchange, symbol, config_system, last_loop_path, queue_df_path, profit_df_path):
+    base_currency, _ = get_currency(symbol)
+
+    if (order['side'] == 'buy') & (method == 'lifo'):
+        append_queue(order, exchange, config_system ,last_loop_path, queue_df_path.format(base_currency))
+    elif (order['side'] == 'buy') & (method == 'fifo'):
+        update_hold(order, exchange, symbol, config_system, last_loop_path, queue_df_path.format(base_currency))
+    elif order['side'] == 'sell':
+        update_queue(order, exchange, method, 'filled', symbol, config_system, queue_df_path.format(base_currency), profit_df_path)
+
+
+def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
+    last_loop = get_json(last_loop_path)
+
+    amount = get_base_currency_amount(exchange, symbol)
+    grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
+    min_value = grid * amount
+
+    return min_value
+
+    
 def get_rebalance_action(exchange, symbol, config_params, last_loop_path):
     last_price = get_last_price(exchange, symbol)
     current_value = get_base_currency_value(last_price, exchange, symbol)
@@ -266,14 +287,37 @@ def get_rebalance_action(exchange, symbol, config_params, last_loop_path):
     return action_flag, side, diff_value, price
 
 
-def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
+def get_method(last_loop_path):
     last_loop = get_json(last_loop_path)
 
-    amount = get_base_currency_amount(exchange, symbol)
-    grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
-    min_value = grid * amount
+    if last_loop['transfer_flag'] == 1:
+        method = 'fifo'
+        last_loop['transfer_flag'] = 0
+        update_json(last_loop, last_loop_path)
+    else:
+        method = 'lifo'
 
-    return min_value
+    return method
+
+
+def create_order(exchange, symbol, order_type, side, amount, price=None):
+    if order_type == 'limit':
+        order = exchange.create_order(symbol, 'limit', side, amount, price, params={'postOnly': True})
+    elif order_type == 'market':
+        order = exchange.create_order(symbol, 'market', side, amount)
+
+    return order
+
+
+def send_order(exchange, symbol, side, amount, price, config_params, last_loop_path, open_orders_df_path):
+    last_loop = get_json(last_loop_path)
+
+    if last_loop['transfer_flag'] == 1:
+        order = create_order(exchange, symbol, 'market', side, amount)
+    else:
+        order = create_order(exchange, symbol, config_params['order_type'], side, amount, price)
+
+    append_order(order, 'amount', open_orders_df_path)
 
 
 def resend_order(order, exchange, symbol, config_params, last_loop_path, open_orders_df_path):
@@ -287,12 +331,7 @@ def resend_order(order, exchange, symbol, config_params, last_loop_path, open_or
         rounded_amount = 0
 
     if rounded_amount > 0:
-        if order['side'] == 'buy':
-            price = get_bid_price(exchange, symbol)
-        elif order['side'] == 'sell':
-            price = get_ask_price(exchange, symbol)
-        
-        order = exchange.create_order(symbol, 'limit', side, rounded_amount, price, params={'postOnly': True})
+        order = create_order(exchange, symbol, config_params['order_type'], side, rounded_amount, price)
         append_order(order, 'amount', open_orders_df_path)
 
 
@@ -304,36 +343,22 @@ def check_cancel_order(order, exchange, config_params, last_loop_path, open_orde
             # The order has already been closed by postOnly param.
             pass
 
-
         if (resend_flag == True) & (order['remaining'] > 0):
             resend_order(order, exchange, order['symbol'], config_params, last_loop_path, open_orders_df_path)
 
 
 def clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    last_loop = get_json(last_loop_path)
-
-    if last_loop['transfer_flag'] == 1:
-        method = 'fifo'
-        last_loop['transfer_flag'] = 0
-        update_json(last_loop, last_loop_path)
-    else:
-        method = 'lifo'
+    method = get_method(last_loop_path)
 
     for order_id in open_orders_df['order_id'].unique():
         symbol = open_orders_df.loc[open_orders_df['order_id'] == order_id, 'symbol'].item()
-        base_currency, _ = get_currency(symbol)
+        
         order = exchange.fetch_order(order_id, symbol)
-
         check_cancel_order(order, exchange, config_params, last_loop_path, open_orders_df_path, resend_flag)
 
         if order['filled'] > 0:
-            if (order['side'] == 'buy') & (method == 'lifo'):
-                append_queue(order, exchange, config_system ,last_loop_path, queue_df_path.format(base_currency))
-            elif (order['side'] == 'buy') & (method == 'fifo'):
-                update_hold(order, exchange, symbol, config_system, last_loop_path, queue_df_path.format(base_currency))
-            elif order['side'] == 'sell':
-                update_queue(order, exchange, method, 'filled', symbol, config_system, queue_df_path.format(base_currency), profit_df_path)
+            manage_queue(order, method, exchange, symbol, config_system, last_loop_path, queue_df_path, profit_df_path)
 
             last_loop = get_json(last_loop_path)
             last_loop['symbol'][symbol]['last_action_price'] = order['price']
@@ -357,8 +382,7 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
 
         if rounded_amount > 0:
             print(f"Diff value: {diff_value} USD")
-            order = exchange.create_order(symbol, 'limit', side, rounded_amount, price, params={'postOnly': True})
-            append_order(order, 'amount', open_orders_df_path)
+            send_order(exchange, symbol, side, rounded_amount, price, config_params, last_loop_path, open_orders_df_path)
         else:
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
 
