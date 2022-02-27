@@ -1,44 +1,48 @@
 import math
+from matplotlib.pyplot import close
 import pandas as pd
 
 from func_get import get_base_currency_value, get_cash_value, get_json, get_time, get_order_fee, get_last_price, get_base_currency_amount
 from func_cal import cal_adjusted_price, cal_end_balance, cal_unrealised_future
-from func_update import append_order, append_cash_flow_df, update_transfer, update_json
+from func_update import update_json, append_csv, append_order, update_transfer
 
 
 def get_ohlcv():
     '''
-    Fetch candle stick from exchange at the longest windows signal
+    Fetch candle stick from exchange at the longest windows signal.
     '''
-    pass
-
-
-def add_ema():
-    '''
-    Add ema_signal to ohlcv
-    '''
-    pass
-
-
-def add_supertrend():
-    '''
-    Add supertrend to ohlcv
-    '''
-    pass
-
-
-def add_wt_cross():
-    '''
-    Add wt_cross to ohlcv
-    '''
-    pass
+    ohlcv_df = None
+    
+    return ohlcv_df
 
 
 def get_signal():
-    get_ohlcv()
-    add_ema()
-    add_supertrend()
-    add_wt_cross()
+    '''
+    Conclude action for each in a timestamp.
+    '''
+    signal = None
+    
+    return signal
+
+
+def check_close_signals():
+    '''
+    Close position if one of criteria occur.
+    Return close_position flag.
+    '''
+    action_flag = None
+
+    return action_flag
+
+
+def check_open_signals():
+    '''
+    Open position if all criteria are met.
+    Return position whether it is "short" "long" or "no action" needed.
+    '''
+    action_flag = None
+
+    return action_flag
 
 
 def cal_technical_trigger_price(price_conditions, order_type, action, trigger_only):
@@ -118,6 +122,7 @@ def place_trigger_order(exchange, symbol, order_type, action, amount, price, tri
 
     return trigger_order
 
+
 def cal_technical_budget(total_budget, n_position, leverage):
     '''
     Find budget per number of positions that can be opened and
@@ -141,11 +146,11 @@ def find_n_remaining(symbols, config_params_path):
     return n_remaining
 
 
-def cal_technical_profit(exchange, close_order, last_loop_dict):
+def cal_technical_profit(exchange, close_order, config_system, last_loop_dict):
     '''
     Calculate profit after closing position
     '''
-    fee = get_order_fee(close_order, exchange, close_order['symbol'])
+    fee = get_order_fee(close_order, exchange, close_order['symbol'], config_system)
     open_price = last_loop_dict[close_order['symbol']]['open_price']
     close_price = cal_adjusted_price(close_order, fee, close_order['side'])
 
@@ -157,7 +162,7 @@ def cal_technical_profit(exchange, close_order, last_loop_dict):
     return profit
 
 
-def append_technical_profit(exchange, order, last_loop_dict, profit_df_path):
+def append_technical_profit(exchange, order, config_system, last_loop_dict, profit_df_path):
     '''
     Calculate profit from close order.
     Record profit on profit file.
@@ -170,10 +175,10 @@ def append_technical_profit(exchange, order, last_loop_dict, profit_df_path):
     side = order['side']
     amount = order['amount']
     
-    fee = get_order_fee(order, exchange, symbol)
+    fee = get_order_fee(order, exchange, symbol, config_system)
     open_price = last_loop_dict[symbol]['open_price']
     close_price = cal_adjusted_price(order, fee, side)
-    profit = cal_technical_profit(exchange, order, last_loop_dict)    
+    profit = cal_technical_profit(exchange, order, config_system, last_loop_dict)    
 
     profit_df.loc[len(profit_df)] = [timestamp, order_id, symbol, side, amount, open_price, close_price, fee, profit]
     profit_df.to_csv(profit_df_path, index=False)
@@ -192,38 +197,6 @@ def get_no_position_symbols(config_params_path, last_loop_path):
     no_position_symbols = [symbol for symbol in all_symbols if symbol not in opened_position_symbols]
 
     return no_position_symbols 
-
-
-def check_close_signals(exchange, config_params_path, position):
-    '''
-    Close position if one of criteria occur.
-    Return close_position flag.
-    '''
-    is_close_position = False
-    supertrend_signal, wt_cross_signal = get_signal(exchange, config_params_path, position)
-
-    if supertrend_signal or wt_cross_signal:
-        is_close_position = True        
-
-    return is_close_position
-
-
-def check_open_signals(exchange, config_params_path):
-    '''
-    Open position if all criteria are met.
-    Return position whether it is "short" "long" or "no action" needed.
-    '''
-    small_ema_long_signal, small_supertrend_long_signal, small_wt_cross_long_signal, big_ema_long_signal, big_supertrend_long_signal, big_wt_cross_long_signal, lead_wt_cross_long_signal = get_signal(exchange, config_params_path, position='long')
-    small_ema_short_signal, small_supertrend_short_signal, small_wt_cross_short_signal, big_ema_short_signal, big_supertrend_short_signal, big_wt_cross_short_signal, lead_wt_cross_short_signal = get_signal(exchange, config_params_path, position='short')
-
-    if small_ema_long_signal and small_supertrend_long_signal and small_wt_cross_long_signal and big_ema_long_signal and big_supertrend_long_signal and big_wt_cross_long_signal and lead_wt_cross_long_signal:
-        position = 'long'
-    elif small_ema_short_signal and small_supertrend_short_signal and small_wt_cross_short_signal and big_ema_short_signal and big_supertrend_short_signal and big_wt_cross_short_signal and lead_wt_cross_short_signal:
-        position = 'short'
-    else:
-        position = 'no action'
-
-    return position
 
 
 def close_position(exchange, symbol, action, last_loop_path):
@@ -258,14 +231,14 @@ def open_position(exchange, symbol, action, n_positions, config_params_path):
     return order, stop_loss_order, take_profit_order 
 
 
-def create_action(position, to_close=True):
+def create_action(position, close_flag=True):
     '''
     Check current position and purpose of the action
     Return whether "buy" or "sell" action
     '''
-    if (to_close and position == 'long') or (not to_close and position == 'short'):
+    if (position == 'long' & close_flag == True) | (position == 'short' & close_flag == False):
         action = 'sell'
-    elif (to_close and position == 'short') or (not to_close and position == 'long'):
+    elif (position == 'short' & close_flag == True)  (position == 'long' & close_flag == False):
         action = 'buy'
     else:
         raise ValueError('position should be long or short only!!!')
@@ -281,7 +254,7 @@ def clear_position_symbol(symbol, last_loop_dict):
     last_loop_dict.pop(symbol)
 
 
-def update_last_loop(exchange, order, last_loop_path):
+def update_last_loop(exchange, config_system, order, last_loop_path):
     '''
     Update position amount and price for each symbol after opening the position.
     '''
@@ -292,7 +265,7 @@ def update_last_loop(exchange, order, last_loop_path):
     position = 'long' if side == 'buy' else 'short'
     amount = order['amount']
 
-    fee = get_order_fee(order, exchange, symbol)
+    fee = get_order_fee(order, exchange, symbol, config_system)
     open_price = cal_adjusted_price(order, fee, side)
 
     last_loop['symbols'][symbol] = {
@@ -335,7 +308,7 @@ def get_stop_orders(exchange, symbol, last_loop_path):
     return stop_orders
     
 
-def check_close_position(exchange, config_params_path, last_loop_path, transactions_df_path, profit_df_path):
+def check_close_position(exchange, config_system, config_params_path, last_loop_path, transactions_df_path, profit_df_path):
     '''
     For each symbol opened position in last loop
     If that symbol automatically close by trigger orders
@@ -364,29 +337,29 @@ def check_close_position(exchange, config_params_path, last_loop_path, transacti
             net_profit = 0
             for order in orders:
                 append_order(order, 'filled', transactions_df_path)
-                append_technical_profit(exchange, order, last_loop, profit_df_path)
+                append_technical_profit(exchange, order, config_system, last_loop, profit_df_path)
 
-                net_profit += cal_technical_profit(exchange, order, last_loop)
+                net_profit += cal_technical_profit(exchange, order, config_system, last_loop)
 
             update_technical_budget(net_profit, config_params_path)
         else:
             position = symbol['position']
-            is_close_position = check_close_signals(exchange, config_params_path, position)
+            action_flag = check_close_signals()
                 
-            if is_close_position:
-                action = create_action(position, to_close=True)
+            if action_flag == True:
+                action = create_action(position, close_flag=True)
                 order = close_position(exchange, symbol, action, last_loop_path)
 
                 append_order(order, 'filled', transactions_df_path)    
-                append_technical_profit(exchange, order, last_loop, profit_df_path)
+                append_technical_profit(exchange, order, config_system, last_loop, profit_df_path)
 
-                net_profit = cal_technical_profit(exchange, order, last_loop)
+                net_profit = cal_technical_profit(exchange, order, config_system, last_loop)
                 update_technical_budget(net_profit, config_params_path)
 
         clear_position_symbol(symbol, last_loop)
 
 
-def check_open_position(exchange, config_params_path, last_loop_path, transactions_df_path):
+def check_open_position(exchange, config_system, config_params_path, last_loop_path, transactions_df_path):
     '''    
     Find maximum number of positions that can be opened
     Each coin, Check how many positions can be opened?
@@ -400,14 +373,14 @@ def check_open_position(exchange, config_params_path, last_loop_path, transactio
 
     for n in range(n_remaining):
         symbol = no_position_symbols[n]
-        position = check_open_signals(exchange, config_params_path)
+        action_flag = check_open_signals()
 
-        if position != "no action":
-            action = create_action(position, to_close=False)
+        if action_flag != "no action":
+            action = create_action(action_flag, close_flag=False)
             order = open_position(exchange, symbol, action, n_remaining, config_params_path)
 
             append_order(order, 'filled', transactions_df_path)
-            update_last_loop(exchange, order, last_loop_path)
+            update_last_loop(exchange, config_system, order, last_loop_path)
 
         else:
             print(f"No action on {symbol}")
@@ -457,6 +430,6 @@ def update_end_date_technical(prev_date, exchange, config_params_path, last_loop
         transfer['withdraw']
     ]
 
-    append_cash_flow_df(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_technical_budget(net_transfer, config_params_path)
     update_transfer(config_params['taker_fee'], transfer_path)

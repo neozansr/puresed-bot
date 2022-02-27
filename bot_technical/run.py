@@ -13,7 +13,6 @@ from func_technical import update_end_date_technical, check_close_position, chec
 
 
 def run_bot(config_system, config_params_path, last_loop_path, cash_flow_df_path, transactions_df_path, profit_df_path):
-    bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(config_system, future=True)
 
     end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
@@ -21,8 +20,8 @@ def run_bot(config_system, config_params_path, last_loop_path, cash_flow_df_path
     if end_date_flag == 1:
         update_end_date_technical(prev_date, exchange, config_params_path, last_loop_path, transfer_path, cash_flow_df_path, profit_df_path)
 
-    check_close_position(exchange, config_params_path, last_loop_path, transactions_df_path, profit_df_path)
-    check_open_position(exchange, config_params_path, last_loop_path, transactions_df_path)
+    check_close_position(exchange, config_system, config_params_path, last_loop_path, transactions_df_path, profit_df_path)
+    check_open_position(exchange, config_system, config_params_path, last_loop_path, transactions_df_path)
         
     timestamp = get_time()
     print(f"Time: {timestamp}")
