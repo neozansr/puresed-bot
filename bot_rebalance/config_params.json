@@ -5,7 +5,7 @@
 	 "ETH-PERP": -0.1
 	 },
  "sequence_rule": "fix",
- "order_type": "limit"
+ "order_type": "limit",
  "budget": 1000,
  "grid_percent": 0.12,
  "taker_fee": 0.07

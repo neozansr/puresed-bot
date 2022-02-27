@@ -6,7 +6,7 @@ from func_get import get_json, get_time, get_last_price
 
 def update_json(input_dict, file_path):
     with open(file_path, 'w') as file:
-        json.dump(input_dict, file, indent=1)
+        json.dump(input_dict, file, indent=4)
 
 
 def append_csv(value_list, df, df_path):
