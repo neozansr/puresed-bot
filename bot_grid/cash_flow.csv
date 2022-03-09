@@ -1,1 +1,1 @@
-date,value,end_balance,unrealised,loss,cash_flow,base_currency_free,deposit,withdraw,withdraw_cash_flow,available_cash_flow
+date,grid,value,end_balance,unrealised,loss,cash_flow,base_currency_free,deposit,withdraw,withdraw_cash_flow,available_cash_flow
