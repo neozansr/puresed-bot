@@ -120,7 +120,7 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, config_sys
     # Sell order fee currency is always USD.
     fee, _ = get_order_fee(sell_order, exchange, symbol, config_system)
     sell_price = cal_adjusted_price(sell_order, fee, side='sell')
-    profit = (sell_price - buy_price) * exe_amount
+    profit = exe_amount * (sell_price - buy_price)
 
     profit_df.loc[len(profit_df)] = [timestamp, buy_id, sell_id, symbol, exe_amount, buy_price, sell_price, profit]
     profit_df.to_csv(profit_df_path, index=False)
@@ -387,7 +387,7 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
 
 
-def update_end_date_rebalance(prev_date, exchange, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
+def update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transfer = get_json(transfer_path)
     
@@ -431,4 +431,4 @@ def update_end_date_rebalance(prev_date, exchange, config_params, config_params_
     
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_budget(transfer, config_params, config_params_path, last_loop_path)
-    update_transfer(config_params['taker_fee'], transfer_path)
+    update_transfer(config_system['taker_fee_percent'], transfer_path)

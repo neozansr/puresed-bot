@@ -305,7 +305,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
 
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     reset_loss(last_loop_path)
-    update_transfer(config_params['taker_fee'], transfer_path)
+    update_transfer(config_system['taker_fee_percent'], transfer_path)
 
 
 def print_report_grid(exchange, config_params, open_orders_df_path):

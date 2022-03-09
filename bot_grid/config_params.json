@@ -4,6 +4,5 @@
  "min_price": 0,
  "max_price": 5000,
  "start_safety": 0,
- "circuit_limit": 40,
- "taker_fee": 0.07
+ "circuit_limit": 40
 }

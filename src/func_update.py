@@ -64,7 +64,7 @@ def update_timestamp(last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def update_transfer(taker_fee, transfer_path):
+def update_transfer(taker_fee_percent, transfer_path):
     '''
     Update transfer when withdraw happens
     Change withdraw amount to pending withdraw
@@ -76,7 +76,7 @@ def update_transfer(taker_fee, transfer_path):
     transfer['deposit'] = 0
     transfer['withdraw'] = 0
 
-    fee = withdraw * (taker_fee / 100)
+    fee = withdraw * (taker_fee_percent / 100)
     adjusted_withdraw = withdraw - fee
     transfer['pending_withdraw'] = transfer['pending_withdraw'] + adjusted_withdraw
 

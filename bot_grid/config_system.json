@@ -3,5 +3,6 @@
  "idle_stage": 3, 
  "idle_loop": 10,
  "idle_rest": 300,
- "keys_path": "../../_keys/ftx/ftx_test_keys.json"
+ "keys_path": "../../_keys/ftx/ftx_test_keys.json",
+  "taker_fee_percent": 0.07
 }
