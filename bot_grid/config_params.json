@@ -1,9 +1,8 @@
 {
  "symbol": "ETH/USD",
  "grid": 10,
- "value": 20,
- "fluctuation_rate": 0.3,
- "reinvest_ratio": -1,
+ "min_price": 0,
+ "max_price": 5000,
  "start_safety": 0,
  "circuit_limit": 40,
  "taker_fee": 0.07

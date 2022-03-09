@@ -171,15 +171,19 @@ def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, tr
 
 def check_circuit_breaker(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path):
     cont_flag = 1
+
+    if config_params['circuit_limit'] == 0:
+        circuit_limit = np.inf
+    else:
+        circuit_limit = config_params['circuit_limit']
     
     _, quote_currency = get_currency(config_params['symbol'])
     last_loop = get_json(last_loop_path)
     transactions_df = pd.read_csv(transactions_df_path)
     update_last_loop_price(exchange, config_params['symbol'], last_loop_path)
 
-    if len(transactions_df) >= config_params['circuit_limit']:
-        side_list = transactions_df['side'][-config_params['circuit_limit']:].unique()
-        
+    if len(transactions_df) >= circuit_limit:
+        side_list = transactions_df['side'][-circuit_limit:].unique()
         last_price = get_last_price(exchange, config_params['symbol'])
 
         if (len(side_list) == 1) & (side_list[0] == 'buy') & (last_price <= last_loop['price']):
@@ -188,42 +192,18 @@ def check_circuit_breaker(exchange, bot_name, config_system, config_params, last
             time.sleep(config_system['idle_rest'])
 
     return cont_flag
-
-
-def check_cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, transfer_path, open_orders_df_path, error_log_df_path, cash_flow_df_path):
-    cont_flag = 1
-
-    _, quote_currency = get_currency(config_params['symbol'])
-    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-
-    open_orders_df = pd.read_csv(open_orders_df_path)
-    cash_flow_df_path = cash_flow_df_path.format(bot_name)
-    cash_flow_df = pd.read_csv(cash_flow_df_path)
-    
-    min_sell_price = min(open_orders_df['price'], default=0)
-    last_price = get_last_price(exchange, config_params['symbol'])
-
-    transfer = get_json(transfer_path)
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
-    
-    # No available budget to buy while the price is down to buying level.
-    if (available_budget < config_params['value']) & ((min_sell_price - last_price) >= (config_params['grid'] * 2)):
-        cont_flag = 0
-        
-        while available_budget < config_params['value']:
-            cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=False)
-            quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
-
-    return cont_flag
         
 
 def update_loss(loss, last_loop_path):
     last_loop = get_json(last_loop_path)
-    total_loss = last_loop['loss']
-    total_loss -= loss
-    last_loop['loss'] = total_loss
+    last_loop['loss'] -= loss
+
+    update_json(last_loop, last_loop_path)
+
+
+def reset_loss(last_loop_path):
+    last_loop = get_json(last_loop_path)
+    last_loop['loss'] = 0
 
     update_json(last_loop, last_loop_path)
 
@@ -260,9 +240,9 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
             sell_order = exchange.fetch_order(sell_order['id'], config_params['symbol'])
             
         fee = get_order_fee(sell_order, exchange, config_params['symbol'], config_system)
-        new_sell_price = sell_order['price']
         new_sell_amount = sell_order['amount']
-        new_sell_value = new_sell_price * new_sell_amount
+        new_sell_price = sell_order['price']
+        new_sell_value = new_sell_amount * new_sell_price
         loss = new_sell_value - buy_value + fee
         
         update_loss(loss, last_loop_path)
@@ -275,20 +255,6 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
         # Order has already been canceled from last loop but failed to update df.
         append_error_log(f'InvalidOrder:LastLoopClose', error_log_df_path)
         remove_order(canceled_id, open_orders_df_path)
-
-
-def reset_loss(last_loop_path):
-    last_loop = get_json(last_loop_path)
-    last_loop['loss'] = 0
-
-    update_json(last_loop, last_loop_path)
-
-
-def update_reinvest(new_value, config_params_path):
-    config_params = get_json(config_params_path)
-    config_params['value'] = new_value
-
-    update_json(config_params, config_params_path)
 
 
 def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
@@ -306,19 +272,12 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
     last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
     cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
-    
-    if config_params['reinvest_ratio'] == -1:
-        greed_index = get_greed_index()
-        reinvest_ratio = max(1 - (greed_index / 100), 0)
-
-    reinvest_amount = cash_flow * reinvest_ratio
-    remain_cash_flow = cash_flow - reinvest_amount
 
     transfer = get_json(transfer_path)
     net_transfer = transfer['deposit'] - transfer['withdraw']
     
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_cash_flow += remain_cash_flow
+    available_cash_flow += cash_flow
 
     # Cut loss until quote_currency_free is enough to withdraw.
     while quote_currency_free - available_cash_flow < -net_transfer:
@@ -328,11 +287,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
     cash = get_quote_currency_value(exchange, quote_currency)
     end_balance = cal_end_balance(current_value, cash, transfer)
-
-    lower_price = last_price * (1 - config_params['fluctuation_rate'])
-    n_order = int((last_price - lower_price) / config_params['grid'])
     unrealised, _, _, _ = cal_unrealised(last_price, config_params['grid'], open_orders_df)
-    new_value = (end_balance - unrealised ) / n_order
 
     cash_flow_list = [
         prev_date,
@@ -341,8 +296,6 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         unrealised,
         last_loop['loss'],
         cash_flow,
-        reinvest_amount,
-        remain_cash_flow,
         base_currency_free,
         transfer['deposit'],
         transfer['withdraw'],
@@ -351,7 +304,6 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         ]
 
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
-    update_reinvest(new_value, config_params_path)
     reset_loss(last_loop_path)
     update_transfer(config_params['taker_fee'], transfer_path)
 
