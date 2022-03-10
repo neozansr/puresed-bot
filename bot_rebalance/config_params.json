@@ -1,4 +1,5 @@
 {
+ "budget": 1000,
  "symbol": {
 	 "ETH/USD": 0.3,
 	 "LUNA-PERP": 0.2,
@@ -6,6 +7,5 @@
 	 },
  "sequence_rule": "fix",
  "order_type": "limit",
- "budget": 1000,
  "grid_percent": 0.12
 }
