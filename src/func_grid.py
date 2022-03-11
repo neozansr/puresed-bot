@@ -143,7 +143,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
         # InvalidOrder: The order has already been closed by postOnly param.
         # InsufficientFunds: Not available amount to sell cause by fee deduction.
-        free_amount = get_base_currency_free(exchange, config_params['symbol'])
+        free_amount = get_base_currency_free(exchange, config_params['symbol'], open_orders_df_path)
         sell_amount = round_amount(free_amount, exchange, config_params['symbol'], type='down')
 
         if sell_amount > 0:
@@ -313,7 +313,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     last_loop = get_json(last_loop_path)
 
     last_price = get_last_price(exchange, config_params['symbol'])
-    base_currency_free = get_base_currency_free(exchange, config_params['symbol'])
+    base_currency_free = get_base_currency_free(exchange, config_params['symbol'], open_orders_df_path)
     
 
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]

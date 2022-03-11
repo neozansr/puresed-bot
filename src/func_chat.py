@@ -1,6 +1,6 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_pending_order, get_available_cash_flow, get_funding_payment, get_quote_currency_value
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_base_currency_free, get_pending_order, get_available_cash_flow, get_funding_payment, get_quote_currency_value
 from func_rebalance import get_total_value
 from func_grid import cal_unrealised_grid
 from func_technical import cal_unrealised_technical, cal_drawdown
@@ -133,6 +133,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
 
     open_orders_df = pd.read_csv(bot_path + open_orders_df_path)
     unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised_grid(last_price, config_params['grid'], open_orders_df)
+    base_currency_free = get_base_currency_free(exchange, config_params['symbol'], open_orders_df_path)
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(bot_path + open_orders_df_path)
 
     cur_date = get_date()
@@ -148,6 +149,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nCash: {cash} {quote_currency}"
     text += f"\nLast price: {last_price} {quote_currency}"
     text += f"\nHold {amount} {base_currency} with {n_open_sell_oders} orders at {avg_price} {quote_currency}"
+    text += f"\nUntrack {base_currency_free} {base_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
     
     text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
