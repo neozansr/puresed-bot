@@ -220,25 +220,6 @@ def get_cash_free(exchange):
         quote_currency_free = 0
 
     return quote_currency_free
-
-
-def get_total_value(exchange, config_params):
-    total_value = 0
-    value_dict = {}
-    
-    for symbol in config_params['symbol'].keys():
-        last_price = get_last_price(exchange, symbol)
-        sub_value = get_base_currency_value(last_price, exchange, symbol)
-        
-        value_dict[symbol] = {
-            'fix_value':config_params['budget'] * config_params['symbol'][symbol],
-            'current_value':sub_value
-            }
-
-        if '-PERP' not in symbol:
-            total_value += sub_value
-
-    return total_value, value_dict
     
 
 def get_order_trade(order, exchange, symbol):

@@ -3,7 +3,7 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 import sys
 
-from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_amount, get_base_currency_value, get_cash_value, get_total_value, get_order_fee, get_available_cash_flow, get_funding_payment
+from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_amount, get_base_currency_value, get_cash_value, get_order_fee, get_available_cash_flow, get_funding_payment
 from func_cal import round_amount, cal_adjusted_price, cal_end_balance, cal_end_cash
 from func_update import update_json, append_csv, append_order, remove_order, update_transfer
 from func_noti import noti_success_order
@@ -79,6 +79,25 @@ def reset_order_loop(last_loop_path):
     last_loop['next_rebalance_timestamp'] = 0
 
     update_json(last_loop, last_loop_path)
+
+
+def get_total_value(exchange, config_params):
+    total_value = 0
+    value_dict = {}
+    
+    for symbol in config_params['symbol'].keys():
+        last_price = get_last_price(exchange, symbol)
+        sub_value = get_base_currency_value(last_price, exchange, symbol)
+        
+        value_dict[symbol] = {
+            'fix_value':config_params['budget'] * config_params['symbol'][symbol],
+            'current_value':sub_value
+            }
+
+        if '-PERP' not in symbol:
+            total_value += sub_value
+
+    return total_value, value_dict
 
 
 def get_rebalance_flag(last_loop_path):

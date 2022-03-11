@@ -1,7 +1,8 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_total_value, get_pending_order, get_available_cash_flow, get_position, get_funding_payment
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_pending_order, get_available_cash_flow, get_position, get_funding_payment
 from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
+from func_rebalance import get_total_value
 
 
 def get_balance_text(bot_list, config_system_path):
