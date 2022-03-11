@@ -176,10 +176,9 @@ def get_quote_currency_value(exchange, symbol):
     return quote_currency_value
     
 
-def get_base_currency_free(exchange, symbol):
+def get_base_currency_free(exchange, symbol, open_orders_df_path):
     '''
     Get base_currency_free caused by fee deduction.
-    No need to get base_currency_free for future symbols as fee will be charged by quote_currency.
     '''
     base_currency, _  = get_currency(symbol)
     balance = exchange.fetch_balance()
@@ -187,7 +186,11 @@ def get_base_currency_free(exchange, symbol):
     try:
         base_currency_free = balance[base_currency]['free']
     except KeyError:
-        base_currency_free = 0
+        open_orders_df = pd.read_csv(open_orders_df_path)
+        open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+        sum_sell_amount = sum(open_sell_orders_df['amount'])
+        position_amount = get_base_currency_amount(exchange, symbol)
+        base_currency_free = max(position_amount - sum_sell_amount, 0)
 
     return base_currency_free
 
