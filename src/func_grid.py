@@ -72,10 +72,10 @@ def open_buy_orders_grid(exchange, config_params, last_loop_path, transfer_path,
     print(f"Open {len(buy_price_list)} buy orders")
     
     for price in buy_price_list:
-        amount = last_loop['value'] / price
+        amount = config_params['value'] / price
         amount = round_amount(amount, exchange, config_params['symbol'], type='down')
 
-        if available_budget >= last_loop['value']:
+        if available_budget >= config_params['value']:
             buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', amount, price, params={'postOnly':True})
             append_order(buy_order, 'amount', open_orders_df_path)
             print(f"Open buy {amount} {base_currency} at {price} {quote_currency}")
@@ -263,15 +263,14 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
         remove_order(canceled_id, open_orders_df_path)
 
 
-def update_value(config_params, last_loop_path):
-    last_loop = get_json(last_loop_path)
+def update_value(config_params, config_params_path):
     max_n_order = (config_params['max_price'] - config_params['min_price']) / config_params['grid']
-    last_loop['value'] = config_params['budget'] / max_n_order
+    config_params['value'] = config_params['budget'] / max_n_order
 
-    update_json(last_loop, last_loop_path)
+    update_json(config_params, config_params_path)
 
 
-def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
+def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
     transactions_df = pd.read_csv(transactions_df_path)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
@@ -310,7 +309,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     cash_flow_list = [
         prev_date,
         config_params['grid'],
-        last_loop['value'],
+        config_params['value'],
         config_params['budget'],
         end_balance,
         unrealised,
@@ -327,7 +326,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
 
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     reset_loss(last_loop_path)
-    update_value(config_params, last_loop_path)
+    update_value(config_params, config_params_path)
     update_transfer(config_system['taker_fee_percent'], transfer_path)
 
 
