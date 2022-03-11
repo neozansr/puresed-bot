@@ -3,7 +3,7 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 import sys
 
-from func_get import get_json, get_time, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_amount, get_base_currency_value, get_cash_value, get_order_fee, get_available_cash_flow, get_funding_payment
+from func_get import get_json, get_time, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee, get_available_cash_flow, get_funding_payment
 from func_cal import round_amount, cal_adjusted_price, cal_end_balance, cal_end_cash
 from func_update import update_json, append_csv, append_order, remove_order, update_transfer
 from func_noti import noti_success_order
@@ -90,8 +90,8 @@ def get_total_value(exchange, config_params):
         sub_value = get_base_currency_value(last_price, exchange, symbol)
         
         value_dict[symbol] = {
-            'fix_value':config_params['budget'] * config_params['symbol'][symbol],
-            'current_value':sub_value
+            'fix_value': config_params['budget'] * config_params['symbol'][symbol],
+            'current_value': sub_value
             }
 
         if '-PERP' not in symbol:
@@ -410,8 +410,10 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transfer = get_json(transfer_path)
     
+    symbol_list = list(config_params['symbols'].keys())
+    _, quote_currency = get_currency(symbol_list[0])
     total_value, value_dict = get_total_value(exchange, config_params)
-    cash = get_cash_value(exchange)
+    cash = get_quote_currency_value(exchange, quote_currency)
 
     end_balance = cal_end_balance(total_value, cash, transfer)
     end_cash = cal_end_cash(cash, transfer)
@@ -433,7 +435,7 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
         ]
 
     value_list = []
-    for symbol in value_dict.keys():
+    for symbol in symbol_list:
         value_list.append(value_dict[symbol]['current_value'])
 
     post_cash_flow_list = [

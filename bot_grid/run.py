@@ -23,7 +23,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     cont_flag = check_circuit_breaker(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     if cont_flag == 1:
-        open_buy_orders_grid(exchange, config_params, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
+        open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
 
     end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
 

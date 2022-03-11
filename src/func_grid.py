@@ -3,10 +3,51 @@ import numpy as np
 import pandas as pd
 import time
 
-from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_order_fee, get_available_cash_flow, get_funding_payment
-from func_cal import round_amount, cal_unrealised, cal_available_budget, cal_end_balance
+from func_get import get_json, get_time, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_value, get_quote_currency_value, get_base_currency_free, get_quote_currency_free, get_order_fee, get_pending_order, get_available_cash_flow, get_funding_payment
+from func_cal import round_amount, cal_end_balance
 from func_update import update_json, append_csv, append_order, remove_order, append_error_log, update_last_loop_price, update_transfer
-from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
+from func_noti import noti_success_order, noti_warning
+
+
+def get_future_value_grid(symbol, open_orders_df):
+    if '-PERP' in symbol:
+        open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+        future_value = sum(open_sell_orders_df['value'])
+    else: 
+        future_value = 0
+
+    return future_value
+
+
+def cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df):
+    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+
+    # Exclude withdraw_cash_flow as it is moved instantly.
+    total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
+    future_value = get_future_value_grid(config_params['symbol'], open_orders_df)
+    available_budget = quote_currency_free - future_value - available_cash_flow - total_withdraw
+
+    return available_budget
+
+
+def cal_unrealised_grid(last_price, grid, open_orders_df):
+    open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+    n_open_sell_oders = len(open_sell_orders_df)
+    
+    price_list = [x - grid for x in open_sell_orders_df['price']]
+    amount_list = open_sell_orders_df['amount'].to_list()
+
+    amount = sum(amount_list)
+    total_value = sum([i * j for i, j in zip(price_list, amount_list)])
+    
+    try:
+        avg_price = total_value / amount
+    except ZeroDivisionError:
+        avg_price = 0
+
+    unrealised = (last_price - avg_price) * amount
+
+    return unrealised, n_open_sell_oders, amount, avg_price
 
 
 def cal_buy_price_list(remain_buy_orders, bid_price, open_orders_df_path, config_params):
@@ -35,10 +76,9 @@ def cal_buy_price_list(remain_buy_orders, bid_price, open_orders_df_path, config
     return buy_price_list
 
 
-def open_buy_orders_grid(exchange, config_params, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
+def open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     open_orders_df = pd.read_csv(open_orders_df_path)
-    last_loop = get_json(last_loop_path)
     transfer = get_json(transfer_path)
 
     base_currency, quote_currency = get_currency(config_params['symbol'])
@@ -48,8 +88,7 @@ def open_buy_orders_grid(exchange, config_params, last_loop_path, transfer_path,
     max_open_buy_price = max(open_buy_orders_df['price'], default=0)
     min_open_sell_price = min(open_sell_orders_df['price'], default=np.inf)
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-    available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
+    available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
 
     bid_price = get_bid_price(exchange, config_params['symbol'])
     print(f"Bid price: {bid_price} {quote_currency}")
@@ -79,9 +118,8 @@ def open_buy_orders_grid(exchange, config_params, last_loop_path, transfer_path,
             buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', amount, price, params={'postOnly':True})
             append_order(buy_order, 'amount', open_orders_df_path)
             print(f"Open buy {amount} {base_currency} at {price} {quote_currency}")
-
-            quote_currency_free = get_quote_currency_free(exchange, quote_currency)
-            available_budget = cal_available_budget(quote_currency_free, available_cash_flow, transfer)
+            
+            available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
         else:
             print(f"Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!")
             break
@@ -214,7 +252,7 @@ def reset_loss(last_loop_path):
     update_json(last_loop, last_loop_path)
 
 
-def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag):
+def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path, withdraw_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
     max_sell_price = max(open_orders_df['price'])
     canceled_df = open_orders_df[open_orders_df['price'] == max_sell_price]
@@ -244,15 +282,15 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
         while sell_order['status'] != 'closed':
             time.sleep(config_system['idle_stage'])
             sell_order = exchange.fetch_order(sell_order['id'], config_params['symbol'])
+
+        append_order(sell_order, 'filled', transactions_df_path)
             
-        fee = get_order_fee(sell_order, exchange, config_params['symbol'], config_system)
-        new_sell_amount = sell_order['amount']
-        new_sell_price = sell_order['price']
-        new_sell_value = new_sell_amount * new_sell_price
-        loss = new_sell_value - buy_value + fee
+        fee = get_order_fee(sell_order, exchange, config_params['symbol'], config_system) 
+        cut_loss_value = sell_order['amount'] * sell_order['price']
+        loss = cut_loss_value - buy_value + fee
         
         update_loss(loss, last_loop_path)
-        noti_warning(f"Cut loss {loss} {quote_currency} at {new_sell_price} {quote_currency}", bot_name)
+        noti_warning(f"Cut loss {loss} {quote_currency} at {cut_loss_value} {quote_currency}", bot_name)
 
         if withdraw_flag == False:
             time.sleep(config_system['idle_rest'])
@@ -279,7 +317,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     last_price = get_last_price(exchange, config_params['symbol'])
     base_currency, quote_currency = get_currency(config_params['symbol'])
     base_currency_free = get_base_currency_free(exchange, base_currency)
-    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+    
 
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
     last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
@@ -296,15 +334,18 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
     available_cash_flow += cash_flow
 
+    available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
+
     # Cut loss until quote_currency_free is enough to withdraw.
-    while quote_currency_free - available_cash_flow < -net_transfer:
-        cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, error_log_df_path, withdraw_flag=True)
-        quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+    while available_budget < -net_transfer:
+        cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path, withdraw_flag=True)
+        available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
+        
 
     current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
     cash = get_quote_currency_value(exchange, quote_currency)
     end_balance = cal_end_balance(current_value, cash, transfer)
-    unrealised, _, _, _ = cal_unrealised(last_price, config_params['grid'], open_orders_df)
+    unrealised, _, _, _ = cal_unrealised_grid(last_price, config_params['grid'], open_orders_df)
 
     cash_flow_list = [
         prev_date,
@@ -328,6 +369,42 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     reset_loss(last_loop_path)
     update_value(config_params, config_params_path)
     update_transfer(config_system['taker_fee_percent'], transfer_path)
+
+
+def print_current_balance(last_price, exchange, symbol):
+    _, quote_currency = get_currency(symbol)
+
+    current_value = get_base_currency_value(last_price, exchange, symbol)
+    cash = get_quote_currency_value(exchange, quote_currency)
+    balance_value = current_value + cash
+    
+    print(f"Balance: {balance_value} {quote_currency}")
+
+
+def print_hold_assets(last_price, base_currency, quote_currency, grid, open_orders_df_path):
+    open_orders_df = pd.read_csv(open_orders_df_path)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised_grid(last_price, grid, open_orders_df)
+
+    assets_dict = {'timestamp': get_time(),
+                   'last_price': last_price, 
+                   'avg_price': avg_price, 
+                   'amount': amount, 
+                   'unrealised': unrealised}
+
+    assets_df = pd.DataFrame(assets_dict, index=[0])
+    assets_df.to_csv('assets.csv', index=False)
+    
+    print(f"Hold {amount} {base_currency} with {n_open_sell_oders} orders at {avg_price} {quote_currency}")
+    print(f"Unrealised: {unrealised} {quote_currency}")
+
+
+def print_pending_order(quote_currency, open_orders_df_path):
+    min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(open_orders_df_path)
+
+    print(f"Min buy price: {min_buy_price} {quote_currency}")
+    print(f"Max buy price: {max_buy_price} {quote_currency}")
+    print(f"Min sell price: {min_sell_price} {quote_currency}")
+    print(f"Max sell price: {max_sell_price} {quote_currency}")
 
 
 def print_report_grid(exchange, config_params, open_orders_df_path):

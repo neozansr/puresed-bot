@@ -1,8 +1,9 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_base_currency_value, get_cash_value, get_pending_order, get_available_cash_flow, get_position, get_funding_payment
-from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_pending_order, get_available_cash_flow, get_funding_payment, get_quote_currency_value
 from func_rebalance import get_total_value
+from func_grid import cal_unrealised_grid
+from func_technical import cal_unrealised_technical, cal_drawdown
 
 
 def get_balance_text(bot_list, config_system_path):
@@ -72,8 +73,11 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     config_params = get_json(bot_path + config_params_path)
 
     exchange = get_exchange(config_system)
+    symbol_list = list(config_params['symbols'].keys())
+    _, quote_currency = get_currency(symbol_list[0])
+    
     total_value, value_dict = get_total_value(exchange, config_params)
-    cash = get_cash_value(exchange)
+    cash = get_quote_currency_value(exchange, quote_currency)
     balance_value = total_value + cash
 
     cur_date = get_date()
@@ -121,11 +125,11 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     last_price = get_last_price(exchange, config_params['symbol'])
 
     current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
-    cash = get_cash_value(exchange)
+    cash = get_quote_currency_value(exchange, quote_currency)
     balance_value = current_value + cash
 
     open_orders_df = pd.read_csv(bot_path + open_orders_df_path)
-    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised(last_price, config_params['grid'], open_orders_df)
+    unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised_grid(last_price, config_params['grid'], open_orders_df)
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(bot_path + open_orders_df_path)
 
     cur_date = get_date()
@@ -167,7 +171,7 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
     _, quote_currency = get_currency(config_params['symbol'])
     last_price = get_last_price(exchange, config_params['symbol'])
     
-    balance_value = get_cash_value(exchange)
+    balance_value = get_quote_currency_value(exchange, quote_currency)
 
     last_loop = get_json(bot_path + last_loop_path)
     
@@ -188,8 +192,8 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
         liquidate_price = float(position_api['estimatedLiquidationPrice'])
         notional_value = float(position_api['cost'])
         
-        unrealised = cal_unrealised_future(last_price, position)
-        drawdown = cal_drawdown_future(last_price, position)
+        unrealised = cal_unrealised_technical(last_price, position)
+        drawdown = cal_drawdown(last_price, position)
         max_drawdown = last_loop['max_drawdown']
         
         text += f"\nSide: {position['side']}"

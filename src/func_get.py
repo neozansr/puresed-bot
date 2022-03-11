@@ -75,19 +75,6 @@ def get_exchange(config_system, future=False):
     return exchange
 
 
-def get_currency(symbol):
-    if len(symbol.split('/')) == 2:
-        base_currency = symbol.split('/')[0]
-        quote_currency = symbol.split('/')[1]
-    elif len(symbol.split('-')) == 2:
-        base_currency = symbol.split('-')[0]
-        quote_currency = 'USD'
-    else:
-        raise ValueError("Unrecognized symbol pattern")
-
-    return base_currency, quote_currency
-
-
 def get_last_price(exchange, symbol):
     '''
     Get the lastest price on specific symbol from ticker.
@@ -118,6 +105,19 @@ def get_position(exchange, symbol):
     position = exchange.safe_value(indexed, symbol)
 
     return position
+
+
+def get_currency(symbol):
+    if len(symbol.split('/')) == 2:
+        base_currency = symbol.split('/')[0]
+        quote_currency = symbol.split('/')[1]
+    elif len(symbol.split('-')) == 2:
+        base_currency = symbol.split('-')[0]
+        quote_currency = 'USD'
+    else:
+        raise ValueError("Unrecognized symbol pattern")
+
+    return base_currency, quote_currency
 
 
 def get_base_currency_amount(exchange, symbol):
@@ -173,20 +173,6 @@ def get_quote_currency_value(exchange, quote_currency):
         quote_currency_value = 0
 
     return quote_currency_value
-
-
-def get_cash_value(exchange):
-    '''
-    Get lastest cash value (USD) fetching from exchange. 
-    '''
-    balance = exchange.fetch_balance()
-    
-    try:
-        quote_currency_free = balance['USD']['total']
-    except KeyError:
-        quote_currency_free = 0
-
-    return quote_currency_free
     
 
 def get_base_currency_free(exchange, base_currency):
@@ -205,17 +191,6 @@ def get_quote_currency_free(exchange, quote_currency):
     
     try:
         quote_currency_free = balance[quote_currency]['free']
-    except KeyError:
-        quote_currency_free = 0
-
-    return quote_currency_free
-
-
-def get_cash_free(exchange):
-    balance = exchange.fetch_balance()
-    
-    try:
-        quote_currency_free = balance['USD']['free']
     except KeyError:
         quote_currency_free = 0
 

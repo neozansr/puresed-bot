@@ -1,11 +1,33 @@
 import math
-from matplotlib.pyplot import close
 import pandas as pd
 
-from func_get import get_base_currency_value, get_cash_value, get_json, get_time, get_order_fee, get_last_price, get_base_currency_amount
-from func_cal import cal_adjusted_price, cal_end_balance, cal_unrealised_future
+from func_get import get_json, get_time, get_last_price, get_currency, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee
+from func_cal import cal_adjusted_price, cal_end_balance
 from func_update import update_json, append_csv, append_order, update_transfer
 
+
+def cal_unrealised_technical(last_price, position):
+    '''
+    Calculate unrealised balance based on the lastest price.
+    '''
+    if position['side'] == 'buy':
+        margin = last_price - position['entry_price']
+    elif position['side'] == 'sell':
+        margin = position['entry_price'] - last_price
+    
+    unrealised = margin * float(position['amount'])
+
+    return unrealised
+
+
+def cal_drawdown(last_price, position):
+    if position['side'] == 'buy':
+        drawdown = max(1 - (last_price / position['entry_price']), 0)
+    elif position['side'] == 'sell':
+        drawdown = max((last_price / position['entry_price']) - 1, 0)
+
+    return drawdown
+    
 
 def get_ohlcv():
     '''
@@ -400,19 +422,20 @@ def update_end_date_technical(prev_date, exchange, config_params_path, last_loop
     transfer = get_json(transfer_path)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
 
-    symbols = list(last_loop['symbols'].keys()) 
+    symbol_list = list(config_params['symbols'].keys())
+    _, quote_currency = get_currency(symbol_list[0])
     
     unrealised = 0
     base_currency_value = 0
 
-    for symbol in symbols:
+    for symbol in symbol_list:
         last_price = get_last_price(exchange, symbol)
         position = last_loop['symbol']['position'] 
          
-        unrealised += cal_unrealised_future(last_price, position)
+        unrealised += cal_unrealised_technical(last_price, position)
         base_currency_value += get_base_currency_value(last_price, exchange, symbol)
 
-    cash = get_cash_value(exchange)
+    cash = get_quote_currency_value(exchange, quote_currency)
     end_balance = cal_end_balance(base_currency_value, cash, transfer)
 
     profit_df = pd.read_csv(profit_df_path)
@@ -433,3 +456,18 @@ def update_end_date_technical(prev_date, exchange, config_params_path, last_loop
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_technical_budget(net_transfer, config_params_path)
     update_transfer(config_params['taker_fee'], transfer_path)
+
+
+def print_position(last_price, position, position_api, quote_currency):
+    liquidate_price = float(position_api['estimatedLiquidationPrice'])
+    notional_value = float(position_api['cost'])
+    unrealised = cal_unrealised_technical(last_price, position)
+    drawdown = cal_drawdown(last_price, position)
+    
+    print(f"Side: {position['side']}")
+    print(f"Unrealise: {unrealised} {quote_currency}")
+    print(f"Last price: {last_price} {quote_currency}")
+    print(f"Entry price: {position['entry_price']} {quote_currency}")
+    print(f"Liquidate price: {liquidate_price} {quote_currency}")
+    print(f"Notional value: {notional_value} {quote_currency}")
+    print(f"Drawdown: {drawdown * 100}%")
