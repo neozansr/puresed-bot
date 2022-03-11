@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import time
 
-from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_order_fee, get_greed_index, get_available_cash_flow
+from func_get import get_json, get_currency, get_bid_price, get_ask_price, get_last_price, get_base_currency_free, get_quote_currency_free, get_base_currency_value, get_quote_currency_value, get_order_fee, get_available_cash_flow, get_funding_payment
 from func_cal import round_amount, cal_unrealised, cal_available_budget, cal_end_balance
 from func_update import update_json, append_csv, append_order, remove_order, append_error_log, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_warning, print_current_balance, print_hold_assets, print_pending_order
@@ -265,7 +265,8 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
 
 def update_value(config_params, last_loop_path):
     last_loop = get_json(last_loop_path)
-    last_loop['value'] = (config_params['max_price'] - config_params['min_price']) / config_params['grid']
+    max_n_order = (config_params['max_price'] - config_params['min_price']) / config_params['grid']
+    last_loop['value'] = config_params['budget'] / max_n_order
 
     update_json(last_loop, last_loop_path)
 
@@ -284,6 +285,8 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
     last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
     cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
+    funding_payment, _ = get_funding_payment(exchange, range='end_date')
+    net_cash_flow = cash_flow - funding_payment
 
     transfer = get_json(transfer_path)
     net_transfer = transfer['deposit'] - transfer['withdraw']
@@ -308,10 +311,13 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         prev_date,
         config_params['grid'],
         last_loop['value'],
+        config_params['budget'],
         end_balance,
         unrealised,
         last_loop['loss'],
         cash_flow,
+        funding_payment,
+        net_cash_flow,
         base_currency_free,
         transfer['deposit'],
         transfer['withdraw'],

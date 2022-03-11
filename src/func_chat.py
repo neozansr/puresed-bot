@@ -132,6 +132,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
     today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
     today_cash_flow = sum(today_sell_df['amount'] * config_params['grid'])
+    funding_payment, _ = get_funding_payment(exchange, range='today')
 
     last_loop = get_json(bot_path + last_loop_path)
     
@@ -140,7 +141,10 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nLast price: {last_price} {quote_currency}"
     text += f"\nHold {amount} {base_currency} with {n_open_sell_oders} orders at {avg_price} {quote_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
+    
     text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
+    text += f"\nFunding payment: {funding_payment} USD"
+    
     text += f"\nMin buy price: {min_buy_price} {quote_currency}"
     text += f"\nMax buy price: {max_buy_price} {quote_currency}"
     text += f"\nMin sell price: {min_sell_price} {quote_currency}"
