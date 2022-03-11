@@ -143,15 +143,6 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
         # InvalidOrder: The order has already been closed by postOnly param.
         # InsufficientFunds: Not available amount to sell cause by fee deduction.
-        free_amount = get_base_currency_free(exchange, config_params['symbol'], open_orders_df_path)
-        sell_amount = round_amount(free_amount, exchange, config_params['symbol'], type='down')
-
-        if sell_amount > 0:
-            # Free amount more than minimum order, sell all.
-            sell_order = exchange.create_order(config_params['symbol'], 'market', 'sell', sell_amount)
-        else:
-            sell_order = None
-
         append_error_log(f"CannotOpenSell {buy_order['id']}", error_log_df_path)
     
     print(f"Open sell {sell_amount} {base_currency} at {sell_price} {quote_currency}")
@@ -181,6 +172,24 @@ def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_pa
         elif order['status'] == 'canceled':
             # Canceld by param PostOnly.
             remove_order(order_id, open_orders_df_path)
+
+
+def clear_free_base_currency(exchange, config_system, config_params, open_orders_df_path, error_log_df_path):
+    base_currency, quote_currency = get_currency(config_params['symbol'])
+    free_amount = get_base_currency_free(exchange, config_params['symbol'], open_orders_df_path)
+    clear_amount = round_amount(free_amount, exchange, config_params['symbol'], type='down')
+
+    if clear_amount > 0:
+        # Free amount more than minimum order, sell all.
+        clear_order = exchange.create_order(config_params['symbol'], 'market', 'sell', clear_amount)
+
+        while clear_order['status'] != 'closed':
+            time.sleep(config_system['idle_stage'])
+            clear_order = exchange.fetch_order(clear_order['id'], config_params['symbol'])
+
+        message = f"Clear {clear_amount} {base_currency} at {clear_order['price']} {quote_currency}"
+        print(message)
+        append_error_log(message, error_log_df_path)
 
 
 def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
@@ -268,7 +277,6 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
         canceled_order = exchange.fetch_order(canceled_id, config_params['symbol'])
 
         while canceled_order['status'] != 'canceled':
-            # Cancel orders will be removed from db on the next loop by check_orders_status.
             time.sleep(config_system['idle_stage'])
             canceled_order = exchange.fetch_order(canceled_id, config_params['symbol'])
 
