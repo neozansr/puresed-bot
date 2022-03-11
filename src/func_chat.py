@@ -74,10 +74,9 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
 
     exchange = get_exchange(config_system)
     symbol_list = list(config_params['symbols'].keys())
-    _, quote_currency = get_currency(symbol_list[0])
-    
+
     total_value, value_dict = get_total_value(exchange, config_params)
-    cash = get_quote_currency_value(exchange, quote_currency)
+    cash = get_quote_currency_value(exchange, symbol_list[0])
     balance_value = total_value + cash
 
     cur_date = get_date()
@@ -124,8 +123,12 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     base_currency, quote_currency = get_currency(config_params['symbol'])
     last_price = get_last_price(exchange, config_params['symbol'])
 
-    current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
-    cash = get_quote_currency_value(exchange, quote_currency)
+    if '-PERP' in config_params['symbol']:
+        current_value = 0
+    else:
+        current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
+    
+    cash = get_quote_currency_value(exchange, config_params['symbol'])
     balance_value = current_value + cash
 
     open_orders_df = pd.read_csv(bot_path + open_orders_df_path)
@@ -171,7 +174,7 @@ def get_technical_text(home_path, bot_name, bot_type, config_system_path, config
     _, quote_currency = get_currency(config_params['symbol'])
     last_price = get_last_price(exchange, config_params['symbol'])
     
-    balance_value = get_quote_currency_value(exchange, quote_currency)
+    balance_value = get_quote_currency_value(exchange, config_params['symbol'])
 
     last_loop = get_json(bot_path + last_loop_path)
     

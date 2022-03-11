@@ -164,7 +164,8 @@ def get_base_currency_value(last_price, exchange, symbol):
     return base_currency_value
 
 
-def get_quote_currency_value(exchange, quote_currency):
+def get_quote_currency_value(exchange, symbol):
+    _, quote_currency = get_currency(symbol)
     balance = exchange.fetch_balance()
 
     try:
@@ -175,7 +176,12 @@ def get_quote_currency_value(exchange, quote_currency):
     return quote_currency_value
     
 
-def get_base_currency_free(exchange, base_currency):
+def get_base_currency_free(exchange, symbol):
+    '''
+    Get base_currency_free caused by fee deduction.
+    No need to get base_currency_free for future symbols as fee will be charged by quote_currency.
+    '''
+    base_currency, _  = get_currency(symbol)
     balance = exchange.fetch_balance()
     
     try:
@@ -186,7 +192,8 @@ def get_base_currency_free(exchange, base_currency):
     return base_currency_free
 
 
-def get_quote_currency_free(exchange, quote_currency):
+def get_quote_currency_free(exchange, symbol):
+    _, quote_currency = get_currency(symbol)
     balance = exchange.fetch_balance()
     
     try:

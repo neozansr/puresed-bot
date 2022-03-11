@@ -411,9 +411,8 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
     transfer = get_json(transfer_path)
     
     symbol_list = list(config_params['symbols'].keys())
-    _, quote_currency = get_currency(symbol_list[0])
     total_value, value_dict = get_total_value(exchange, config_params)
-    cash = get_quote_currency_value(exchange, quote_currency)
+    cash = get_quote_currency_value(exchange, symbol_list[0])
 
     end_balance = cal_end_balance(total_value, cash, transfer)
     end_cash = cal_end_cash(cash, transfer)

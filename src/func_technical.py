@@ -421,22 +421,17 @@ def update_end_date_technical(prev_date, exchange, config_params_path, last_loop
     last_loop = get_json(last_loop_path)
     transfer = get_json(transfer_path)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-
-    symbol_list = list(config_params['symbols'].keys())
-    _, quote_currency = get_currency(symbol_list[0])
     
     unrealised = 0
-    base_currency_value = 0
+    symbol_list = list(config_params['symbols'].keys())
 
     for symbol in symbol_list:
         last_price = get_last_price(exchange, symbol)
         position = last_loop['symbol']['position'] 
          
         unrealised += cal_unrealised_technical(last_price, position)
-        base_currency_value += get_base_currency_value(last_price, exchange, symbol)
 
-    cash = get_quote_currency_value(exchange, quote_currency)
-    end_balance = cal_end_balance(base_currency_value, cash, transfer)
+    end_balance = get_quote_currency_value(exchange, symbol_list[0])
 
     profit_df = pd.read_csv(profit_df_path)
     last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]

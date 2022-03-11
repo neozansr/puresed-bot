@@ -40,7 +40,7 @@ def cal_end_balance(base_currency_value, quote_currency_value, transfer):
     return end_balance
 
 
-def cal_end_cash(cash, transfer):
-    end_cash = cash - transfer['withdraw'] - transfer['pending_withdraw']
+def cal_end_cash(quote_currency_value, transfer):
+    end_cash = quote_currency_value - transfer['withdraw'] - transfer['pending_withdraw']
 
     return end_cash

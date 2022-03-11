@@ -19,8 +19,8 @@ def get_future_value_grid(symbol, open_orders_df):
     return future_value
 
 
-def cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df):
-    quote_currency_free = get_quote_currency_free(exchange, quote_currency)
+def cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df):
+    quote_currency_free = get_quote_currency_free(exchange, config_params['symbol'])
 
     # Exclude withdraw_cash_flow as it is moved instantly.
     total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
@@ -88,7 +88,7 @@ def open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_
     max_open_buy_price = max(open_buy_orders_df['price'], default=0)
     min_open_sell_price = min(open_sell_orders_df['price'], default=np.inf)
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
+    available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
 
     bid_price = get_bid_price(exchange, config_params['symbol'])
     print(f"Bid price: {bid_price} {quote_currency}")
@@ -119,7 +119,7 @@ def open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_
             append_order(buy_order, 'amount', open_orders_df_path)
             print(f"Open buy {amount} {base_currency} at {price} {quote_currency}")
             
-            available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
+            available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
         else:
             print(f"Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!")
             break
@@ -141,11 +141,9 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', sell_amount, sell_price)
         append_order(sell_order, 'amount', open_orders_df_path)
     except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
-        # InvalidOrder: Filled with small amount before force closed.
         # InvalidOrder: The order has already been closed by postOnly param.
-        # InvalidOrder: Exchange fail to update actual filled amount.
-        # InsufficientFunds: Not available amount to sell (could caused by decimal).
-        free_amount = get_base_currency_free(exchange, base_currency)
+        # InsufficientFunds: Not available amount to sell cause by fee deduction.
+        free_amount = get_base_currency_free(exchange, config_params['symbol'])
         sell_amount = round_amount(free_amount, exchange, config_params['symbol'], type='down')
 
         if sell_amount > 0:
@@ -154,7 +152,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
         else:
             sell_order = None
 
-        append_error_log('CannotOpenSell', error_log_df_path)
+        append_error_log(f"CannotOpenSell {buy_order['id']}", error_log_df_path)
     
     print(f"Open sell {sell_amount} {base_currency} at {sell_price} {quote_currency}")
 
@@ -315,8 +313,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     last_loop = get_json(last_loop_path)
 
     last_price = get_last_price(exchange, config_params['symbol'])
-    base_currency, quote_currency = get_currency(config_params['symbol'])
-    base_currency_free = get_base_currency_free(exchange, base_currency)
+    base_currency_free = get_base_currency_free(exchange, config_params['symbol'])
     
 
     last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
@@ -334,16 +331,19 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
     available_cash_flow += cash_flow
 
-    available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
+    available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
 
     # Cut loss until quote_currency_free is enough to withdraw.
     while available_budget < -net_transfer:
         cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path, withdraw_flag=True)
-        available_budget = cal_available_budget(exchange, quote_currency, available_cash_flow, config_params, transfer, open_orders_df)
-        
+        available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
 
-    current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
-    cash = get_quote_currency_value(exchange, quote_currency)
+    if '-PERP' in config_params['symbol']:
+        current_value = 0
+    else:
+        current_value = get_base_currency_value(last_price, exchange, config_params['symbol'])
+    
+    cash = get_quote_currency_value(exchange, config_params['symbol'])
     end_balance = cal_end_balance(current_value, cash, transfer)
     unrealised, _, _, _ = cal_unrealised_grid(last_price, config_params['grid'], open_orders_df)
 
@@ -374,8 +374,12 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
 def print_current_balance(last_price, exchange, symbol):
     _, quote_currency = get_currency(symbol)
 
-    current_value = get_base_currency_value(last_price, exchange, symbol)
-    cash = get_quote_currency_value(exchange, quote_currency)
+    if '-PERP' in symbol:
+        current_value = 0
+    else:
+        current_value = get_base_currency_value(last_price, exchange, symbol)
+    
+    cash = get_quote_currency_value(exchange, symbol)
     balance_value = current_value + cash
     
     print(f"Balance: {balance_value} {quote_currency}")
