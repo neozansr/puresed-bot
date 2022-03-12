@@ -73,7 +73,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     config_params = get_json(bot_path + config_params_path)
 
     exchange = get_exchange(config_system)
-    symbol_list = list(config_params['symbols'].keys())
+    symbol_list = list(config_params['symbol'].keys())
 
     total_value, value_dict = get_total_value(exchange, config_params)
     cash = get_quote_currency_value(exchange, symbol_list[0])

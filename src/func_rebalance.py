@@ -420,7 +420,7 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transfer = get_json(transfer_path)
     
-    symbol_list = list(config_params['symbols'].keys())
+    symbol_list = list(config_params['symbol'].keys())
     total_value, value_dict = get_total_value(exchange, config_params)
     cash = get_quote_currency_value(exchange, symbol_list[0])
 
