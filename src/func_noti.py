@@ -1,8 +1,7 @@
 import pandas as pd
 import requests
 
-from func_get import get_json, get_time, get_currency, get_base_currency_value, get_cash_value, get_pending_order
-from func_cal import cal_unrealised, cal_unrealised_future, cal_drawdown_future
+from func_get import get_json, get_currency
 
 
 def get_line_message(payload, noti_type, home_path='../'):
