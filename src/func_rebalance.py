@@ -311,12 +311,14 @@ def get_clear_method(last_loop_path):
 
     if last_loop['transfer_flag'] == 1:
         method = 'fifo'
+        order_remark = 'transfer'
         last_loop['transfer_flag'] = 0
         update_json(last_loop, last_loop_path)
     else:
         method = 'lifo'
+        order_remark = 'close_order'
 
-    return method
+    return method, order_remark
 
 
 def create_order(exchange, symbol, order_type, side, amount, price=None):
@@ -368,7 +370,7 @@ def check_cancel_order(order, exchange, config_params, last_loop_path, open_orde
 
 def clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    method = get_clear_method(last_loop_path)
+    method, order_remaerk = get_clear_method(last_loop_path)
 
     for order_id in open_orders_df['order_id'].unique():
         symbol = open_orders_df.loc[open_orders_df['order_id'] == order_id, 'symbol'].item()
@@ -382,7 +384,7 @@ def clear_orders_rebalance(exchange, bot_name, config_system, config_params, las
             last_loop = get_json(last_loop_path)
             last_loop['symbol'][symbol]['last_action_price'] = order['price']
 
-            append_order(order, 'filled', 'close_order', transactions_df_path)
+            append_order(order, 'filled', order_remaerk, transactions_df_path)
             update_json(last_loop, last_loop_path)
             noti_success_order(order, bot_name, symbol)
 
