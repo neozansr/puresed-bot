@@ -143,8 +143,10 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nBalance: {balance_value} {quote_currency}"
     text += f"\nCash: {cash} {quote_currency}"
     text += f"\nLast price: {last_price} {quote_currency}"
-    text += f"\nHold {amount} {base_currency} with {n_open_sell_oders} orders at {avg_price} {quote_currency}"
-    text += f"\nUntrack {base_currency_free} {base_currency}"
+    text += f"\nHold: {amount} {base_currency}"
+    text += f"\nOrder: {n_open_sell_oders} orders"
+    text += f"\nAverage price: {avg_price} {quote_currency}"
+    text += f"\nUntrack: {base_currency_free} {base_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
     
     text += f"\n\nToday cash flow: {today_cash_flow} {quote_currency}"
