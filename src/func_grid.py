@@ -95,7 +95,8 @@ def open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_
     print(f"Bid price: {bid_price} {quote_currency}")
     
     price_gap = min(bid_price, min_open_sell_price - config_params['grid']) - max_open_buy_price
-    if  price_gap > config_params['grid']:
+    if  price_gap > (config_params['grid'] * 1.01):
+        # Grid * 1.01 to prevent small decimal diff by python.
         print(f"Price gap {price_gap} {quote_currency}")
         cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
         n_open_buy_orders = 0
