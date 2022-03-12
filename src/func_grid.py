@@ -1,3 +1,4 @@
+from re import L
 import ccxt
 import numpy as np
 import pandas as pd
@@ -6,7 +7,7 @@ import time
 from func_get import get_json, get_time, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_value, get_quote_currency_value, get_base_currency_free, get_quote_currency_free, get_order_fee, get_pending_order, get_available_cash_flow, get_funding_payment
 from func_cal import round_amount, cal_end_balance
 from func_update import update_json, append_csv, append_order, remove_order, append_error_log, update_last_loop_price, update_transfer
-from func_noti import noti_success_order, noti_warning
+from func_noti import noti_success_order, noti_clear_order, noti_warning
 
 
 def get_future_value_grid(symbol, open_orders_df):
@@ -116,7 +117,7 @@ def open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_
 
         if available_budget >= config_params['value']:
             buy_order = exchange.create_order(config_params['symbol'], 'limit', 'buy', amount, price, params={'postOnly':True})
-            append_order(buy_order, 'amount', open_orders_df_path)
+            append_order(buy_order, 'amount', 'open_order', open_orders_df_path)
             print(f"Open buy {amount} {base_currency} at {price} {quote_currency}")
             
             available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
@@ -139,7 +140,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     try:
         sell_amount = buy_order['filled']
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', sell_amount, sell_price)
-        append_order(sell_order, 'amount', open_orders_df_path)
+        append_order(sell_order, 'open_order', 'open_order', open_orders_df_path)
     except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
         # InvalidOrder: The order has already been closed by postOnly param.
         # InsufficientFunds: Not available amount to sell cause by fee deduction.
@@ -167,15 +168,14 @@ def clear_orders_grid(side, exchange, bot_name, config_params, open_orders_df_pa
                 open_sell_orders_grid(order, exchange, config_params, open_orders_df_path, error_log_df_path)
 
             remove_order(order_id, open_orders_df_path)
-            append_order(order, 'filled', transactions_df_path)
+            append_order(order, 'filled', 'close_order', transactions_df_path)
 
         elif order['status'] == 'canceled':
             # Canceld by param PostOnly.
             remove_order(order_id, open_orders_df_path)
 
 
-def clear_free_base_currency(exchange, config_system, config_params, open_orders_df_path, error_log_df_path):
-    base_currency, quote_currency = get_currency(config_params['symbol'])
+def clear_free_base_currency(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path):
     free_amount = get_base_currency_free(exchange, config_params['symbol'], open_orders_df_path)
     clear_amount = round_amount(free_amount, exchange, config_params['symbol'], type='down')
 
@@ -187,9 +187,8 @@ def clear_free_base_currency(exchange, config_system, config_params, open_orders
             time.sleep(config_system['idle_stage'])
             clear_order = exchange.fetch_order(clear_order['id'], config_params['symbol'])
 
-        message = f"Clear {clear_amount} {base_currency} at {clear_order['price']} {quote_currency}"
-        print(message)
-        append_error_log(message, error_log_df_path)
+        noti_clear_order(clear_order, bot_name, config_params['symbol'])
+        append_order(clear_order, 'filled', 'clear_free', transactions_df_path)
 
 
 def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path):
@@ -206,7 +205,7 @@ def cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, tr
                 print(f"Cancel order {order_id}")
                 
                 if order['filled'] > 0:
-                    append_order(order, 'filled', transactions_df_path)
+                    append_order(order, 'filled', 'close_incomplete', transactions_df_path)
                     open_sell_orders_grid(order, exchange, config_params, open_orders_df_path, error_log_df_path)
                 
                 remove_order(order_id, open_orders_df_path)
@@ -289,7 +288,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
             time.sleep(config_system['idle_stage'])
             sell_order = exchange.fetch_order(sell_order['id'], config_params['symbol'])
 
-        append_order(sell_order, 'filled', transactions_df_path)
+        append_order(sell_order, 'filled', 'cut_loss', transactions_df_path)
             
         fee = get_order_fee(sell_order, exchange, config_params['symbol'], config_system) 
         cut_loss_value = sell_order['amount'] * sell_order['price']
@@ -314,19 +313,24 @@ def update_value(config_params, config_params_path):
     update_json(config_params, config_params_path)
 
 
+def get_cash_flow_grid(date, config_params, transactions_df_path):
+    transactions_df = pd.read_csv(transactions_df_path)
+    ref_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == date]
+    last_sell_df = ref_transactions_df[(ref_transactions_df['side'] == 'sell') & (ref_transactions_df['remark'].isin(['close_order', 'close_incomplete']))]
+    cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
+
+    return cash_flow
+
+
 def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    transactions_df = pd.read_csv(transactions_df_path)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     last_loop = get_json(last_loop_path)
 
     last_price = get_last_price(exchange, config_params['symbol'])
     base_currency_free = get_base_currency_free(exchange, config_params['symbol'], open_orders_df_path)
     
-
-    last_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == prev_date]
-    last_sell_df = last_transactions_df[last_transactions_df['side'] == 'sell']
-    cash_flow = sum(last_sell_df['amount'] * config_params['grid'])
+    cash_flow = get_cash_flow_grid(prev_date, config_params, transactions_df_path)
     funding_payment, _ = get_funding_payment(exchange, range='end_date')
     net_cash_flow = cash_flow - funding_payment
 

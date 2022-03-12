@@ -26,11 +26,15 @@ def line_send(message, noti_type):
 def noti_success_order(order, bot_name, symbol):
     base_currency, quote_currency = get_currency(symbol)
     
-    side = order['side']
-    filled = order['filled']
-    price = order['price']
+    message = f"{bot_name}: {order['side']} {order['filled']} {base_currency} at {order['price']} {quote_currency}"
+    line_send(message, noti_type='order')
+    print(message)
+
+
+def noti_clear_order(order, bot_name, symbol):
+    base_currency, quote_currency = get_currency(symbol)
     
-    message = f"{bot_name}: {side} {filled} {base_currency} at {price} {quote_currency}"
+    message = f"{bot_name}: Clear {order['filled']} {base_currency} at {order['price']} {quote_currency}"
     line_send(message, noti_type='order')
     print(message)
 

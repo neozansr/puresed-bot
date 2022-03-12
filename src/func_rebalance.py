@@ -306,7 +306,7 @@ def get_rebalance_action(exchange, symbol, config_params, last_loop_path):
     return action_flag, side, diff_value, price
 
 
-def get_method(last_loop_path):
+def get_clear_method(last_loop_path):
     last_loop = get_json(last_loop_path)
 
     if last_loop['transfer_flag'] == 1:
@@ -336,7 +336,7 @@ def send_order(exchange, symbol, side, amount, price, config_params, last_loop_p
     else:
         order = create_order(exchange, symbol, config_params['order_type'], side, amount, price)
 
-    append_order(order, 'amount', open_orders_df_path)
+    append_order(order, 'amount', 'open_order', open_orders_df_path)
 
 
 def resend_order(order, exchange, symbol, config_params, last_loop_path, open_orders_df_path):
@@ -351,7 +351,7 @@ def resend_order(order, exchange, symbol, config_params, last_loop_path, open_or
 
     if rounded_amount > 0:
         order = create_order(exchange, symbol, config_params['order_type'], side, rounded_amount, price)
-        append_order(order, 'amount', open_orders_df_path)
+        append_order(order, 'amount', 'resend_order', open_orders_df_path)
 
 
 def check_cancel_order(order, exchange, config_params, last_loop_path, open_orders_df_path, resend_flag):
@@ -368,7 +368,7 @@ def check_cancel_order(order, exchange, config_params, last_loop_path, open_orde
 
 def clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
-    method = get_method(last_loop_path)
+    method = get_clear_method(last_loop_path)
 
     for order_id in open_orders_df['order_id'].unique():
         symbol = open_orders_df.loc[open_orders_df['order_id'] == order_id, 'symbol'].item()
@@ -382,7 +382,7 @@ def clear_orders_rebalance(exchange, bot_name, config_system, config_params, las
             last_loop = get_json(last_loop_path)
             last_loop['symbol'][symbol]['last_action_price'] = order['price']
 
-            append_order(order, 'filled', transactions_df_path)
+            append_order(order, 'filled', 'close_order', transactions_df_path)
             update_json(last_loop, last_loop_path)
             noti_success_order(order, bot_name, symbol)
 
@@ -406,6 +406,14 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
             print(f"Cannot {side} {diff_value} value, {amount} {base_currency} is too small amount to place order!!!")
 
 
+def get_cash_flow_rebalance(date, profit_df_path):
+    profit_df = pd.read_csv(profit_df_path)
+    ref_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == date]
+    cash_flow = sum(ref_profit_df['profit'])
+
+    return cash_flow
+
+
 def update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     transfer = get_json(transfer_path)
@@ -417,9 +425,7 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
     end_balance = cal_end_balance(total_value, cash, transfer)
     end_cash = cal_end_cash(cash, transfer)
 
-    profit_df = pd.read_csv(profit_df_path)
-    last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
-    cash_flow = sum(last_profit_df['profit'])
+    cash_flow = get_cash_flow_rebalance(prev_date, profit_df_path)
     funding_payment, _ = get_funding_payment(exchange, range='end_date')
     net_cash_flow = cash_flow - funding_payment
 

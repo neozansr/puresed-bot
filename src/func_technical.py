@@ -1,8 +1,8 @@
 import math
 import pandas as pd
 
-from func_get import get_json, get_time, get_last_price, get_currency, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee
-from func_cal import cal_adjusted_price, cal_end_balance
+from func_get import get_json, get_time, get_last_price, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee
+from func_cal import cal_adjusted_price
 from func_update import update_json, append_csv, append_order, update_transfer
 
 
@@ -358,7 +358,7 @@ def check_close_position(exchange, config_system, config_params_path, last_loop_
 
             net_profit = 0
             for order in orders:
-                append_order(order, 'filled', transactions_df_path)
+                append_order(order, 'filled', 'stop_position', transactions_df_path)
                 append_technical_profit(exchange, order, config_system, last_loop, profit_df_path)
 
                 net_profit += cal_technical_profit(exchange, order, config_system, last_loop)
@@ -372,7 +372,7 @@ def check_close_position(exchange, config_system, config_params_path, last_loop_
                 action = create_action(position, close_flag=True)
                 order = close_position(exchange, symbol, action, last_loop_path)
 
-                append_order(order, 'filled', transactions_df_path)    
+                append_order(order, 'filled', 'close_position', transactions_df_path)    
                 append_technical_profit(exchange, order, config_system, last_loop, profit_df_path)
 
                 net_profit = cal_technical_profit(exchange, order, config_system, last_loop)
@@ -401,7 +401,7 @@ def check_open_position(exchange, config_system, config_params_path, last_loop_p
             action = create_action(action_flag, close_flag=False)
             order = open_position(exchange, symbol, action, n_remaining, config_params_path)
 
-            append_order(order, 'filled', transactions_df_path)
+            append_order(order, 'filled', 'open_position', transactions_df_path)
             update_last_loop(exchange, config_system, order, last_loop_path)
 
         else:

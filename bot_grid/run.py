@@ -18,7 +18,7 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     
     clear_orders_grid('buy', exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
     clear_orders_grid('sell', exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-    clear_free_base_currency(exchange, config_system, config_params, open_orders_df_path, error_log_df_path)
+    clear_free_base_currency(exchange, bot_name, config_system, config_params, open_orders_df_path, transactions_df_path)
     print_report_grid(exchange, config_params, open_orders_df_path)
     
     cont_flag = check_circuit_breaker(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)

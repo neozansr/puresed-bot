@@ -14,7 +14,7 @@ def append_csv(value_list, df, df_path):
     df.to_csv(df_path, index=False)
 
 
-def append_order(order, amount_key, df_path):
+def append_order(order, amount_key, remark, df_path):
     '''
     Add success order record.
     '''
@@ -29,7 +29,7 @@ def append_order(order, amount_key, df_path):
     else:
         value = order['cost']
 
-    df.loc[len(df)] = [timestamp, order['id'], order['symbol'], order['type'], order['side'], order[amount_key], order['price'], value]
+    df.loc[len(df)] = [timestamp, order['id'], order['symbol'], order['type'], order['side'], order[amount_key], order['price'], value, remark]
     df.to_csv(df_path, index=False)
 
 

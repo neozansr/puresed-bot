@@ -1,8 +1,8 @@
 import pandas as pd
 
 from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_base_currency_free, get_pending_order, get_available_cash_flow, get_funding_payment, get_quote_currency_value
-from func_rebalance import get_total_value
-from func_grid import cal_unrealised_grid
+from func_rebalance import get_total_value, get_cash_flow_rebalance
+from func_grid import cal_unrealised_grid, get_cash_flow_grid
 from func_technical import cal_unrealised_technical, cal_drawdown
 
 
@@ -80,9 +80,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     balance_value = total_value + cash
 
     cur_date = get_date()
-    profit_df = pd.read_csv(bot_path + profit_df_path)
-    today_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == cur_date]
-    today_cash_flow = sum(today_profit_df['profit'])
+    today_cash_flow = get_cash_flow_rebalance(cur_date, bot_path + profit_df_path)
     funding_payment, funding_dict = get_funding_payment(exchange, range='today')
 
     last_loop = get_json(bot_path + last_loop_path)
@@ -137,10 +135,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(bot_path + open_orders_df_path)
 
     cur_date = get_date()
-    transactions_df = pd.read_csv(bot_path + transactions_df_path)
-    today_transactions_df = transactions_df[pd.to_datetime(transactions_df['timestamp']).dt.date == cur_date]
-    today_sell_df = today_transactions_df[today_transactions_df['side'] == 'sell']
-    today_cash_flow = sum(today_sell_df['amount'] * config_params['grid'])
+    today_cash_flow = get_cash_flow_grid(cur_date, config_params, transactions_df_path)
     funding_payment, _ = get_funding_payment(exchange, range='today')
 
     last_loop = get_json(bot_path + last_loop_path)
