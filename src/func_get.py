@@ -181,16 +181,23 @@ def get_base_currency_free(exchange, symbol, open_orders_df_path):
     Get base_currency_free caused by fee deduction.
     '''
     base_currency, _  = get_currency(symbol)
-    balance = exchange.fetch_balance()
     
-    try:
-        base_currency_free = balance[base_currency]['free']
-    except KeyError:
-        open_orders_df = pd.read_csv(open_orders_df_path)
-        open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
-        sum_sell_amount = sum(open_sell_orders_df['amount'])
-        position_amount = get_base_currency_amount(exchange, symbol)
-        base_currency_free = max(position_amount - sum_sell_amount, 0)
+    if '-PERP' in symbol:
+        try:
+            open_orders_df = pd.read_csv(open_orders_df_path)
+            open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
+            sum_sell_amount = sum(open_sell_orders_df['amount'])
+            position_amount = get_base_currency_amount(exchange, symbol)
+            base_currency_free = max(position_amount - sum_sell_amount, 0)
+        except TypeError:
+            base_currency_free = 0
+    else:
+        balance = exchange.fetch_balance()
+        
+        try:
+            base_currency_free = balance[base_currency]['free']    
+        except KeyError:
+            base_currency_free = 0
 
     return base_currency_free
 
