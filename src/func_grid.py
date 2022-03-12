@@ -292,7 +292,7 @@ def cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, o
             
         fee = get_order_fee(sell_order, exchange, config_params['symbol'], config_system) 
         cut_loss_value = sell_order['amount'] * sell_order['price']
-        loss = cut_loss_value - buy_value + fee
+        loss = cut_loss_value - buy_value - fee
         
         update_loss(loss, last_loop_path)
         noti_warning(f"Cut loss {loss} {quote_currency} at {cut_loss_value} {quote_currency}", bot_name)
