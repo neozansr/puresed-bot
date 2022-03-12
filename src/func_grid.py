@@ -140,7 +140,7 @@ def open_sell_orders_grid(buy_order, exchange, config_params, open_orders_df_pat
     try:
         sell_amount = buy_order['filled']
         sell_order = exchange.create_order(config_params['symbol'], 'limit', 'sell', sell_amount, sell_price)
-        append_order(sell_order, 'open_order', 'open_order', open_orders_df_path)
+        append_order(sell_order, 'amount', 'open_order', open_orders_df_path)
     except (ccxt.InvalidOrder, ccxt.InsufficientFunds):
         # InvalidOrder: The order has already been closed by postOnly param.
         # InsufficientFunds: Not available amount to sell cause by fee deduction.
