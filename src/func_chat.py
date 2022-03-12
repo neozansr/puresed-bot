@@ -147,10 +147,10 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nUntrack {base_currency_free} {base_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
     
-    text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
+    text += f"\n\nToday cash flow: {today_cash_flow} {quote_currency}"
     text += f"\nFunding payment: {funding_payment} USD"
     
-    text += f"\nMin buy price: {min_buy_price} {quote_currency}"
+    text += f"\n\nMin buy price: {min_buy_price} {quote_currency}"
     text += f"\nMax buy price: {max_buy_price} {quote_currency}"
     text += f"\nMin sell price: {min_sell_price} {quote_currency}"
     text += f"\nMax sell price: {max_sell_price} {quote_currency}"
