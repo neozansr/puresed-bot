@@ -289,15 +289,15 @@ def get_funding_payment(exchange, range):
             }
 
     funding_df = pd.DataFrame(exchange.private_get_funding_payments(request)['result'])
-    funding_df['payment'] = funding_df['payment'].astype(float)
-
     funding_dict = {}
+    
+    try:
+        funding_df['payment'] = funding_df['payment'].astype(float)
 
-    for symbol in funding_df['future'].unique():
-        try:
+        for symbol in funding_df['future'].unique():
             sub_payment = funding_df.loc[funding_df['future'] == symbol, 'payment'].sum()
-        except KeyError:
-            sub_payment
+    except KeyError:
+        sub_payment = 0
 
     funding_dict[symbol] = sub_payment
     funding_payment = sum(funding_df['payment'])
