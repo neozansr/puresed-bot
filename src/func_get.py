@@ -294,10 +294,12 @@ def get_funding_payment(exchange, range):
     funding_dict = {}
 
     for symbol in funding_df['future'].unique():
-        sub_payment = funding_df.loc[funding_df['future'] == symbol, 'payment'].sum()
+        try:
+            sub_payment = funding_df.loc[funding_df['future'] == symbol, 'payment'].sum()
+        except KeyError:
+            sub_payment
 
-        funding_dict[symbol] = sub_payment
-
+    funding_dict[symbol] = sub_payment
     funding_payment = sum(funding_df['payment'])
     
     return funding_payment, funding_dict
