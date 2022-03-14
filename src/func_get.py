@@ -290,17 +290,17 @@ def get_funding_payment(exchange, range):
 
     funding_df = pd.DataFrame(exchange.private_get_funding_payments(request)['result'])
     funding_dict = {}
-    
+
     try:
         funding_df['payment'] = funding_df['payment'].astype(float)
 
         for symbol in funding_df['future'].unique():
             sub_payment = funding_df.loc[funding_df['future'] == symbol, 'payment'].sum()
-    except KeyError:
-        sub_payment = 0
+            funding_dict[symbol] = sub_payment
 
-    funding_dict[symbol] = sub_payment
-    funding_payment = sum(funding_df['payment'])
+        funding_payment = sum(funding_df['payment'])
+    except KeyError:
+        funding_payment = 0
     
     return funding_payment, funding_dict
 
@@ -319,7 +319,6 @@ def get_greed_index(default_index=0.5):
         for p, i in zip(period_class, index_class):
             if p.text == 'Now':
                 greed_index = int(i.text)
-
     except requests.ConnectionError:
         pass
 
