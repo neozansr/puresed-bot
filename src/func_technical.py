@@ -38,7 +38,7 @@ def get_ohlcv():
     return ohlcv_df
 
 
-def get_signal():
+def get_signals():
     '''
     Conclude action for each in a timestamp.
     '''
@@ -60,32 +60,59 @@ def check_close_signals():
 def check_open_signals():
     '''
     Open position if all criteria are met.
-    Return position whether it is "short" "long" or "no action" needed.
+    Return action whether it is "sell" "buy" or "no action" needed.
     '''
-    action_flag = None
+    ohlcv_df = get_ohlcv()
+    ohlcv_signal_df = get_signals(ohlcv_df)
+    
+    action = None
 
-    return action_flag
+    return action
 
 
-def cal_technical_trigger_price(price_conditions, order_type, action, trigger_only):
+def get_trigger_condition(order_type, config_params_path):
+    '''
+    '''
+    config_params = get_json(config_params_path)
+
+    if order_type == 'sl':
+        checked_condition = config_params['sl']
+    elif order_type == 'tp':
+        checked_condition = config_params['tp']
+    else:
+        raise ValueError('order type is invalid!!!')
+
+    for k in checked_condition.keys():
+        trigger_condition = checked_condition[k]
+        if trigger_condition is not None:
+            break
+
+    return trigger_condition
+
+
+def cal_technical_trigger_price(price, price_condition, order_type, action, decimals, trigger_only):
     '''
     Calculate trigger price and order price based on price conditions.
     '''
-    last_price = price_conditions['price']
-    price_changes = price_conditions['price_changes']
-    decimals = price_conditions['decimals']
+    if price_condition.keys()[0] == 'price_percent':
+        price_changes = price_condition['price_percent'] / 100
 
-    if (action == 'buy' and order_type == 'stop') or (action == 'sell' and order_type == 'takeProfit'): 
-        trigger_price = last_price * (1 - price_changes)
-    elif (action == 'sell' and order_type == 'stop') or (action == 'buy' and order_type == 'takeProfit'):
-        trigger_price = last_price * (1 + price_changes)
+        if (action == 'buy' and order_type == 'stop') or (action == 'sell' and order_type == 'takeProfit'): 
+            trigger_price = price * (1 - price_changes)
+        elif (action == 'sell' and order_type == 'stop') or (action == 'buy' and order_type == 'takeProfit'):
+            trigger_price = price * (1 + price_changes)
+        else:
+            raise ValueError('order type or action is invalid!!!')
+
+    elif price_condition.keys()[0] == 'signal':
+        trigger_price = 0
     else:
-        raise ValueError('order type or action is invalid!!!')
+        raise ValueError('Price condition is not supported!!!')
 
     if trigger_only:
         return trigger_price
     else:
-        if trigger_price < last_price:
+        if trigger_price < price:
             order_price = math.floor(trigger_price * decimals) / decimals
         else:
             order_price = math.ceil(trigger_price * decimals) / decimals
@@ -117,24 +144,19 @@ def place_order(exchange, symbol, order_type, action, amount, price=None, params
     return order
 
 
-def place_trigger_order(exchange, symbol, order_type, action, amount, price, trigger_only):
+def place_trigger_order(exchange, symbol, order_type, action, amount, price_condition, price=None, decimals=1, trigger_only=False):
     '''
     Place trigger order in advance.
     '''
-    price_conditions = {
-        'price': price, 
-        'price_changes': 0.05, 
-        'decimals': 1
-    }
     trigger_action = create_trigger_action(order_type, action)
 
     if trigger_only:
-        trigger_price = cal_technical_trigger_price(price_conditions, order_type, action, trigger_only)
+        trigger_price = cal_technical_trigger_price(price, price_condition, order_type, action, decimals, trigger_only)
         params = {
             'triggerPrice': trigger_price
         }
     else:
-        trigger_price, order_price = cal_technical_trigger_price(price_conditions, order_type, action, trigger_only)
+        trigger_price, order_price = cal_technical_trigger_price(price, price_condition, order_type, action, decimals, trigger_only)
         params = {
             'triggerPrice': trigger_price, 
             'orderPrice': order_price
@@ -247,10 +269,14 @@ def open_position(exchange, symbol, action, n_positions, config_params_path):
     amount = budget / last_price
 
     order = place_order(exchange, symbol, 'market', action, amount)
-    stop_loss_order = place_trigger_order(exchange, symbol, 'stop', action, amount, last_price, trigger_only=False)
-    take_profit_order = place_trigger_order(exchange, symbol, 'takeProfit', action, amount, last_price, trigger_only=False)
+    
+    sl_condition = get_trigger_condition('sl', config_params_path)
+    tp_condition = get_trigger_condition('tp', config_params_path)
 
-    return order, stop_loss_order, take_profit_order 
+    sl_order = place_trigger_order(exchange, symbol, 'stop', action, amount, sl_condition, last_price, trigger_only=False)
+    tp_order = place_trigger_order(exchange, symbol, 'takeProfit', action, amount, tp_condition, last_price, trigger_only=False)
+
+    return order, sl_order, tp_order 
 
 
 def create_action(position, close_flag=True):
@@ -284,17 +310,18 @@ def update_last_loop(exchange, config_system, order, last_loop_path):
 
     symbol = order['symbol']
     side = order['side']
-    position = 'long' if side == 'buy' else 'short'
     amount = order['amount']
 
-    fee = get_order_fee(order, exchange, symbol, config_system)
+    fee, _ = get_order_fee(order, exchange, symbol, config_system)
     open_price = cal_adjusted_price(order, fee, side)
 
     last_loop['symbols'][symbol] = {
-        'position': position, 
+        'side': side, 
         'amount': amount, 
         'open_price': open_price 
     }
+
+    update_json(last_loop, last_loop_path)
 
 
 def update_technical_budget(net_change, config_params_path):
@@ -395,11 +422,10 @@ def check_open_position(exchange, config_system, config_params_path, last_loop_p
 
     for n in range(n_remaining):
         symbol = no_position_symbols[n]
-        action_flag = check_open_signals()
+        action = check_open_signals()
 
-        if action_flag != "no action":
-            action = create_action(action_flag, close_flag=False)
-            order = open_position(exchange, symbol, action, n_remaining, config_params_path)
+        if action != "no action":
+            order, _, _ = open_position(exchange, symbol, action, n_remaining, config_params_path)
 
             append_order(order, 'filled', 'open_position', transactions_df_path)
             update_last_loop(exchange, config_system, order, last_loop_path)
