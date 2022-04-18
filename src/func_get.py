@@ -303,26 +303,6 @@ def get_funding_payment(exchange, range):
         funding_payment = 0
     
     return funding_payment, funding_dict
-
-
-def get_greed_index(default_index=0.5):
-    greed_index = default_index
-    
-    try:
-        URL = 'https://alternative.me/crypto/fear-and-greed-index/'
-        page = requests.get(URL)
-        soup = BeautifulSoup(page.content, 'html.parser')
-
-        period_class = soup.find_all('div', 'gray')
-        index_class = soup.find_all('div', 'fng-circle')
-
-        for p, i in zip(period_class, index_class):
-            if p.text == 'Now':
-                greed_index = int(i.text)
-    except requests.ConnectionError:
-        pass
-
-    return greed_index
     
 
 def check_end_date(cash_flow_df_path, transactions_df_path):

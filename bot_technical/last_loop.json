@@ -1,9 +1,7 @@
 {
     "timestamp": 0,
-    "signal_timestamp": {
-        "big": 0, 
-        "small": 0
-    },  
+    "last_action_timeframe": 0,
+    "next_action_timeframe": 0,
     "symbols": {
         "LUNA-PREP": {
             "position": "long", 

@@ -1,25 +1,145 @@
 {
-    "total_budget": 1000, 
-    "risk": 0.1, 
-    "leverage": 20, 
-    "symbols": ["ETH-PERP", "SOL-PERP", "LUNA-PERP"],
-    "lead_symbols": ["BTC-PERP", "ETH-PERP"],
-    "timeframe": {
-        "big": "1h",
-        "small": "15m"
-    }, 
-    "signal": {
-        "ema": {
-            "window": 50
+    "safety_ohlcv_range": 1000,
+    "action_timeframe": "15m",
+    "target_side": [
+        "buy",
+        "sell"
+    ],
+    "base": {
+        "symbol": [
+            "ETH-PERP",
+            "SOL-PERP",
+            "LUNA-PERP"
+        ],
+        "open": {
+            "15m": {
+                "ema": {
+                    "check": [
+                        "check_signal_side"
+                    ],
+                    "look_back": 1,
+                    "windows": 200,
+                    "revert": false
+                },
+                "supertrend": {
+                    "check": [
+                        "check_signal_side_change"
+                    ],
+                    "look_back": 1,
+                    "atr_range": 10,
+                    "multiplier": 3,
+                    "revert": false
+                },
+                "wt": {
+                    "check": [
+                        "check_signal_band"
+                    ],
+                    "trigger": "inner",
+                    "channel_range": 10,
+                    "average_range": 21,
+                    "overbought": 53,
+                    "oversold": -53,
+                    "revert": false
+                }
+            },
+            "1h": {
+                "ema": {
+                    "check": [
+                        "check_signal_side"
+                    ],
+                    "look_back": 1,
+                    "windows": 200,
+                    "revert": false
+                },
+                "supertrend": {
+                    "check": [
+                        "check_signal_side"
+                    ],
+                    "look_back": 1,
+                    "atr_range": 10,
+                    "multiplier": 3,
+                    "revert": false
+                },
+                "wt": {
+                    "check": [
+                        "check_signal_band"
+                    ],
+                    "trigger": "inner",
+                    "channel_range": 10,
+                    "average_range": 21,
+                    "overbought": 53,
+                    "oversold": -53,
+                    "revert": false
+                }
+            }
         },
-        "supertrend": {
-            "period": 20,
-            "mul": 5
+        "close": {
+            "15m": {
+                "supertrend": {
+                    "check": [
+                        "check_signal_side"
+                    ],
+                    "look_back": 1,
+                    "atr_range": 10,
+                    "multiplier": 3,
+                    "revert": false
+                },
+                "wt": {
+                    "check": [
+                        "check_signal_band"
+                    ],
+                    "trigger": "inner",
+                    "channel_range": 10,
+                    "average_range": 21,
+                    "overbought": 53,
+                    "oversold": -53,
+                    "revert": false
+                }
+            }
+        }
+    },
+    "lead": {
+        "symbol": [
+            "BTC-PERP"
+        ],
+        "open": {
+            "15m": {
+                "wt": {
+                    "check": [
+                        "check_signal_band"
+                    ],
+                    "trigger": "inner",
+                    "channel_range": 10,
+                    "average_range": 21,
+                    "overbought": 53,
+                    "oversold": -53,
+                    "revert": false
+                }
+            }
         },
-        "wt_cross": {
-            "overbought": 53, 
-            "oversold": -53
-        }, 
-    "taker_fee": 0.07
-    }
+        "close": {}
+    },
+    "tp": {
+        "stop_percent": 50,
+        "price_percent": 5,
+        "signal": null
+    },
+    "sl": {
+        "stop_percent": 50,
+        "price_percent": null,
+        "signal": {
+            "timeframe": "15m",
+            "signal": {
+                "supertrend": {
+                    "look_back": 1,
+                    "atr_range": 10,
+                    "multiplier": 3,
+                    "revert": false
+                }
+            }
+        }
+    },
+    "action_percent": 10,
+    "leverage": 5,
+    "taker_fee_percent": 0.07
 }
