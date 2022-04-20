@@ -101,10 +101,16 @@ def get_stop_orders(exchange, symbol, last_loop_path):
 
 
 def check_close_position():
+    '''
+    Close positions if meet criteria.
+    '''
     pass
 
 
 def check_open_position():
+    '''
+    Open positions if meet criteria.
+    '''
     pass
 
 

@@ -44,6 +44,16 @@ def revert_signal(action_side):
     return action_side
 
 
+def check_dependent_signal(func):
+    def inner(action_list, indicator, upperband, lowerband):
+        if len(action_list) == 0:
+            raise ValueError("Main signal must be added.")
+        else:
+            return func(action_list, indicator, upperband, lowerband)
+
+    return inner
+
+
 def check_signal_side(objective, symbol_type, time, signal, action_list, ohlcv_df, timeframe, config_params):
     check_df = ohlcv_df[ohlcv_df['time'] <= time].reset_index(drop=True)
     check_series = check_df.loc[len(check_df) - 1, :]
@@ -59,26 +69,24 @@ def check_signal_side(objective, symbol_type, time, signal, action_list, ohlcv_d
 
 def check_signal_side_change(objective, symbol_type, time, signal, action_list, ohlcv_df, timeframe, config_params):
     look_back = config_params[symbol_type][objective][timeframe][signal]['look_back']
-
-    if look_back > 0:
-        check_df = ohlcv_df[ohlcv_df['time'] <= time]
-        check_df = check_df.loc[len(check_df) - look_back - 1:].reset_index(drop=True)
-        
-        if len(check_df) < look_back + 1:
-            action_side = 'no_action'
+    check_df = ohlcv_df[ohlcv_df['time'] <= time]
+    check_df = check_df.loc[len(check_df) - look_back - 1:].reset_index(drop=True)
+    
+    if len(check_df) < look_back + 1:
+        action_side = 'no_action'
+    else:
+        action_side_first = check_df.loc[0, f'{signal}_side']
+        action_side_unique = check_df.loc[1:len(check_df) - 1, f'{signal}_side'].unique()
+        if (len(action_side_unique) == 1) & (action_side_first != action_side_unique[0]):
+            action_side = action_side_unique[0]
         else:
-            action_side_first = check_df.loc[0, f'{signal}_side']
-            action_side_unique = check_df.loc[1:len(check_df) - 1, f'{signal}_side'].unique()
-            if (len(action_side_unique) == 1) & (action_side_first != action_side_unique[0]):
-                action_side = action_side_unique[0]
-            else:
-                action_side = 'no_action' if objective == 'open' else check_df.loc[len(check_df) - 1, f'{signal}_side']
-            
-        if config_params[symbol_type][objective][timeframe][signal]['revert']:
-            action_side = revert_signal(action_side)
+            action_side = 'no_action' if objective == 'open' else check_df.loc[len(check_df) - 1, f'{signal}_side']
+        
+    if config_params[symbol_type][objective][timeframe][signal]['revert']:
+        action_side = revert_signal(action_side)
 
-        action_list.append(action_side)
-        return action_side
+    action_list.append(action_side)
+    return action_side
 
 
 def check_signal_band(objective, symbol_type, time, signal, action_list, ohlcv_df, timeframe, config_params):
@@ -93,20 +101,18 @@ def check_signal_band(objective, symbol_type, time, signal, action_list, ohlcv_d
         return action_side
 
 
+    @check_dependent_signal
     def cal_inner_band(action_list, indicator, upperband, lowerband):
-        if (len(action_list) >= 1):
-            if (action_list[-1] == 'buy') & (indicator < upperband):
-                action_side = 'buy'
-            elif (action_list[-1] == 'buy') & (indicator >= upperband):
-                action_side = 'sell'
-            elif (action_list[-1] == 'sell') & (indicator > lowerband):
-                action_side = 'sell'
-            elif (action_list[-1] == 'sell') & (indicator <= lowerband):
-                action_side = 'buy'
-            else:
-                action_side = 'no_action'
+        if (action_list[-1] == 'buy') & (indicator < upperband):
+            action_side = 'buy'
+        elif (action_list[-1] == 'buy') & (indicator >= upperband):
+            action_side = 'sell'
+        elif (action_list[-1] == 'sell') & (indicator > lowerband):
+            action_side = 'sell'
+        elif (action_list[-1] == 'sell') & (indicator <= lowerband):
+            action_side = 'buy'
         else:
-            raise ValueError("Must be used with other signals")
+            action_side = 'no_action'
 
         return action_side
 
@@ -130,7 +136,6 @@ def check_signal_band(objective, symbol_type, time, signal, action_list, ohlcv_d
     
     if config_params[symbol_type][objective][timeframe][signal]['trigger'] == 'outer':
         action_side = cal_outer_band(indicator, upperband, lowerband)
-    
     elif config_params[symbol_type][objective][timeframe][signal]['trigger'] == 'inner':
         action_side = cal_inner_band(action_list, indicator, upperband, lowerband)
 
@@ -293,23 +298,49 @@ def add_supertrend(objective, ohlcv_df, timeframe, config_params):
         return basic_upperband, basic_lowerband
 
 
+    def cal_final_upperband(ohlcv_df, index, basic_upperband, final_upperband_list):
+        if (basic_upperband < final_upperband_list[index - 1]) | (ohlcv_df.loc[i - 1, 'close'] > final_upperband_list[index - 1]):
+            final_upperband = basic_upperband
+        else:
+            final_upperband = final_upperband_list[index - 1]
+
+        return final_upperband
+
+
+    def cal_final_lowerband(ohlcv_df, index, basic_lowerband, final_lowerband_list):
+        if (basic_lowerband > final_lowerband_list[index - 1]) | (ohlcv_df.loc[i - 1, 'close'] < final_lowerband_list[index - 1]):
+            final_lowerband = basic_lowerband
+        else:
+            final_lowerband = final_lowerband_list[index - 1]
+
+        return final_lowerband
+
+
     def cal_final_band(ohlcv_df, index, basic_upperband, basic_lowerband, final_upperband_list, final_lowerband_list):
-        try:
-            if (basic_upperband < final_upperband_list[index - 1]) | (ohlcv_df.loc[i - 1, 'close'] > final_upperband_list[index - 1]):
-                final_upperband = basic_upperband
-            else:
-                final_upperband = final_upperband_list[index - 1]
-                
-            if (basic_lowerband > final_lowerband_list[index - 1]) | (ohlcv_df.loc[i - 1, 'close'] < final_lowerband_list[index - 1]):
-                final_lowerband = basic_lowerband
-            else:
-                final_lowerband = final_lowerband_list[index - 1]
-        except IndexError:
+        if len(final_upperband_list) == 0:
             # First loop
             final_upperband = basic_upperband
             final_lowerband = basic_lowerband
+        else:
+            final_upperband = cal_final_upperband(ohlcv_df, index, basic_upperband, final_upperband_list)
+            final_lowerband = cal_final_lowerband(ohlcv_df, index, basic_lowerband, final_lowerband_list)
 
         return final_upperband, final_lowerband
+
+
+    def get_last_trend(final_upperband, final_lowerband, supertrend_side_list):
+        if len(supertrend_side_list) == 0:
+            # First loop
+            supertrend_side = None
+        else:
+            supertrend_side = supertrend_side_list[-1]
+            
+        if supertrend_side == 'buy':
+            supertrend = final_lowerband
+        else:
+            supertrend = final_upperband
+
+        return supertrend, supertrend_side
 
 
     def cal_supertrend(ohlcv_df, index, final_upperband, final_lowerband, supertrend_side_list):
@@ -320,16 +351,7 @@ def add_supertrend(objective, ohlcv_df, timeframe, config_params):
             supertrend = final_upperband
             supertrend_side = 'sell'
         else:
-            try:
-                supertrend_side = supertrend_side_list[-1]
-            except IndexError:
-                # First loop
-                supertrend_side = None
-                
-            if supertrend_side == 'buy':
-                supertrend = final_lowerband
-            else:
-                supertrend = final_upperband
+            supertrend, supertrend_side = get_last_trend(final_upperband, final_lowerband, supertrend_side_list)
 
         return supertrend, supertrend_side
 
@@ -496,36 +518,48 @@ def add_hull(objective, ohlcv_df, timeframe, config_params):
     return ohlcv_df
 
 
-def add_action_signal(ohlcv_df_dict, func_add_dict, config_params):
+def add_action_signal(objective, ohlcv_df, symbol_type, timeframe, symbol, func_add_dict, config_params):
+    if timeframe in config_params[symbol_type][objective]:
+        for signal in config_params[symbol_type][objective][timeframe]:
+            if signal not in ohlcv_df.columns:
+                print(f"{symbol_type} add {signal} to {symbol} {timeframe}")
+                ohlcv_df = func_add_dict[signal](objective, ohlcv_df, timeframe, config_params)
+
+    return ohlcv_df
+
+
+def add_stop_signal(objective, ohlcv_df, timeframe, symbol, func_add_dict, config_params):
+    signal = list(config_params[objective]['signal']['signal'])[0]
+
+    if signal not in ohlcv_df.columns:
+        print(f"{objective} add {signal} to {symbol} {timeframe}")
+        ohlcv_df = func_add_dict[signal](objective, ohlcv_df, timeframe, config_params)
+
+    return ohlcv_df
+
+
+def get_action_signal(ohlcv_df_dict, func_add_dict, config_params):
     for symbol_type in ['base', 'lead']:
         for timeframe in ohlcv_df_dict[symbol_type]:
             for symbol in ohlcv_df_dict[symbol_type][timeframe]:
                 ohlcv_df = ohlcv_df_dict[symbol_type][timeframe][symbol]
+                ohlcv_df = add_action_signal('open', ohlcv_df, symbol_type, timeframe, symbol, func_add_dict, config_params)
+                ohlcv_df = add_action_signal('close', ohlcv_df, symbol_type, timeframe, symbol, func_add_dict, config_params)
                 
-                for objective in ['open', 'close']:
-                    if timeframe in config_params[symbol_type][objective]:
-                        for signal in config_params[symbol_type][objective][timeframe]:
-                            if signal not in ohlcv_df.columns:
-                                print(f"{symbol_type} add {signal} to {symbol} {timeframe}")
-                                ohlcv_df = func_add_dict[signal](objective, ohlcv_df, timeframe, config_params)
-
                 ohlcv_df_dict[symbol_type][timeframe][symbol] = ohlcv_df
 
     return ohlcv_df_dict
 
 
-def add_stop_signal(ohlcv_df_dict, func_add_dict, config_params):
+def get_stop_signal(ohlcv_df_dict, func_add_dict, config_params):
     for objective in ['tp', 'sl']:
         if (config_params[objective]['signal'] != None):
             for symbol in ohlcv_df_dict['base'][config_params[objective]['signal']['timeframe']]:
-                ohlcv_df = ohlcv_df_dict['base'][config_params[objective]['signal']['timeframe']][symbol]
-                signal = list(config_params[objective]['signal']['signal'])[0]
                 timeframe = config_params[objective]['signal']['timeframe']
-
-                if signal not in ohlcv_df.columns:
-                    print(f"{objective} add {signal} to {symbol} {timeframe}")
-                    ohlcv_df = func_add_dict[signal](objective, ohlcv_df, timeframe, config_params)
-                    ohlcv_df_dict['base'][timeframe][symbol] = ohlcv_df
+                ohlcv_df = ohlcv_df_dict['base'][config_params[objective]['signal']['timeframe']][symbol]
+                ohlcv_df = add_stop_signal(objective, ohlcv_df, timeframe, symbol, func_add_dict, config_params)
+                
+                ohlcv_df_dict['base'][timeframe][symbol] = ohlcv_df
 
     return ohlcv_df_dict
 
@@ -559,8 +593,8 @@ def add_signal(start_date, ohlcv_df_dict, interval_dict, config_params):
         'hull': add_hull
     }
 
-    ohlcv_df_dict = add_action_signal(ohlcv_df_dict, func_add_dict, config_params)
-    ohlcv_df_dict = add_stop_signal(ohlcv_df_dict, func_add_dict, config_params)
+    ohlcv_df_dict = get_action_signal(ohlcv_df_dict, func_add_dict, config_params)
+    ohlcv_df_dict = get_stop_signal(ohlcv_df_dict, func_add_dict, config_params)
     ohlcv_df_dict = filter_start_time(start_date, ohlcv_df_dict, interval_dict)
 
     return ohlcv_df_dict
