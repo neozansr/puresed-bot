@@ -35,6 +35,26 @@ def get_signal_cross_side(ohlcv_df, signal):
     return signal_side
 
 
+def get_signal_bound_side(ohlcv_df):
+    if ohlcv_df['close'] > ohlcv_df['max_high']:
+        signal_side = 'buy'
+    elif ohlcv_df['close'] < ohlcv_df['min_low']:
+        signal_side = 'sell'
+    else:
+        signal_side = np.nan
+
+    return signal_side
+
+
+def get_signal_equence_side(ohlcv_df, signal):
+    if ohlcv_df[signal] > ohlcv_df[f'{signal}_prev']:
+        signal_side = 'buy'
+    else:
+        signal_side = 'sell'
+
+    return signal_side
+
+
 def revert_signal(action_side):
     if action_side == 'buy':
         action_side = 'sell'
@@ -156,178 +176,104 @@ def call_check_signal_func(func_name):
     return check_func_dict[func_name]
 
 
-def cal_sma(ohlcv_df, windows, signal):
-    temp_df = ohlcv_df.copy()
+def cal_sma(ohlcv_df, windows):
+    sma_list = ohlcv_df['close'].rolling(window=windows).mean()
 
-    sma_list = temp_df['close'].rolling(window=windows).mean()
-    ohlcv_df[signal] = sma_list
-
-    return ohlcv_df
+    return sma_list
 
 
-def cal_ema(ohlcv_df, windows, signal):
-    temp_df = ohlcv_df.copy()
+def cal_ema(ohlcv_df, windows):
+    ema_list = ohlcv_df['close'].ewm(span=windows, adjust=False).mean()
 
-    ema_list = temp_df['close'].ewm(span=windows, adjust=False).mean()
-    ohlcv_df[signal] = ema_list
-
-    return ohlcv_df
+    return ema_list
 
 
-def cal_tma(ohlcv_df, windows, signal):
+def cal_tma(ohlcv_df, windows):
     sub_interval = (windows + 1) / 2
-
     temp_df = ohlcv_df.copy()
     
     sma_list = temp_df['close'].rolling(window=math.trunc(sub_interval)).mean()
     temp_df['ma'] = sma_list
     
     tma_list = temp_df['ma'].rolling(window=int(np.round(sub_interval))).mean()
-    ohlcv_df[signal] = tma_list
 
-    return ohlcv_df
+    return tma_list
 
 
-def add_sma(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('sma', objective, timeframe, config_params)
-    windows = signal_dict['windows']
+def cal_wma(ohlcv_df, input_col, windows):
+    def weight_ma(series):
+        weight_list = list(range(1, len(series) + 1))
+        weighted_average_list = [i * j for i, j in zip(series, weight_list)]
+
+        wma = sum(weighted_average_list) / sum(weight_list)
+
+        return wma
     
-    ohlcv_df = cal_sma(ohlcv_df, windows, signal='sma')
-    ohlcv_df[f'sma_side'] = ohlcv_df.apply(get_signal_side, signal='sma', axis=1)
-    
-    return ohlcv_df
+    wma_list = [None] * (windows - 1)
+
+    for i in range(len(ohlcv_df) - (windows - 1)):
+        close_series = ohlcv_df.loc[i:i + (windows - 1), input_col]
+        wma = weight_ma(close_series)
+        wma_list.append(wma)
+
+    return wma_list
 
 
-def add_ema(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('ema', objective, timeframe, config_params)
-    windows = signal_dict['windows']
-    
-    ohlcv_df = cal_ema(ohlcv_df, windows, signal='ema')
-    ohlcv_df['ema_side'] = ohlcv_df.apply(get_signal_side, signal='ema', axis=1)
-    
-    return ohlcv_df
-
-
-def add_tma(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('tma', objective, timeframe, config_params)
-    windows = signal_dict['windows']
-
-    ohlcv_df = cal_tma(ohlcv_df, windows, signal='tma')
-    ohlcv_df['tma_side'] = ohlcv_df.apply(get_signal_side, signal='tma', axis=1)
-    
-    return ohlcv_df
-
-
-def add_cross_sma(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('cross_sma', objective, timeframe, config_params)
-    short_windows = signal_dict['short_windows']
-    long_windows = signal_dict['long_windows']
-    
-    ohlcv_df = cal_sma(ohlcv_df, short_windows, signal='short_sma')
-    ohlcv_df = cal_sma(ohlcv_df, long_windows, signal='long_sma')
-    ohlcv_df['cross_sma_side'] = ohlcv_df.apply(get_signal_cross_side, signal='sma', axis=1)
-    
-    return ohlcv_df
-
-
-def add_cross_ema(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('cross_ema', objective, timeframe, config_params)
-    short_windows = signal_dict['short_windows']
-    long_windows = signal_dict['long_windows']
-
-    ohlcv_df = cal_ema(ohlcv_df, short_windows, signal='short_ema')
-    ohlcv_df = cal_ema(ohlcv_df, long_windows, signal='long_ema')
-    ohlcv_df['cross_ema_side'] = ohlcv_df.apply(get_signal_cross_side, signal='ema', axis=1)
-    
-    return ohlcv_df
-
-
-def add_cross_tma(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('cross_tma', objective, timeframe, config_params)
-    short_windows = signal_dict['short_windows']
-    long_windows = signal_dict['long_windows']
-    
-    ohlcv_df = cal_tma(ohlcv_df, short_windows, signal='short_tma')
-    ohlcv_df = cal_tma(ohlcv_df, long_windows, signal='long_tma')
-    ohlcv_df['cross_tma_side'] = ohlcv_df.apply(get_signal_cross_side, signal='tma', axis=1)
-    
-    return ohlcv_df
-
-
-def add_bollinger(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('bollinger', objective, timeframe, config_params)
-    windows = signal_dict['windows']
-    std = signal_dict['std']
-    
+def cal_atr(ohlcv_df, atr_range):
     temp_df = ohlcv_df.copy()
 
-    sma_list = temp_df['close'].rolling(window=windows).mean()
-    std_list = temp_df['close'].rolling(window=windows).std(ddof=0)
-    
-    bollinger_upper = sma_list + (std_list * std)
-    bollinger_lower = sma_list - (std_list * std)
-    
-    ohlcv_df['bollinger_upper'] = bollinger_upper
-    ohlcv_df['bollinger_lower'] = bollinger_lower
-    
-    return ohlcv_df
+    high_low = temp_df['high'] - temp_df['low']
+    high_close = np.abs(temp_df['high'] - temp_df['close'].shift(periods=1))
+    low_close = np.abs(temp_df['low'] - temp_df['close'].shift(periods=1))
+
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = np.max(ranges, axis=1)
+    temp_df['true_range'] = true_range
+    atr_list = temp_df['true_range'].ewm(alpha=1 / atr_range, min_periods=atr_range).mean()
+
+    return atr_list
 
 
-def add_supertrend(objective, ohlcv_df, timeframe, config_params):
-    def cal_atr(ohlcv_df, atr_range):
-        temp_df = ohlcv_df.copy()
+def cal_basic_band(ohlcv_df, index, multiplier):
+    mid_price = (ohlcv_df.loc[index, 'high'] + ohlcv_df.loc[index, 'low']) / 2
+    default_atr = multiplier * ohlcv_df.loc[index, 'atr']
+    basic_upperband = mid_price + default_atr
+    basic_lowerband = mid_price - default_atr
 
-        high_low = temp_df['high'] - temp_df['low']
-        high_close = np.abs(temp_df['high'] - temp_df['close'].shift(periods=1))
-        low_close = np.abs(temp_df['low'] - temp_df['close'].shift(periods=1))
-
-        ranges = pd.concat([high_low, high_close, low_close], axis=1)
-        true_range = np.max(ranges, axis=1)
-        temp_df['true_range'] = true_range
-        atr_list = temp_df['true_range'].ewm(alpha=1 / atr_range, min_periods=atr_range).mean()
-
-        return atr_list
+    return basic_upperband, basic_lowerband
 
 
-    def cal_basic_band(ohlcv_df, index, multiplier):
-        mid_price = (ohlcv_df.loc[index, 'high'] + ohlcv_df.loc[index, 'low']) / 2
-        default_atr = multiplier * ohlcv_df.loc[index, 'atr']
-        basic_upperband = mid_price + default_atr
-        basic_lowerband = mid_price - default_atr
+def cal_final_upperband(ohlcv_df, index, basic_upperband, final_upperband_list):
+    if (basic_upperband < final_upperband_list[index - 1]) | (ohlcv_df.loc[index - 1, 'close'] > final_upperband_list[index - 1]):
+        final_upperband = basic_upperband
+    else:
+        final_upperband = final_upperband_list[index - 1]
 
-        return basic_upperband, basic_lowerband
-
-
-    def cal_final_upperband(ohlcv_df, index, basic_upperband, final_upperband_list):
-        if (basic_upperband < final_upperband_list[index - 1]) | (ohlcv_df.loc[i - 1, 'close'] > final_upperband_list[index - 1]):
-            final_upperband = basic_upperband
-        else:
-            final_upperband = final_upperband_list[index - 1]
-
-        return final_upperband
+    return final_upperband
 
 
-    def cal_final_lowerband(ohlcv_df, index, basic_lowerband, final_lowerband_list):
-        if (basic_lowerband > final_lowerband_list[index - 1]) | (ohlcv_df.loc[i - 1, 'close'] < final_lowerband_list[index - 1]):
-            final_lowerband = basic_lowerband
-        else:
-            final_lowerband = final_lowerband_list[index - 1]
+def cal_final_lowerband(ohlcv_df, index, basic_lowerband, final_lowerband_list):
+    if (basic_lowerband > final_lowerband_list[index - 1]) | (ohlcv_df.loc[index - 1, 'close'] < final_lowerband_list[index - 1]):
+        final_lowerband = basic_lowerband
+    else:
+        final_lowerband = final_lowerband_list[index - 1]
 
-        return final_lowerband
-
-
-    def cal_final_band(ohlcv_df, index, basic_upperband, basic_lowerband, final_upperband_list, final_lowerband_list):
-        if len(final_upperband_list) == 0:
-            # First loop
-            final_upperband = basic_upperband
-            final_lowerband = basic_lowerband
-        else:
-            final_upperband = cal_final_upperband(ohlcv_df, index, basic_upperband, final_upperband_list)
-            final_lowerband = cal_final_lowerband(ohlcv_df, index, basic_lowerband, final_lowerband_list)
-
-        return final_upperband, final_lowerband
+    return final_lowerband
 
 
+def cal_final_band(ohlcv_df, index, basic_upperband, basic_lowerband, final_upperband_list, final_lowerband_list):
+    if len(final_upperband_list) == 0:
+        # First loop
+        final_upperband = basic_upperband
+        final_lowerband = basic_lowerband
+    else:
+        final_upperband = cal_final_upperband(ohlcv_df, index, basic_upperband, final_upperband_list)
+        final_lowerband = cal_final_lowerband(ohlcv_df, index, basic_lowerband, final_lowerband_list)
+
+    return final_upperband, final_lowerband
+
+
+def cal_supertrend(ohlcv_df, index, final_upperband, final_lowerband, supertrend_side_list):
     def get_last_trend(final_upperband, final_lowerband, supertrend_side_list):
         if len(supertrend_side_list) == 0:
             # First loop
@@ -343,27 +289,141 @@ def add_supertrend(objective, ohlcv_df, timeframe, config_params):
         return supertrend, supertrend_side
 
 
-    def cal_supertrend(ohlcv_df, index, final_upperband, final_lowerband, supertrend_side_list):
-        if ohlcv_df.loc[index, 'close'] > final_upperband:
-            supertrend = final_lowerband
-            supertrend_side = 'buy'
-        elif ohlcv_df.loc[index, 'close'] < final_lowerband:
-            supertrend = final_upperband
-            supertrend_side = 'sell'
-        else:
-            supertrend, supertrend_side = get_last_trend(final_upperband, final_lowerband, supertrend_side_list)
+    if ohlcv_df.loc[index, 'close'] > final_upperband:
+        supertrend = final_lowerband
+        supertrend_side = 'buy'
+    elif ohlcv_df.loc[index, 'close'] < final_lowerband:
+        supertrend = final_upperband
+        supertrend_side = 'sell'
+    else:
+        supertrend, supertrend_side = get_last_trend(final_upperband, final_lowerband, supertrend_side_list)
 
-        return supertrend, supertrend_side
+    return supertrend, supertrend_side
 
 
+def add_sma(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('sma', objective, timeframe, config_params)
+    
+    ohlcv_df['sma'] = cal_sma(ohlcv_df, signal_dict['windows'])
+    ohlcv_df[f'sma_side'] = ohlcv_df.apply(get_signal_side, signal='sma', axis=1)
+    
+    return ohlcv_df
+
+
+def add_ema(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('ema', objective, timeframe, config_params)
+    
+    ohlcv_df['ema'] = cal_ema(ohlcv_df, signal_dict['windows'])
+    ohlcv_df['ema_side'] = ohlcv_df.apply(get_signal_side, signal='ema', axis=1)
+    
+    return ohlcv_df
+
+
+def add_tma(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('tma', objective, timeframe, config_params)
+
+    ohlcv_df['tma'] = cal_tma(ohlcv_df, signal_dict['windows'])
+    ohlcv_df['tma_side'] = ohlcv_df.apply(get_signal_side, signal='tma', axis=1)
+    
+    return ohlcv_df
+
+
+def add_cross_sma(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('cross_sma', objective, timeframe, config_params)
+    
+    ohlcv_df['short_sma'] = cal_sma(ohlcv_df, signal_dict['short_windows'])
+    ohlcv_df['long_sma'] = cal_sma(ohlcv_df, signal_dict['long_windows'])
+    ohlcv_df['cross_sma_side'] = ohlcv_df.apply(get_signal_cross_side, signal='sma', axis=1)
+    
+    return ohlcv_df
+
+
+def add_cross_ema(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('cross_ema', objective, timeframe, config_params)
+
+    ohlcv_df['short_ema'] = cal_ema(ohlcv_df, signal_dict['short_windows'])
+    ohlcv_df['long_ema'] = cal_ema(ohlcv_df, signal_dict['long_windows'])
+    ohlcv_df['cross_ema_side'] = ohlcv_df.apply(get_signal_cross_side, signal='ema', axis=1)
+    
+    return ohlcv_df
+
+
+def add_cross_tma(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('cross_tma', objective, timeframe, config_params)
+    
+    ohlcv_df['short_tma'] = cal_tma(ohlcv_df, signal_dict['short_windows'])
+    ohlcv_df['long_tma'] = cal_tma(ohlcv_df, signal_dict['long_windows'])
+    ohlcv_df['cross_tma_side'] = ohlcv_df.apply(get_signal_cross_side, signal='tma', axis=1)
+    
+    return ohlcv_df
+
+
+def add_bollinger(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('bollinger', objective, timeframe, config_params)
+    
+    temp_df = ohlcv_df.copy()
+
+    sma_list = temp_df['close'].rolling(window=signal_dict['windows']).mean()
+    std_list = temp_df['close'].rolling(window=signal_dict['windows']).std(ddof=0)
+    
+    bollinger_upper = sma_list + (std_list * signal_dict['std'])
+    bollinger_lower = sma_list - (std_list * signal_dict['std'])
+    
+    ohlcv_df['bollinger_upper'] = bollinger_upper
+    ohlcv_df['bollinger_lower'] = bollinger_lower
+    
+    return ohlcv_df
+
+
+def add_wt(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('wt', objective, timeframe, config_params)
+    
+    temp_df = ohlcv_df.copy()
+    
+    temp_df['average_price'] = (temp_df['high'] + temp_df['low'] + temp_df['close']) / 3
+    temp_df['esa'] = temp_df['average_price'].ewm(span=signal_dict['channel_range']).mean()
+    temp_df['dd'] = abs(temp_df['average_price'] - temp_df['esa'])
+    temp_df['d'] = temp_df['dd'].ewm(span=signal_dict['channel_range']).mean()
+    temp_df['ci'] = (temp_df['average_price'] - temp_df['esa']) / (0.015 * temp_df['d'])
+    
+    wt_list = temp_df['ci'].ewm(span=signal_dict['average_range']).mean()
+    ohlcv_df['wt'] = wt_list
+    
+    return ohlcv_df
+
+
+def add_rsi(objective, ohlcv_df, timeframe, config_params):
+    signal_dict = get_signal_dict('rsi', objective, timeframe, config_params)
+
+    temp_df = ohlcv_df.copy()
+    
+    temp_df['diff'] = temp_df['close'].diff(1)
+    temp_df['gain'] = temp_df['diff'].clip(lower=0)
+    temp_df['loss'] = temp_df['diff'].clip(upper=0).abs()
+
+    temp_df['avg_gain'] = temp_df['gain'].rolling(window=signal_dict['average_range'], min_periods=signal_dict['average_range']).mean()[:signal_dict['average_range']+1]
+    temp_df['avg_loss'] = temp_df['loss'].rolling(window=signal_dict['average_range'], min_periods=signal_dict['average_range']).mean()[:signal_dict['average_range']+1]
+
+    for i, _ in enumerate(temp_df.loc[signal_dict['average_range'] + 1:, 'avg_gain']):
+        temp_df.loc[i + signal_dict['average_range'] + 1, 'avg_gain'] = (temp_df.loc[i + signal_dict['average_range'], 'avg_gain'] * (signal_dict['average_range'] - 1) + temp_df.loc[i + signal_dict['average_range'] + 1, 'gain']) / signal_dict['average_range']
+
+    for i, _ in enumerate(temp_df.loc[signal_dict['average_range'] + 1:, 'avg_loss']):
+        temp_df.loc[i + signal_dict['average_range'] + 1, 'avg_loss'] = (temp_df.loc[i + signal_dict['average_range'], 'avg_loss'] * (signal_dict['average_range'] - 1) + temp_df.loc[i + signal_dict['average_range'] + 1, 'loss']) / signal_dict['average_range']
+
+    temp_df['rs'] = temp_df['avg_gain'] / temp_df['avg_loss']
+    
+    rsi_list = 100 - (100 / (1.0 + temp_df['rs']))
+    ohlcv_df['rsi'] = rsi_list
+  
+    return ohlcv_df
+
+
+def add_supertrend(objective, ohlcv_df, timeframe, config_params):
     signal_dict = get_signal_dict('supertrend', objective, timeframe, config_params)
-    atr_range = signal_dict['atr_range']
-    multiplier = signal_dict['multiplier']
 
     temp_df = ohlcv_df.copy()
 
-    atr_list = cal_atr(ohlcv_df, atr_range)
-    temp_df['atr'] = atr_list
+    temp_df['atr'] = cal_atr(ohlcv_df, signal_dict['atr_range'])
     temp_df = temp_df.dropna().reset_index(drop=True)
     
     supertrend_list = []
@@ -372,7 +432,7 @@ def add_supertrend(objective, ohlcv_df, timeframe, config_params):
     final_lowerband_list = []
 
     for i in range(len(temp_df)):
-        basic_upperband, basic_lowerband = cal_basic_band(temp_df, i, multiplier)
+        basic_upperband, basic_lowerband = cal_basic_band(temp_df, i, signal_dict['multiplier'])
         final_upperband, final_lowerband = cal_final_band(temp_df, i, basic_upperband, basic_lowerband, final_upperband_list, final_lowerband_list)
         
         final_upperband_list.append(final_upperband)
@@ -383,84 +443,26 @@ def add_supertrend(objective, ohlcv_df, timeframe, config_params):
         supertrend_side_list.append(supertrend_side)
         supertrend_list.append(supertrend)
 
-    ohlcv_df['supertrend'] = ([None] * (atr_range - 1)) + supertrend_list
-    ohlcv_df['supertrend_side'] = ([None] * (atr_range - 1)) + supertrend_side_list
+    ohlcv_df['supertrend'] = ([None] * (signal_dict['atr_range'] - 1)) + supertrend_list
+    ohlcv_df['supertrend_side'] = ([None] * (signal_dict['atr_range'] - 1)) + supertrend_side_list
     
-    return ohlcv_df
-
-
-def add_wt(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('wt', objective, timeframe, config_params)
-    channel_range = signal_dict['channel_range']
-    average_range = signal_dict['average_range']
-    
-    temp_df = ohlcv_df.copy()
-    
-    temp_df['average_price'] = (temp_df['high'] + temp_df['low'] + temp_df['close']) / 3
-    temp_df['esa'] = temp_df['average_price'].ewm(span=channel_range).mean()
-    temp_df['dd'] = abs(temp_df['average_price'] - temp_df['esa'])
-    temp_df['d'] = temp_df['dd'].ewm(span=channel_range).mean()
-    temp_df['ci'] = (temp_df['average_price'] - temp_df['esa']) / (0.015 * temp_df['d'])
-    
-    wt_list = temp_df['ci'].ewm(span=average_range).mean()
-    ohlcv_df['wt'] = wt_list
-    
-    return ohlcv_df
-
-
-def add_rsi(objective, ohlcv_df, timeframe, config_params):
-    signal_dict = get_signal_dict('rsi', objective, timeframe, config_params)
-    windows = signal_dict['average_range']
-
-    temp_df = ohlcv_df.copy()
-    
-    temp_df['diff'] = temp_df['close'].diff(1)
-    temp_df['gain'] = temp_df['diff'].clip(lower=0)
-    temp_df['loss'] = temp_df['diff'].clip(upper=0).abs()
-
-    temp_df['avg_gain'] = temp_df['gain'].rolling(window=windows, min_periods=windows).mean()[:windows+1]
-    temp_df['avg_loss'] = temp_df['loss'].rolling(window=windows, min_periods=windows).mean()[:windows+1]
-
-    for i, _ in enumerate(temp_df.loc[windows + 1:, 'avg_gain']):
-        temp_df.loc[i + windows + 1, 'avg_gain'] = (temp_df.loc[i + windows, 'avg_gain'] * (windows - 1) + temp_df.loc[i + windows + 1, 'gain']) / windows
-
-    for i, _ in enumerate(temp_df.loc[windows + 1:, 'avg_loss']):
-        temp_df.loc[i + windows + 1, 'avg_loss'] = (temp_df.loc[i + windows, 'avg_loss'] * (windows - 1) + temp_df.loc[i + windows + 1, 'loss']) / windows
-
-    temp_df['rs'] = temp_df['avg_gain'] / temp_df['avg_loss']
-    
-    rsi_list = 100 - (100 / (1.0 + temp_df['rs']))
-    ohlcv_df['rsi'] = rsi_list
-  
     return ohlcv_df
 
 
 def add_donchian(objective, ohlcv_df, timeframe, config_params):
-    def get_donchian_side(ohlcv_df):
-        if ohlcv_df['close'] > ohlcv_df['max_high']:
-            signal_side = 'buy'
-        elif ohlcv_df['close'] < ohlcv_df['min_low']:
-            signal_side = 'sell'
-        else:
-            signal_side = np.nan
-
-        return signal_side
-    
-    
     signal_dict = get_signal_dict('donchian', objective, timeframe, config_params)
-    windows = signal_dict['windows']
     
     temp_df = ohlcv_df.copy()
 
-    max_high_list = temp_df['high'].rolling(window=windows).max()
-    min_low_list = temp_df['low'].rolling(window=windows).min()
+    max_high_list = temp_df['high'].rolling(window=signal_dict['windows']).max()
+    min_low_list = temp_df['low'].rolling(window=signal_dict['windows']).min()
     
     temp_df['max_high'] = max_high_list
     temp_df['min_low'] = min_low_list
     
     temp_df['max_high'] = temp_df['max_high'].shift(periods=1)
     temp_df['min_low'] = temp_df['min_low'].shift(periods=1)
-    temp_df['donchian_side'] = temp_df.apply(get_donchian_side, axis=1)
+    temp_df['donchian_side'] = temp_df.apply(get_signal_bound_side, axis=1)
     
     donchian_list = temp_df['donchian_side'].fillna(method='ffill')
     ohlcv_df['donchian_side'] = donchian_list
@@ -469,48 +471,18 @@ def add_donchian(objective, ohlcv_df, timeframe, config_params):
 
 
 def add_hull(objective, ohlcv_df, timeframe, config_params):
-    def cal_wma(series):
-        weight_list = list(range(1, len(series) + 1))
-        weighted_average_list = [i * j for i, j in zip(series, weight_list)]
-
-        wma = sum(weighted_average_list) / sum(weight_list)
-
-        return wma
-    
-    
-    def add_wma(df, input_col, windows):
-        wma_list = [None] * (windows - 1)
-
-        for i in range(len(df) - (windows - 1)):
-            close_series = df.loc[i:i + (windows - 1), input_col]
-            wma = cal_wma(close_series)
-            wma_list.append(wma)
-
-        return wma_list
-    
-    
-    def get_hull_side(ohlcv_df):
-        if ohlcv_df['hull'] > ohlcv_df['hull_prev']:
-            signal_side = 'buy'
-        else:
-            signal_side = 'sell'
-
-        return signal_side
-    
-    
     signal_dict = get_signal_dict('hull', objective, timeframe, config_params)
-    windows = signal_dict['windows']
     
     temp_df = ohlcv_df.copy()
 
-    temp_df['hwma'] = add_wma(temp_df, 'close', int(round(windows / 2)))
-    temp_df['wma'] = add_wma(temp_df, 'close', windows)
+    temp_df['hwma'] = cal_wma(temp_df, 'close', int(round(signal_dict['windows'] / 2)))
+    temp_df['wma'] = cal_wma(temp_df, 'close', signal_dict['windows'])
     temp_df['twma'] = (2 * temp_df['hwma']) - temp_df['wma']
-    hull_list = add_wma(temp_df, 'twma', int(round(windows ** (1 / 2))))
+    hull_list = cal_wma(temp_df, 'twma', int(round(signal_dict['windows'] ** (1 / 2))))
     
     temp_df['hull'] = hull_list
     temp_df['hull_prev'] = temp_df['hull'].shift(periods=2)
-    hull_side_list = temp_df.apply(get_hull_side, axis=1)
+    hull_side_list = temp_df.apply(get_signal_equence_side, signal='hull', axis=1)
     
     ohlcv_df['hull'] = hull_list
     ohlcv_df['hull_side'] = hull_side_list
