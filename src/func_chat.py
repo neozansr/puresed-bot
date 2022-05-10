@@ -50,8 +50,8 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path):
     for bot_name in bot_list:
         bot_path = f"{home_path}{bot_name}/"
 
-        cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
         transfer = get_json(bot_path + transfer_path)
+        cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
         available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
         cash_flow_dict[bot_name] = available_cash_flow
 
@@ -65,12 +65,14 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path):
     return text
 
 
-def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, profit_df_path):
+def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
     bot_path = f"{home_path}{bot_name}/"
     text = f"{bot_name.upper()}\n{bot_type.title()}\n"
 
     config_system = get_json(bot_path + config_system_path)
     config_params = get_json(bot_path + config_params_path)
+    transfer = get_json(bot_path + transfer_path)
+    cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
 
     exchange = get_exchange(config_system)
     symbol_list = list(config_params['symbol'].keys())
@@ -78,6 +80,8 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     total_value, value_dict = get_total_value(exchange, config_params)
     cash = get_quote_currency_value(exchange, symbol_list[0])
     balance_value = total_value + cash
+
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
 
     cur_date = get_date()
     today_cash_flow = get_cash_flow_rebalance(cur_date, bot_path + profit_df_path)
@@ -97,6 +101,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
         text += f"\n   Current value: {value_dict[symbol]['current_value']} USD"
     
     text += f"\n\nCash: {cash} USD"
+    text += f"\nAvailable cash flow: {available_cash_flow} USD"
     text += f"\nToday cash flow: {today_cash_flow} USD"
     text += f"\nFunding payment: {funding_payment} USD"
     
@@ -110,12 +115,14 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     return text
 
 
-def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path):
+def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path):
     bot_path = f"{home_path}{bot_name}/"
     text = f"{bot_name.upper()}\n{bot_type.title()}\n"
 
     config_system = get_json(bot_path + config_system_path)
     config_params = get_json(bot_path + config_params_path)
+    transfer = get_json(bot_path + transfer_path)
+    cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
 
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params['symbol'])
@@ -134,6 +141,8 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     base_currency_free = get_base_currency_free(exchange, config_params['symbol'], bot_path + open_orders_df_path)
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(bot_path + open_orders_df_path)
 
+    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+
     cur_date = get_date()
     today_cash_flow = get_cash_flow_grid(cur_date, config_params, bot_path + transactions_df_path)
     funding_payment, _ = get_funding_payment(exchange, range='today')
@@ -149,7 +158,8 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nUntrack: {base_currency_free} {base_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
     
-    text += f"\n\nToday cash flow: {today_cash_flow} {quote_currency}"
+    text += f"\n\nAvailable cash flow: {available_cash_flow} USD"
+    text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
     text += f"\nFunding payment: {funding_payment} USD"
     
     text += f"\n\nMin buy price: {min_buy_price} {quote_currency}"

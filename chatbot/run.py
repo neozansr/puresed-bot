@@ -23,7 +23,7 @@ transfer_path = 'transfer.json'
 open_orders_df_path = 'open_orders.csv'
 transactions_df_path = 'transactions.csv'
 profit_df_path = 'profit.csv'
-cash_flow_path = 'cash_flow.csv'
+cash_flow_df_path = 'cash_flow.csv'
 
 
 bot = telebot.TeleBot(token)
@@ -62,13 +62,13 @@ def send_balance(message):
 
 
 @bot.message_handler(commands=['cash_flow_dev'])
-def send_yield(message):
+def send_cash_flow(message):
     bot_list = [
         'bot_rebalance',
         'bot_grid'
     ]
     
-    text = get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_path)
+    text = get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -77,7 +77,7 @@ def send_bot_rebalance(message):
     bot_name = 'bot_rebalance'
     bot_type = 'rebalance'
     
-    text = get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, profit_df_path)
+    text = get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -86,7 +86,7 @@ def send_bot_grid(message):
     bot_name = 'bot_grid'
     bot_type = 'grid'
 
-    text = get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, open_orders_df_path, transactions_df_path)
+    text = get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
     bot.send_message(message.chat.id, text)
 
 
