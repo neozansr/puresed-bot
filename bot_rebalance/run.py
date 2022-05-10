@@ -16,15 +16,15 @@ def run_bot(config_system, config_params, config_params_path, last_loop_path, tr
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(config_system)
     
+    end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
+
+    if end_date_flag == 1:
+        update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
+
     rebalance_flag = get_rebalance_flag(last_loop_path)
 
     if rebalance_flag == 1:
         clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=False)
-
-        end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
-
-        if end_date_flag == 1:
-            update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
         
         for symbol in config_params['symbol'].keys():
             rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path)
