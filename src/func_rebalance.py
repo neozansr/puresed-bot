@@ -275,26 +275,31 @@ def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
     
 def get_rebalance_action(exchange, symbol, config_params, last_loop_path):
     last_price = get_last_price(exchange, symbol)
-    current_value = get_base_currency_value(last_price, exchange, symbol)
     min_value = cal_min_value(exchange, symbol, config_params['grid_percent'], last_loop_path)
     fix_value = config_params['budget'] * config_params['symbol'][symbol]
+
+    bid_price = get_bid_price(exchange, symbol)
+    ask_price = get_ask_price(exchange, symbol)
+    bid_current_value = get_base_currency_value(bid_price, exchange, symbol)
+    ask_current_value = get_base_currency_value(ask_price, exchange, symbol)
 
     print(f"Last price: {last_price} USD")
     print(f"Fix value: {fix_value} USD")
     print(f"Min value: {min_value} USD")
-    print(f"Current value: {current_value} USD")
+    print(f"Bid current value: {bid_current_value} USD")
+    print(f"Ask current value: {ask_current_value} USD")
 
-    if current_value < fix_value - min_value:
+    if bid_current_value < fix_value - min_value:
         action_flag = 1
         side = 'buy'
-        diff_value = fix_value - current_value
-        price = get_bid_price(exchange, symbol)
+        diff_value = fix_value - bid_current_value
+        price = bid_price
         print(f"Send buy order")
-    elif current_value > fix_value + min_value:
+    elif ask_current_value > fix_value + min_value:
         action_flag = 1
         side = 'sell'
-        diff_value = current_value - fix_value
-        price = get_ask_price(exchange, symbol)
+        diff_value = ask_current_value - fix_value
+        price = ask_price
         print(f"Send sell order")
     else:
         action_flag = 0
