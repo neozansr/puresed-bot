@@ -85,7 +85,12 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
 
     cur_date = get_date()
     today_cash_flow = get_cash_flow_rebalance(cur_date, bot_path + profit_df_path)
-    funding_payment, funding_dict = get_funding_payment(exchange, range='today')
+    
+    try:
+        funding_payment, funding_dict = get_funding_payment(exchange, range='today')
+    except KeyError:
+        funding_payment = 0
+        funding_dict = {}
 
     last_loop = get_json(bot_path + last_loop_path)
 
