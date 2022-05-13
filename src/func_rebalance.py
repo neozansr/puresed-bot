@@ -3,7 +3,7 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 import sys
 
-from func_get import get_json, get_time, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee, get_available_cash_flow, get_funding_payment
+from func_get import get_json, get_time, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee, get_reserve_cash_flow, get_funding_payment
 from func_cal import round_amount, cal_adjusted_price, cal_end_balance, cal_end_cash
 from func_update import update_json, append_csv, append_order, remove_order, update_transfer
 from func_noti import noti_success_order
@@ -436,8 +436,8 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
     funding_payment, _ = get_funding_payment(exchange, range='end_date')
     net_cash_flow = cash_flow - funding_payment
 
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_cash_flow += net_cash_flow
+    reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
+    reserve_cash_flow += net_cash_flow
 
     cash_flow_list = [
         prev_date,
@@ -450,7 +450,7 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
         transfer['deposit'],
         transfer['withdraw'],
         transfer['withdraw_cash_flow'],
-        available_cash_flow
+        reserve_cash_flow
         ]
     
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)

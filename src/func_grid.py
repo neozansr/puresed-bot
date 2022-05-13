@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import time
 
-from func_get import get_json, get_time, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_value, get_quote_currency_value, get_base_currency_free, get_quote_currency_free, get_order_fee, get_pending_order, get_available_cash_flow, get_funding_payment
+from func_get import get_json, get_time, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_value, get_quote_currency_value, get_base_currency_free, get_quote_currency_free, get_order_fee, get_pending_order, get_reserve_cash_flow, get_funding_payment
 from func_cal import round_amount, cal_end_balance
 from func_update import update_json, append_csv, append_order, remove_order, append_error_log, update_last_loop_price, update_transfer
 from func_noti import noti_success_order, noti_clear_order, noti_warning
@@ -20,13 +20,13 @@ def get_future_value_grid(symbol, open_orders_df):
     return future_value
 
 
-def cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df):
+def cal_available_budget(exchange, reserve_cash_flow, config_params, transfer, open_orders_df):
     quote_currency_free = get_quote_currency_free(exchange, config_params['symbol'])
 
     # Exclude withdraw_cash_flow as it is moved instantly.
     total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
     future_value = get_future_value_grid(config_params['symbol'], open_orders_df)
-    available_budget = quote_currency_free - future_value - available_cash_flow - total_withdraw
+    available_budget = quote_currency_free - future_value - reserve_cash_flow - total_withdraw
 
     return available_budget
 
@@ -88,8 +88,8 @@ def open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_
     open_sell_orders_df = open_orders_df[open_orders_df['side'] == 'sell']
     max_open_buy_price = max(open_buy_orders_df['price'], default=0)
     min_open_sell_price = min(open_sell_orders_df['price'], default=np.inf)
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
+    reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
+    available_budget = cal_available_budget(exchange, reserve_cash_flow, config_params, transfer, open_orders_df)
 
     bid_price = get_bid_price(exchange, config_params['symbol'])
     print(f"Bid price: {bid_price} {quote_currency}")
@@ -123,7 +123,7 @@ def open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_
             append_order(buy_order, 'amount', 'open_order', open_orders_df_path)
             print(f"Open buy {amount} {base_currency} at {price} {quote_currency}")
             
-            available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
+            available_budget = cal_available_budget(exchange, reserve_cash_flow, config_params, transfer, open_orders_df)
         else:
             print(f"Error: Cannot buy at price {price} {quote_currency} due to insufficient fund!!!")
             break
@@ -343,15 +343,15 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
     if net_transfer != 0:
         cancel_open_buy_orders_grid(exchange, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
     
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-    available_cash_flow += cash_flow
+    reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
+    reserve_cash_flow += cash_flow
 
-    available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
+    available_budget = cal_available_budget(exchange, reserve_cash_flow, config_params, transfer, open_orders_df)
 
     # Cut loss until quote_currency_free is enough to withdraw.
     while available_budget < -net_transfer:
         cut_loss(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path, withdraw_flag=True)
-        available_budget = cal_available_budget(exchange, available_cash_flow, config_params, transfer, open_orders_df)
+        available_budget = cal_available_budget(exchange, reserve_cash_flow, config_params, transfer, open_orders_df)
 
     if '-PERP' in config_params['symbol']:
         current_value = 0
@@ -377,7 +377,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         transfer['deposit'],
         transfer['withdraw'],
         transfer['withdraw_cash_flow'],
-        available_cash_flow
+        reserve_cash_flow
         ]
 
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)

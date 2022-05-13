@@ -1,6 +1,6 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_base_currency_free, get_pending_order, get_available_cash_flow, get_funding_payment, get_quote_currency_value
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_base_currency_free, get_pending_order, get_reserve_cash_flow, get_funding_payment, get_quote_currency_value
 from func_rebalance import get_total_value, get_cash_flow_rebalance
 from func_grid import cal_unrealised_grid, get_cash_flow_grid
 from func_technical import cal_unrealised_technical, cal_drawdown
@@ -52,10 +52,10 @@ def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path):
 
         transfer = get_json(bot_path + transfer_path)
         cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
-        available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
-        cash_flow_dict[bot_name] = available_cash_flow
+        reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
+        cash_flow_dict[bot_name] = reserve_cash_flow
 
-        all_cash_flow += available_cash_flow
+        all_cash_flow += reserve_cash_flow
 
     for bot_name in cash_flow_dict.keys():
         text += f"\n{bot_name} Cash flow: {cash_flow_dict[bot_name]} USD"
@@ -81,7 +81,7 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     cash = get_quote_currency_value(exchange, symbol_list[0])
     balance_value = total_value + cash
 
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
+    reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
 
     cur_date = get_date()
     today_cash_flow = get_cash_flow_rebalance(cur_date, bot_path + profit_df_path)
@@ -101,8 +101,8 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
         text += f"\n   Current value: {value_dict[symbol]['current_value']} USD"
     
     text += f"\n\nCash: {cash} USD"
-    text += f"\nAvailable cash flow: {available_cash_flow} USD"
-    text += f"\nToday cash flow: {today_cash_flow} USD"
+    text += f"\Reserve cash flow: {reserve_cash_flow} USD"
+    text += f"\n\nToday cash flow: {today_cash_flow} USD"
     text += f"\nFunding payment: {funding_payment} USD"
     
     for symbol in funding_dict.keys():
@@ -126,7 +126,6 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
 
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params['symbol'])
-    last_price = get_last_price(exchange, config_params['symbol'])
 
     if '-PERP' in config_params['symbol']:
         current_value = 0
@@ -136,12 +135,15 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     cash = get_quote_currency_value(exchange, config_params['symbol'])
     balance_value = current_value + cash
 
+    reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
+
+    last_price = get_last_price(exchange, config_params['symbol'])
+    
     open_orders_df = pd.read_csv(bot_path + open_orders_df_path)
     unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised_grid(last_price, config_params['grid'], open_orders_df)
     base_currency_free = get_base_currency_free(exchange, config_params['symbol'], bot_path + open_orders_df_path)
     min_buy_price, max_buy_price, min_sell_price, max_sell_price = get_pending_order(bot_path + open_orders_df_path)
 
-    available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
 
     cur_date = get_date()
     today_cash_flow = get_cash_flow_grid(cur_date, config_params, bot_path + transactions_df_path)
@@ -151,6 +153,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     
     text += f"\nBalance: {balance_value} {quote_currency}"
     text += f"\nCash: {cash} {quote_currency}"
+    text += f"\n\nReserve cash flow: {reserve_cash_flow} USD"
     text += f"\nLast price: {last_price} {quote_currency}"
     text += f"\nHold: {amount} {base_currency}"
     text += f"\nOrder: {n_open_sell_oders} orders"
@@ -158,7 +161,6 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nUntrack: {base_currency_free} {base_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
     
-    text += f"\n\nAvailable cash flow: {available_cash_flow} USD"
     text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
     text += f"\nFunding payment: {funding_payment} USD"
     

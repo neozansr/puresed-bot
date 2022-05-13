@@ -264,17 +264,17 @@ def get_pending_order(open_orders_df_path):
     return min_buy_price, max_buy_price, min_sell_price, max_sell_price
 
 
-def get_available_cash_flow(transfer, cash_flow_df):
+def get_reserve_cash_flow(transfer, cash_flow_df):
     try:
-        last_cash_flow = cash_flow_df['available_cash_flow'][len(cash_flow_df) - 1]
+        last_cash_flow = cash_flow_df['reserve_cash_flow'][len(cash_flow_df) - 1]
     except IndexError:
         # First date
         last_cash_flow = 0
 
     withdraw_cash_flow = transfer['withdraw_cash_flow']
-    avaialble_cash_flow = last_cash_flow - withdraw_cash_flow
+    reserve_cash_flow = last_cash_flow - withdraw_cash_flow
 
-    return avaialble_cash_flow
+    return reserve_cash_flow
 
 
 def get_funding_payment(exchange, range):
