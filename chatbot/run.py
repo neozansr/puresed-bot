@@ -34,7 +34,7 @@ print(x)
 @bot.message_handler(commands=['start', 'help', 'h'])
 def send_help(message):
     text = "type /balance_[account] to get balance info"
-    text += "\ntype /cash_flow_[account] to get avaialble cash flow info"
+    text += "\ntype /cash_flow_[account] to get reserve cash flow info"
     text += "\ntype /[bot_name] to get bot status"
 
     text += "\navaialble [account]:"

@@ -23,7 +23,7 @@ def get_future_value_grid(symbol, open_orders_df):
 def cal_available_budget(exchange, reserve_cash_flow, config_params, transfer, open_orders_df):
     quote_currency_free = get_quote_currency_free(exchange, config_params['symbol'])
 
-    # Exclude withdraw_cash_flow as it is moved instantly.
+    # Exclude withdraw_reserve as it is moved instantly.
     total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
     future_value = get_future_value_grid(config_params['symbol'], open_orders_df)
     available_budget = quote_currency_free - future_value - reserve_cash_flow - total_withdraw
@@ -376,7 +376,7 @@ def update_end_date_grid(prev_date, exchange, bot_name, config_system, config_pa
         base_currency_free,
         transfer['deposit'],
         transfer['withdraw'],
-        transfer['withdraw_cash_flow'],
+        transfer['withdraw_reserve'],
         reserve_cash_flow
         ]
 

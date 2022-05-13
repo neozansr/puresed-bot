@@ -271,8 +271,8 @@ def get_reserve_cash_flow(transfer, cash_flow_df):
         # First date
         last_cash_flow = 0
 
-    withdraw_cash_flow = transfer['withdraw_cash_flow']
-    reserve_cash_flow = last_cash_flow - withdraw_cash_flow
+    withdraw_reserve = transfer['withdraw_reserve']
+    reserve_cash_flow = last_cash_flow - withdraw_reserve
 
     return reserve_cash_flow
 

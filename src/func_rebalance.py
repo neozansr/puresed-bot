@@ -449,7 +449,7 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
         net_cash_flow,
         transfer['deposit'],
         transfer['withdraw'],
-        transfer['withdraw_cash_flow'],
+        transfer['withdraw_reserve'],
         reserve_cash_flow
         ]
     
