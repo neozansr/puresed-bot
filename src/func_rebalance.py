@@ -439,18 +439,11 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
     available_cash_flow = get_available_cash_flow(transfer, cash_flow_df)
     available_cash_flow += net_cash_flow
 
-    pre_cash_flow_list = [
+    cash_flow_list = [
         prev_date,
         config_params['budget'],
         end_balance,
-        end_cash
-        ]
-
-    value_list = []
-    for symbol in symbol_list:
-        value_list.append(value_dict[symbol]['current_value'])
-
-    post_cash_flow_list = [
+        end_cash,
         cash_flow,
         funding_payment,
         net_cash_flow,
@@ -459,8 +452,6 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
         transfer['withdraw_cash_flow'],
         available_cash_flow
         ]
-
-    cash_flow_list = pre_cash_flow_list + value_list  + post_cash_flow_list
     
     append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_budget(transfer, config_params, config_params_path, last_loop_path)

@@ -1,1 +1,1 @@
-date,budget,end_balance,cash,symbol1,symbol2,cash_flow,funding_payment,net_cash_flow,deposit,withdraw,withdraw_cash_flow,available_cash_flow
+date,budget,end_balance,cash,cash_flow,funding_payment,net_cash_flow,deposit,withdraw,withdraw_cash_flow,available_cash_flow
