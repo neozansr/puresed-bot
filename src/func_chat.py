@@ -80,7 +80,6 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     total_value, value_dict = get_total_value(exchange, config_params)
     cash = get_quote_currency_value(exchange, symbol_list[0])
     balance_value = total_value + cash
-
     reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
 
     cur_date = get_date()
@@ -126,6 +125,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
 
     exchange = get_exchange(config_system)
     base_currency, quote_currency = get_currency(config_params['symbol'])
+    last_price = get_last_price(exchange, config_params['symbol'])
 
     if '-PERP' in config_params['symbol']:
         current_value = 0
@@ -134,11 +134,8 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     
     cash = get_quote_currency_value(exchange, config_params['symbol'])
     balance_value = current_value + cash
-
     reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
 
-    last_price = get_last_price(exchange, config_params['symbol'])
-    
     open_orders_df = pd.read_csv(bot_path + open_orders_df_path)
     unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised_grid(last_price, config_params['grid'], open_orders_df)
     base_currency_free = get_base_currency_free(exchange, config_params['symbol'], bot_path + open_orders_df_path)
