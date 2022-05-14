@@ -1,4 +1,3 @@
-import math
 import pandas as pd
 
 from func_get import get_json, get_time, get_last_price, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee

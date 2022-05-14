@@ -1,4 +1,3 @@
-from re import L
 import ccxt
 import numpy as np
 import pandas as pd

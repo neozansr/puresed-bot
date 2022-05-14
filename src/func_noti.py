@@ -1,4 +1,3 @@
-import pandas as pd
 import requests
 
 from func_get import get_json, get_currency

@@ -4,8 +4,6 @@ import datetime as dt
 from dateutil.relativedelta import relativedelta
 from dateutil import tz
 import json
-import requests
-from bs4 import BeautifulSoup
 import time
 
 
