@@ -306,7 +306,7 @@ def get_rebalance_flag(exchange, config_params, last_loop_path, transfer_path, p
     rebalance_budget_flag = get_rebalance_budget_flag(exchange, config_params, transfer_path, profit_df_path, cash_flow_df_path)
 
     if rebalance_time_flag & rebalance_budget_flag:
-        rebalance_flag == True
+        rebalance_flag = True
     else:
         rebalance_flag = False
 

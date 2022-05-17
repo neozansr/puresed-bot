@@ -22,7 +22,7 @@ def run_bot(config_system, config_params_path, last_loop_path, transfer_path, op
     if end_date_flag:
         update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
 
-    rebalance_flag = get_rebalance_flag(last_loop_path)
+    rebalance_flag = get_rebalance_flag(exchange, config_params, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
 
     if rebalance_flag:
         clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=False)
