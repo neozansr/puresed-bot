@@ -8,7 +8,7 @@ src_path = home_path + 'src/'
 sys.path.append(os.path.abspath(src_path))
 
 from func_get import get_json
-from func_chat import get_balance_text, get_cash_flow_text, get_rebalance_text, get_grid_text, get_technical_text
+from func_chat import get_balance_text, get_reserve_text, get_rebalance_text, get_grid_text, get_technical_text
 
 
 token_path = home_path + '../_keys/bot_token.json'
@@ -34,7 +34,7 @@ print(x)
 @bot.message_handler(commands=['start', 'help', 'h'])
 def send_help(message):
     text = "type /balance_[account] to get balance info"
-    text += "\ntype /cash_flow_[account] to get reserve cash flow info"
+    text += "\ntype /reserve_[account] to get reserve info"
     text += "\ntype /[bot_name] to get bot status"
 
     text += "\navaialble [account]:"
@@ -61,14 +61,14 @@ def send_balance(message):
     bot.send_message(message.chat.id, text)
 
 
-@bot.message_handler(commands=['cash_flow_dev'])
-def send_cash_flow(message):
+@bot.message_handler(commands=['reserve_dev'])
+def send_reserve(message):
     bot_list = [
         'bot_rebalance',
         'bot_grid'
     ]
     
-    text = get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path)
+    text = get_reserve_text(home_path, bot_list, transfer_path, cash_flow_df_path)
     bot.send_message(message.chat.id, text)
 
 

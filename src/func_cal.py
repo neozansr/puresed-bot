@@ -1,12 +1,15 @@
+from re import S
 import numpy as np
 
+from func_get import get_quote_currency_free
 
-def round_amount(amount, exchange, symbol, type):
+
+def round_amount(amount, exchange, symbol, round_direction):
     rounded_amount_str = exchange.amount_to_precision(symbol, amount)
 
-    if type == 'down':
+    if round_direction == 'down':
         rounded_amount = float(rounded_amount_str)
-    elif type == 'up':
+    elif round_direction == 'up':
         decimal = rounded_amount_str[::-1].find('.')
         min_amount = 10 ** (-decimal)
         rounded_amount = float(rounded_amount_str) + min_amount
@@ -29,6 +32,16 @@ def cal_adjusted_price(order, fee, side):
     adjusted_price = adjusted_cost / order['filled']
     
     return adjusted_price
+
+
+def cal_available_cash(exchange, cash_flow, funding_payment, reserve, config_params, transfer):
+    quote_currency_free = get_quote_currency_free(exchange, config_params['symbol'])
+    # Exclude withdraw_reserve as it is moved instantly.
+
+    total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
+    available_budget = quote_currency_free - cash_flow - funding_payment - reserve - total_withdraw
+
+    return available_budget
 
 
 def cal_end_balance(base_currency_value, quote_currency_value, transfer):

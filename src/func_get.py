@@ -45,9 +45,9 @@ def convert_tz(utc):
 
 
 def get_unix_date(dt_date):
-    if type(dt_date) == dt.datetime:
+    if isinstance(dt_date, dt.datetime):
         dt_datetime = dt.datetime(dt_date.year, dt_date.month, dt_date.day, dt_date.hour, dt_date.minute)
-    elif type(dt_date) == dt.date:
+    elif isinstance(dt_date, dt.date):
         dt_datetime = dt.datetime(dt_date.year, dt_date.month, dt_date.day, 0, 0)
         
     unix_datetime = dt_datetime.timestamp() * 1000
@@ -64,7 +64,7 @@ def get_exchange(config_system, future=False):
         'enableRateLimit': True
         })
 
-    if 'subaccount' in list(keys_dict.keys()):
+    if 'subaccount' in list(keys_dict):
         exchange.headers = {'FTX-SUBACCOUNT': keys_dict['subaccount']}
 
     if future == True:
@@ -262,17 +262,17 @@ def get_pending_order(open_orders_df_path):
     return min_buy_price, max_buy_price, min_sell_price, max_sell_price
 
 
-def get_reserve_cash_flow(transfer, cash_flow_df):
+def get_reserve(transfer, cash_flow_df):
     try:
-        last_cash_flow = cash_flow_df['reserve_cash_flow'][len(cash_flow_df) - 1]
+        last_reserve = cash_flow_df['reserve'][len(cash_flow_df) - 1]
     except IndexError:
         # First date
-        last_cash_flow = 0
+        last_reserve = 0
 
     withdraw_reserve = transfer['withdraw_reserve']
-    reserve_cash_flow = last_cash_flow - withdraw_reserve
+    reserve = last_reserve - withdraw_reserve
 
-    return reserve_cash_flow
+    return reserve
 
 
 def get_funding_payment(exchange, range):
@@ -320,11 +320,11 @@ def check_end_date(cash_flow_df_path, transactions_df_path):
             last_date = pd.to_datetime(last_date_str).date() - relativedelta(days=1)
         
         if last_date != prev_date:
-            end_date_flag = 1
+            end_date_flag = True
         else:
-            end_date_flag = 0
+            end_date_flag = False
     else:
-        end_date_flag = 0
+        end_date_flag = False
         prev_date = None
 
     return end_date_flag, prev_date

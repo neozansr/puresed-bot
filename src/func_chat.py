@@ -1,6 +1,6 @@
 import pandas as pd
 
-from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_base_currency_free, get_pending_order, get_reserve_cash_flow, get_funding_payment, get_quote_currency_value
+from func_get import get_json, get_date, get_exchange, get_currency, get_last_price, get_position, get_base_currency_value, get_base_currency_free, get_pending_order, get_reserve, get_funding_payment, get_quote_currency_value
 from func_rebalance import get_total_value, get_cash_flow_rebalance
 from func_grid import cal_unrealised_grid, get_cash_flow_grid
 from func_technical import cal_unrealised_technical, cal_drawdown
@@ -41,26 +41,26 @@ def get_balance_text(bot_list, config_system_path):
     return text
 
 
-def get_cash_flow_text(home_path, bot_list, transfer_path, cash_flow_df_path):
-    text = "Cash flow\n"
+def get_reserve_text(home_path, bot_list, transfer_path, cash_flow_df_path):
+    text = "Reserve\n"
     
-    all_cash_flow = 0
-    cash_flow_dict = {}
+    all_reserve = 0
+    reserve_dict = {}
     
     for bot_name in bot_list:
         bot_path = f"{home_path}{bot_name}/"
 
         transfer = get_json(bot_path + transfer_path)
         cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
-        reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
-        cash_flow_dict[bot_name] = reserve_cash_flow
+        reserve = get_reserve(transfer, cash_flow_df)
+        reserve_dict[bot_name] = reserve
 
-        all_cash_flow += reserve_cash_flow
+        all_reserve += reserve
 
-    for bot_name in cash_flow_dict.keys():
-        text += f"\n{bot_name} Cash flow: {cash_flow_dict[bot_name]} USD"
+    for bot_name in reserve_dict:
+        text += f"\n{bot_name} Reserve: {reserve_dict[bot_name]} USD"
 
-    text += f"\n\nAll cash flow: {all_cash_flow} USD"
+    text += f"\n\nAll reserve: {all_reserve} USD"
 
     return text
 
@@ -75,22 +75,22 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
     cash_flow_df = pd.read_csv(bot_path + cash_flow_df_path)
 
     exchange = get_exchange(config_system)
-    symbol_list = list(config_params['symbol'].keys())
+    symbol_list = list(config_params['symbol'])
 
     total_value, value_dict = get_total_value(exchange, config_params)
     cash = get_quote_currency_value(exchange, symbol_list[0])
     balance_value = total_value + cash
-    reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
+    reserve = get_reserve(transfer, cash_flow_df)
 
     cur_date = get_date()
-    today_cash_flow = get_cash_flow_rebalance(cur_date, bot_path + profit_df_path)
+    cash_flow = get_cash_flow_rebalance(cur_date, bot_path + profit_df_path)
     funding_payment, funding_dict = get_funding_payment(exchange, range='today')
 
     last_loop = get_json(bot_path + last_loop_path)
 
     text += f"\nBalance: {balance_value} USD"
 
-    for symbol in value_dict.keys():
+    for symbol in value_dict:
         last_price = get_last_price(exchange, symbol)
 
         text += f"\n\n{symbol}"
@@ -100,11 +100,11 @@ def get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config
         text += f"\n   Current value: {value_dict[symbol]['current_value']} USD"
     
     text += f"\n\nCash: {cash} USD"
-    text += f"\Reserve cash flow: {reserve_cash_flow} USD"
-    text += f"\n\nToday cash flow: {today_cash_flow} USD"
+    text += f"\Reserve: {reserve} USD"
+    text += f"\n\nCash flow: {cash_flow} USD"
     text += f"\nFunding payment: {funding_payment} USD"
     
-    for symbol in funding_dict.keys():
+    for symbol in funding_dict:
         text += f"\n   {symbol} : {funding_dict[symbol]} USD"
 
     text += f"\n\nLast active: {last_loop['timestamp']}"
@@ -134,7 +134,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     
     cash = get_quote_currency_value(exchange, config_params['symbol'])
     balance_value = current_value + cash
-    reserve_cash_flow = get_reserve_cash_flow(transfer, cash_flow_df)
+    reserve = get_reserve(transfer, cash_flow_df)
 
     open_orders_df = pd.read_csv(bot_path + open_orders_df_path)
     unrealised, n_open_sell_oders, amount, avg_price = cal_unrealised_grid(last_price, config_params['grid'], open_orders_df)
@@ -143,14 +143,14 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
 
 
     cur_date = get_date()
-    today_cash_flow = get_cash_flow_grid(cur_date, config_params, bot_path + transactions_df_path)
+    cash_flow = get_cash_flow_grid(cur_date, config_params, bot_path + transactions_df_path)
     funding_payment, _ = get_funding_payment(exchange, range='today')
 
     last_loop = get_json(bot_path + last_loop_path)
     
     text += f"\nBalance: {balance_value} {quote_currency}"
     text += f"\nCash: {cash} {quote_currency}"
-    text += f"\n\nReserve cash flow: {reserve_cash_flow} USD"
+    text += f"\n\nReserve: {reserve} USD"
     text += f"\nLast price: {last_price} {quote_currency}"
     text += f"\nHold: {amount} {base_currency}"
     text += f"\nOrder: {n_open_sell_oders} orders"
@@ -158,7 +158,7 @@ def get_grid_text(home_path, bot_name, bot_type, config_system_path, config_para
     text += f"\nUntrack: {base_currency_free} {base_currency}"
     text += f"\nUnrealised: {unrealised} {quote_currency}"
     
-    text += f"\nToday cash flow: {today_cash_flow} {quote_currency}"
+    text += f"\nCash flow: {cash_flow} {quote_currency}"
     text += f"\nFunding payment: {funding_payment} USD"
     
     text += f"\n\nMin buy price: {min_buy_price} {quote_currency}"

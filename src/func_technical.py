@@ -128,7 +128,7 @@ def update_end_date_technical(prev_date, exchange, config_params_path, last_loop
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     
     unrealised = 0
-    symbol_list = list(config_params['symbols'].keys())
+    symbol_list = list(config_params['symbols'])
 
     for symbol in symbol_list:
         last_price = get_last_price(exchange, symbol)

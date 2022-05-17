@@ -12,21 +12,22 @@ from func_update import append_error_log, update_timestamp
 from func_rebalance import update_sequence_loop, get_rebalance_flag, reset_order_loop, rebalance, clear_orders_rebalance, update_end_date_rebalance
 
 
-def run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path):
+def run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
     exchange = get_exchange(config_system)
+    config_params = get_json(config_params_path)
     
     end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
 
-    if end_date_flag == 1:
+    if end_date_flag:
         update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
 
     rebalance_flag = get_rebalance_flag(last_loop_path)
 
-    if rebalance_flag == 1:
+    if rebalance_flag:
         clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=False)
         
-        for symbol in config_params['symbol'].keys():
+        for symbol in config_params['symbol']:
             rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path)
         
         update_sequence_loop(config_params, last_loop_path)
@@ -53,13 +54,12 @@ if __name__ == '__main__':
 
     while True:
         config_system = get_json(config_system_path)
-        config_params = get_json(config_params_path)
         idle_loop = config_system['idle_loop']
 
         if config_system['run_flag'] == 1:
             print("Start loop")
             try:
-                run_bot(config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path)
+                run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError, ccxt.ExchangeError):
                 append_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
