@@ -1,7 +1,7 @@
 from re import S
 import numpy as np
 
-from func_get import get_quote_currency_free
+import func_get
 
 
 def round_amount(amount, exchange, symbol, round_direction):
@@ -35,13 +35,14 @@ def cal_adjusted_price(order, fee, side):
 
 
 def cal_available_cash(exchange, cash_flow, funding_payment, reserve, config_params, transfer):
-    quote_currency_free = get_quote_currency_free(exchange, config_params['symbol'])
+    quote_currency_free = func_get.get_quote_currency_free(exchange, config_params['symbol'])
     # Exclude withdraw_reserve as it is moved instantly.
+    # Include funding_payment as it will be included in cash_flow at the end of the day.
 
     total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
-    available_budget = quote_currency_free - cash_flow - funding_payment - reserve - total_withdraw
+    available_cash = quote_currency_free - cash_flow - funding_payment - reserve - total_withdraw
 
-    return available_budget
+    return available_cash
 
 
 def cal_end_balance(base_currency_value, quote_currency_value, transfer):

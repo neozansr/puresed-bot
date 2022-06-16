@@ -5,6 +5,7 @@
 	 "LUNA-PERP": 0.2,
 	 "ETH-PERP": -0.1
 	 },
+ "weight": "ratio",
  "sequence_rule": "fix",
  "order_type": "limit",
  "grid_percent": 0.12

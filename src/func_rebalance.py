@@ -3,10 +3,10 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 import sys
 
-from func_get import get_json, get_time, get_date, get_bid_price, get_ask_price, get_last_price, get_currency, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee, get_reserve, get_funding_payment
-from func_cal import round_amount, cal_adjusted_price, cal_available_cash, cal_end_balance, cal_end_cash
-from func_update import update_json, append_csv, append_order, remove_order, update_transfer
-from func_noti import noti_success_order
+import func_get
+import func_cal
+import func_update
+import func_noti
 
 
 def gen_fix_sequence(idel_sequence=10):
@@ -55,11 +55,10 @@ def get_total_value(exchange, config_params):
     value_dict = {}
     
     for symbol in config_params['symbol']:
-        last_price = get_last_price(exchange, symbol)
-        sub_value = get_base_currency_value(last_price, exchange, symbol)
+        last_price = func_get.get_last_price(exchange, symbol)
+        sub_value = func_get.get_base_currency_value(last_price, exchange, symbol)
         
         value_dict[symbol] = {
-            'fix_value': config_params['budget'] * config_params['symbol'][symbol],
             'current_value': sub_value
             }
 
@@ -69,6 +68,28 @@ def get_total_value(exchange, config_params):
     return total_value, value_dict
 
 
+def cal_fix_value(exchange, symbol, config_params, transfer_path, profit_df_path, cash_flow_df_path):
+    if config_params['weight'] == 'ratio':
+        base_budget = config_params['budget']
+    elif config_params['weight'] == 'value':
+        transfer = func_get.get_json(transfer_path)
+        cash_flow_df = pd.read_csv(cash_flow_df_path)
+        cur_date = func_get.get_date()
+
+        total_value, _ = get_total_value(exchange, config_params)
+
+        cash_flow = get_cash_flow_rebalance(cur_date, profit_df_path)
+        funding_payment = func_get.get_funding_payment(exchange, range='today')
+        reserve = func_get.get_reserve(transfer, cash_flow_df)
+        available_cash = func_cal.cal_available_cash(exchange, cash_flow, funding_payment, reserve, config_params, transfer)
+        
+        base_budget = total_value + available_cash
+
+    fix_value = base_budget * config_params['symbol'][symbol]
+
+    return fix_value
+
+
 def update_order_loop(order_loop, sequence, last_loop, last_loop_path):
     order_loop += 1
     if order_loop >= len(sequence):
@@ -76,11 +97,11 @@ def update_order_loop(order_loop, sequence, last_loop, last_loop_path):
 
     last_loop['order_loop'] = order_loop
 
-    update_json(last_loop, last_loop_path)
+    func_update.update_json(last_loop, last_loop_path)
 
 
 def update_sequence_loop(config_params, last_loop_path):
-    last_loop = get_json(last_loop_path)
+    last_loop = func_get.get_json(last_loop_path)
 
     if config_params['sequence_rule'] == 'fix':
         sequence = gen_fix_sequence()
@@ -92,20 +113,20 @@ def update_sequence_loop(config_params, last_loop_path):
     
     update_order_loop(order_loop, sequence, last_loop, last_loop_path)
 
-    timestamp = get_time()
+    timestamp = func_get.get_time()
     last_loop['last_rebalance_timestamp'] = str(timestamp)
     last_loop['next_rebalance_timestamp'] = str(timestamp + relativedelta(seconds=sequence_loop))
 
-    update_json(last_loop, last_loop_path)
+    func_update.update_json(last_loop, last_loop_path)
 
 
 def reset_order_loop(last_loop_path):
-    last_loop = get_json(last_loop_path)
+    last_loop = func_get.get_json(last_loop_path)
     last_loop['order_loop'] = 0
     last_loop['last_rebalance_timestamp'] = 0
     last_loop['next_rebalance_timestamp'] = 0
 
-    update_json(last_loop, last_loop_path)
+    func_update.update_json(last_loop, last_loop_path)
 
 
 def update_budget(transfer, config_params, config_params_path, last_loop_path):
@@ -114,15 +135,15 @@ def update_budget(transfer, config_params, config_params_path, last_loop_path):
     if net_transfer != 0:
         config_params['budget'] += net_transfer
 
-        last_loop = get_json(last_loop_path)
+        last_loop = func_get.get_json(last_loop_path)
         last_loop['transfer_flag'] = 1
 
-        update_json(config_params, config_params_path)
-        update_json(last_loop, last_loop_path)
+        func_update.update_json(config_params, config_params_path)
+        func_update.update_json(last_loop, last_loop_path)
 
 
 def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, config_system, queue_df, profit_df_path):
-    timestamp = get_time()
+    timestamp = func_get.get_time()
     profit_df = pd.read_csv(profit_df_path)
 
     buy_id = queue_df['order_id'][len(queue_df) - 1]
@@ -130,8 +151,8 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, config_sys
     buy_price = queue_df['price'][len(queue_df) - 1]
 
     # Sell order fee currency is always USD.
-    fee, _ = get_order_fee(sell_order, exchange, symbol, config_system)
-    sell_price = cal_adjusted_price(sell_order, fee, side='sell')
+    fee, _ = func_get.get_order_fee(sell_order, exchange, symbol, config_system)
+    sell_price = func_cal.cal_adjusted_price(sell_order, fee, side='sell')
     profit = exe_amount * (sell_price - buy_price)
 
     profit_df.loc[len(profit_df)] = [timestamp, buy_id, sell_id, symbol, exe_amount, buy_price, sell_price, profit]
@@ -139,16 +160,16 @@ def append_profit_rebalance(sell_order, exchange, exe_amount, symbol, config_sys
 
 
 def update_average_cost(added_amount, add_price, exchange, symbol, last_loop_path):
-    last_loop = get_json(last_loop_path)
+    last_loop = func_get.get_json(last_loop_path)
 
-    total_amount = get_base_currency_amount(exchange, symbol)
+    total_amount = func_get.get_base_currency_amount(exchange, symbol)
     hold_amount = total_amount - added_amount
     hold_price = last_loop['symbol'][symbol]['average_cost']
 
     average_price, _ = cal_average_price(hold_amount, hold_price, added_amount, add_price)
     last_loop['symbol'][symbol]['average_cost'] = average_price
     
-    update_json(last_loop, last_loop_path)
+    func_update.update_json(last_loop, last_loop_path)
 
 
 def update_hold_cost(added_amount, add_price, timestamp, queue_df):
@@ -165,15 +186,15 @@ def update_hold_cost(added_amount, add_price, timestamp, queue_df):
 
 
 def update_hold(buy_order, exchange, symbol, config_system, last_loop_path, queue_df_path):
-    timestamp = get_time()
+    timestamp = func_get.get_time()
     queue_df = pd.read_csv(queue_df_path)
 
-    base_currency, quote_currency = get_currency(buy_order['symbol'])
-    fee, fee_currency = get_order_fee(buy_order, exchange, symbol, config_system)
+    base_currency, quote_currency = func_get.get_currency(buy_order['symbol'])
+    fee, fee_currency = func_get.get_order_fee(buy_order, exchange, symbol, config_system)
 
     if fee_currency == quote_currency:
         buy_amount = buy_order['filled']
-        buy_price = cal_adjusted_price(buy_order, fee, side='buy')
+        buy_price = func_cal.cal_adjusted_price(buy_order, fee, side='buy')
     elif fee_currency == base_currency:
         buy_amount = buy_order['filled'] - fee
         buy_price = buy_order['price']
@@ -184,14 +205,14 @@ def update_hold(buy_order, exchange, symbol, config_system, last_loop_path, queu
 
 
 def append_queue(buy_order, exchange, config_system, last_loop_path, queue_df_path):
-    timestamp = get_time()
+    timestamp = func_get.get_time()
     queue_df = pd.read_csv(queue_df_path)
 
-    base_currency, quote_currency = get_currency(buy_order['symbol'])
-    fee, fee_currency = get_order_fee(buy_order, exchange, buy_order['symbol'], config_system)
+    base_currency, quote_currency = func_get.get_currency(buy_order['symbol'])
+    fee, fee_currency = func_get.get_order_fee(buy_order, exchange, buy_order['symbol'], config_system)
 
     if fee_currency == quote_currency:
-        buy_price = cal_adjusted_price(buy_order, fee, side='buy')
+        buy_price = func_cal.cal_adjusted_price(buy_order, fee, side='buy')
         buy_amount = buy_order['filled']
         added_queue = buy_order['filled']
     elif fee_currency == base_currency:
@@ -239,7 +260,7 @@ def update_queue(sell_order, exchange, method, amount_key, symbol, config_system
 
 
 def manage_queue(order, method, exchange, symbol, config_system, last_loop_path, queue_df_path, profit_df_path):
-    base_currency, _ = get_currency(symbol)
+    base_currency, _ = func_get.get_currency(symbol)
 
     if (order['side'] == 'buy') & (method == 'lifo'):
         append_queue(order, exchange, config_system ,last_loop_path, queue_df_path.format(base_currency))
@@ -257,9 +278,9 @@ def cal_average_price(hold_amount, hold_price, added_amount, add_price):
 
 
 def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
-    last_loop = get_json(last_loop_path)
+    last_loop = func_get.get_json(last_loop_path)
 
-    amount = get_base_currency_amount(exchange, symbol)
+    amount = func_get.get_base_currency_amount(exchange, symbol)
     grid = last_loop['symbol'][symbol]['last_action_price'] * (grid_percent / 100)
     min_value = grid * amount
 
@@ -267,8 +288,8 @@ def cal_min_value(exchange, symbol, grid_percent, last_loop_path):
 
 
 def get_rebalance_time_flag(last_loop_path):
-    last_loop = get_json(last_loop_path)
-    timestamp = get_time()
+    last_loop = func_get.get_json(last_loop_path)
+    timestamp = func_get.get_time()
 
     if last_loop['next_rebalance_timestamp'] == 0:
         # First loop.
@@ -282,15 +303,15 @@ def get_rebalance_time_flag(last_loop_path):
 
 
 def get_rebalance_budget_flag(exchange, config_params, transfer_path, profit_df_path, cash_flow_df_path):
-    transfer = get_json(transfer_path)
+    transfer = func_get.get_json(transfer_path)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
 
-    cur_date = get_date()
+    cur_date = func_get.get_date()
     cash_flow = get_cash_flow_rebalance(cur_date, profit_df_path)
-    funding_payment = get_funding_payment(exchange, range='today')
-    reserve = get_reserve(transfer, cash_flow_df)
+    funding_payment = func_get.get_funding_payment(exchange, range='today')
+    reserve = func_get.get_reserve(transfer, cash_flow_df)
 
-    available_cash = cal_available_cash(exchange, cash_flow, funding_payment, reserve, config_params, transfer)
+    available_cash = func_cal.cal_available_cash(exchange, cash_flow, funding_payment, reserve, config_params, transfer)
 
     if available_cash > 0:
         rebalance_budget_flag = 1
@@ -313,15 +334,15 @@ def get_rebalance_flag(exchange, config_params, last_loop_path, transfer_path, p
     return rebalance_flag
 
     
-def get_rebalance_action(exchange, symbol, config_params, last_loop_path):
-    last_price = get_last_price(exchange, symbol)
+def get_rebalance_action(exchange, symbol, config_params, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
+    last_price = func_get.get_last_price(exchange, symbol)
     min_value = cal_min_value(exchange, symbol, config_params['grid_percent'], last_loop_path)
-    fix_value = config_params['budget'] * config_params['symbol'][symbol]
+    fix_value = cal_fix_value(exchange, symbol, config_params, transfer_path, profit_df_path, cash_flow_df_path)
 
-    bid_price = get_bid_price(exchange, symbol)
-    ask_price = get_ask_price(exchange, symbol)
-    bid_current_value = get_base_currency_value(bid_price, exchange, symbol)
-    ask_current_value = get_base_currency_value(ask_price, exchange, symbol)
+    bid_price = func_get.get_bid_price(exchange, symbol)
+    ask_price = func_get.get_ask_price(exchange, symbol)
+    bid_current_value = func_get.get_base_currency_value(bid_price, exchange, symbol)
+    ask_current_value = func_get.get_base_currency_value(ask_price, exchange, symbol)
 
     print(f"Last price: {last_price} USD")
     print(f"Fix value: {fix_value} USD")
@@ -352,13 +373,13 @@ def get_rebalance_action(exchange, symbol, config_params, last_loop_path):
 
 
 def get_clear_method(last_loop_path):
-    last_loop = get_json(last_loop_path)
+    last_loop = func_get.get_json(last_loop_path)
 
     if last_loop['transfer_flag'] == 1:
         method = 'fifo'
         order_remark = 'transfer'
         last_loop['transfer_flag'] = 0
-        update_json(last_loop, last_loop_path)
+        func_update.update_json(last_loop, last_loop_path)
     else:
         method = 'lifo'
         order_remark = 'close_order'
@@ -376,32 +397,32 @@ def create_order(exchange, symbol, order_type, side, amount, price=None):
 
 
 def send_order(exchange, symbol, side, amount, price, config_params, last_loop_path, open_orders_df_path):
-    last_loop = get_json(last_loop_path)
+    last_loop = func_get.get_json(last_loop_path)
 
     if last_loop['transfer_flag'] == 1:
         order = create_order(exchange, symbol, 'market', side, amount)
     else:
         order = create_order(exchange, symbol, config_params['order_type'], side, amount, price)
 
-    append_order(order, 'amount', 'open_order', open_orders_df_path)
+    func_update.append_order(order, 'amount', 'open_order', open_orders_df_path)
 
 
-def resend_order(order, exchange, symbol, config_params, last_loop_path, open_orders_df_path):
+def resend_order(order, exchange, symbol, config_params, last_loop_path, transfer_path, open_orders_df_path, profit_df_path, cash_flow_df_path):
     print(f"Resend {order['symbol']}")
-    action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path)
+    action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
 
     if action_flag & (side == order['side']):
         amount = diff_value / price
-        rounded_amount = round_amount(amount, exchange, symbol, round_direction='down')
+        rounded_amount = func_cal.round_amount(amount, exchange, symbol, round_direction='down')
     else:
         rounded_amount = 0
 
     if rounded_amount > 0:
         order = create_order(exchange, symbol, config_params['order_type'], side, rounded_amount, price)
-        append_order(order, 'amount', 'resend_order', open_orders_df_path)
+        func_update.append_order(order, 'amount', 'resend_order', open_orders_df_path)
 
 
-def check_cancel_order(order, exchange, config_params, last_loop_path, open_orders_df_path, resend_flag):
+def check_cancel_order(order, exchange, config_params, last_loop_path, transfer_path, open_orders_df_path, profit_df_path, cash_flow_df_path, resend_flag):
     if order['status'] != 'closed':
         try:
             exchange.cancel_order(order['id'])
@@ -410,10 +431,10 @@ def check_cancel_order(order, exchange, config_params, last_loop_path, open_orde
             pass
 
         if (resend_flag == True) & (order['remaining'] > 0):
-            resend_order(order, exchange, order['symbol'], config_params, last_loop_path, open_orders_df_path)
+            resend_order(order, exchange, order['symbol'], config_params, last_loop_path, transfer_path, open_orders_df_path, profit_df_path, cash_flow_df_path)
 
 
-def clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag):
+def clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path, resend_flag):
     open_orders_df = pd.read_csv(open_orders_df_path)
     method, order_remaerk = get_clear_method(last_loop_path)
 
@@ -421,30 +442,30 @@ def clear_orders_rebalance(exchange, bot_name, config_system, config_params, las
         symbol = open_orders_df.loc[open_orders_df['order_id'] == order_id, 'symbol'].item()
         
         order = exchange.fetch_order(order_id, symbol)
-        check_cancel_order(order, exchange, config_params, last_loop_path, open_orders_df_path, resend_flag)
+        check_cancel_order(order, exchange, config_params, last_loop_path, transfer_path, open_orders_df_path, profit_df_path, cash_flow_df_path, resend_flag)
 
         if order['filled'] > 0:
             manage_queue(order, method, exchange, symbol, config_system, last_loop_path, queue_df_path, profit_df_path)
 
-            last_loop = get_json(last_loop_path)
+            last_loop = func_get.get_json(last_loop_path)
             last_loop['symbol'][symbol]['last_action_price'] = order['price']
 
-            append_order(order, 'filled', order_remaerk, transactions_df_path)
-            update_json(last_loop, last_loop_path)
-            noti_success_order(order, bot_name, symbol)
+            func_update.append_order(order, 'filled', order_remaerk, transactions_df_path)
+            func_update.update_json(last_loop, last_loop_path)
+            func_noti.noti_success_order(order, bot_name, symbol)
 
-        remove_order(order_id, open_orders_df_path)
+        func_update.remove_order(order_id, open_orders_df_path)
 
 
-def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path):
+def rebalance(exchange, symbol, config_params, last_loop_path, transfer_path, open_orders_df_path, profit_df_path, cash_flow_df_path):
     print(f"Rebalance {symbol}")
 
-    base_currency, _ = get_currency(symbol)
-    action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path)
+    base_currency, _ = func_get.get_currency(symbol)
+    action_flag, side, diff_value, price = get_rebalance_action(exchange, symbol, config_params, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
 
     if action_flag:
         amount = diff_value / price
-        rounded_amount = round_amount(amount, exchange, symbol, round_direction='down')
+        rounded_amount = func_cal.round_amount(amount, exchange, symbol, round_direction='down')
 
         if rounded_amount > 0:
             print(f"Diff value: {diff_value} USD")
@@ -455,20 +476,20 @@ def rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_pa
 
 def update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path):
     cash_flow_df = pd.read_csv(cash_flow_df_path)
-    transfer = get_json(transfer_path)
+    transfer = func_get.get_json(transfer_path)
     
     symbol_list = list(config_params['symbol'])
     total_value, _ = get_total_value(exchange, config_params)
-    cash = get_quote_currency_value(exchange, symbol_list[0])
+    cash = func_get.get_quote_currency_value(exchange, symbol_list[0])
 
-    end_balance = cal_end_balance(total_value, cash, transfer)
-    end_cash = cal_end_cash(cash, transfer)
+    end_balance = func_cal.cal_end_balance(total_value, cash, transfer)
+    end_cash = func_cal.cal_end_cash(cash, transfer)
 
     cash_flow = get_cash_flow_rebalance(prev_date, profit_df_path)
-    funding_payment, _ = get_funding_payment(exchange, range='end_date')
+    funding_payment, _ = func_get.get_funding_payment(exchange, range='end_date')
     net_cash_flow = cash_flow - funding_payment
 
-    reserve = get_reserve(transfer, cash_flow_df)
+    reserve = func_get.get_reserve(transfer, cash_flow_df)
     reserve += net_cash_flow
 
     cash_flow_list = [
@@ -485,6 +506,6 @@ def update_end_date_rebalance(prev_date, exchange, config_system, config_params,
         reserve
         ]
     
-    append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    func_update.append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_budget(transfer, config_params, config_params_path, last_loop_path)
-    update_transfer(config_system['taker_fee_percent'], transfer_path)
+    func_update.update_transfer(config_system['taker_fee_percent'], transfer_path)

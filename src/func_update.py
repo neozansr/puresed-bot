@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 
-from func_get import get_json, get_time, get_last_price
+import func_get
 
 
 def update_json(input_dict, file_path):
@@ -20,7 +20,7 @@ def append_order(order, amount_key, remark, df_path):
     '''
     df = pd.read_csv(df_path)
 
-    timestamp = get_time()
+    timestamp = func_get.get_time()
     
     if order['price'] == None:
         # New created market orders.
@@ -44,22 +44,22 @@ def remove_order(order_id, df_path):
 def append_error_log(error_log, error_log_df_path):
     df = pd.read_csv(error_log_df_path)
     
-    timestamp = get_time()
+    timestamp = func_get.get_time()
     df.loc[len(df)] = [timestamp, error_log]
     df.to_csv(error_log_df_path, index=False)
 
 
 def update_last_loop_price(exchange, symbol, last_loop_path):
-    last_loop = get_json(last_loop_path)
-    last_price = get_last_price(exchange, symbol)
+    last_loop = func_get.get_json(last_loop_path)
+    last_price = func_get.get_last_price(exchange, symbol)
     last_loop['price'] = last_price
 
     update_json(last_loop, last_loop_path)
 
 
 def update_timestamp(last_loop_path):
-    last_loop = get_json(last_loop_path)
-    last_loop['timestamp'] = str(get_time())
+    last_loop = func_get.get_json(last_loop_path)
+    last_loop['timestamp'] = str(func_get.get_time())
 
     update_json(last_loop, last_loop_path)
 
@@ -70,7 +70,7 @@ def update_transfer(taker_fee_percent, transfer_path):
     Change withdraw amount to pending withdraw
     Set others to zero
     '''
-    transfer = get_json(transfer_path)
+    transfer = func_get.get_json(transfer_path)
     withdraw = transfer['withdraw']
 
     transfer['deposit'] = 0

@@ -3,41 +3,38 @@ import time
 import os
 import sys
 
-home_path = '../'
-src_path = home_path + 'src/'
-sys.path.append(os.path.abspath(src_path))
-
-from func_get import get_json, get_time, get_exchange, get_quote_currency_value, check_end_date
-from func_update import append_error_log, update_timestamp
-from func_rebalance import update_sequence_loop, get_rebalance_flag, reset_order_loop, rebalance, clear_orders_rebalance, update_end_date_rebalance
+sys.path.insert(1, '../src')
+import func_get
+import func_update
+import func_rebalance
 
 
 def run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
-    exchange = get_exchange(config_system)
-    config_params = get_json(config_params_path)
+    exchange = func_get.get_exchange(config_system)
+    config_params = func_get.get_json(config_params_path)
     
-    end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
+    end_date_flag, prev_date = func_get.check_end_date(cash_flow_df_path, transactions_df_path)
 
     if end_date_flag:
-        update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
+        func_rebalance.update_end_date_rebalance(prev_date, exchange, config_system, config_params, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
 
-    rebalance_flag = get_rebalance_flag(exchange, config_params, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
+    rebalance_flag = func_rebalance.get_rebalance_flag(exchange, config_params, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
 
     if rebalance_flag:
-        clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=False)
+        func_rebalance.clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path, resend_flag=False)
         
         for symbol in config_params['symbol']:
-            rebalance(exchange, symbol, config_params, last_loop_path, open_orders_df_path)
+            func_rebalance.rebalance(exchange, symbol, config_params, last_loop_path, transfer_path, open_orders_df_path, profit_df_path, cash_flow_df_path)
         
-        update_sequence_loop(config_params, last_loop_path)
+        func_rebalance.update_sequence_loop(config_params, last_loop_path)
 
-        cash = get_quote_currency_value(exchange, symbol)
+        cash = func_get.get_quote_currency_value(exchange, symbol)
         print(f"Cash: {cash} USD")
     else:
-        clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, resend_flag=True)
+        func_rebalance.clear_orders_rebalance(exchange, bot_name, config_system, config_params, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path, resend_flag=True)
 
-    update_timestamp(last_loop_path)
+    func_update.update_timestamp(last_loop_path)
 
 
 if __name__ == '__main__':
@@ -53,7 +50,7 @@ if __name__ == '__main__':
     cash_flow_df_path = 'cash_flow.csv'
 
     while True:
-        config_system = get_json(config_system_path)
+        config_system = func_get.get_json(config_system_path)
         idle_loop = config_system['idle_loop']
 
         if config_system['run_flag'] == 1:
@@ -61,18 +58,18 @@ if __name__ == '__main__':
             try:
                 run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError, ccxt.ExchangeError):
-                append_error_log('ConnectionError', error_log_df_path)
+                func_update.append_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
         
             print("End loop")
 
-            last_loop = get_json(last_loop_path)
-            timestamp = get_time()
+            last_loop = func_get.get_json(last_loop_path)
+            timestamp = func_get.get_time()
             print(f"Time: {timestamp}")
             print(f"Next rebalance: {last_loop['next_rebalance_timestamp']}")
             print(f"Wait {idle_loop} seconds")
         else:
             print("Stop process")
-            reset_order_loop(last_loop_path)
+            func_rebalance.reset_order_loop(last_loop_path)
         
         time.sleep(idle_loop)

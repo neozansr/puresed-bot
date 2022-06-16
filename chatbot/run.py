@@ -1,18 +1,14 @@
 import telebot
 import time
-import os
 import sys
 
+sys.path.insert(1, '../src')
+import func_get
+import func_chat
+
 home_path = '../'
-src_path = home_path + 'src/'
-sys.path.append(os.path.abspath(src_path))
-
-from func_get import get_json
-from func_chat import get_balance_text, get_reserve_text, get_rebalance_text, get_grid_text, get_technical_text
-
-
 token_path = home_path + '../_keys/bot_token.json'
-token_dict = get_json(token_path)
+token_dict = func_get.get_json(token_path)
 token = token_dict['telegram']
 
 config_system_path = 'config_system.json'
@@ -57,7 +53,7 @@ def send_balance(message):
         'hold'
     ]
     
-    text = get_balance_text(bot_list, config_system_path)
+    text = func_chat.get_balance_text(bot_list, config_system_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -68,7 +64,7 @@ def send_reserve(message):
         'bot_grid'
     ]
     
-    text = get_reserve_text(home_path, bot_list, transfer_path, cash_flow_df_path)
+    text = func_chat.get_reserve_text(home_path, bot_list, transfer_path, cash_flow_df_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -77,7 +73,7 @@ def send_bot_rebalance(message):
     bot_name = 'bot_rebalance'
     bot_type = 'rebalance'
     
-    text = get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
+    text = func_chat.get_rebalance_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, profit_df_path, cash_flow_df_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -86,7 +82,7 @@ def send_bot_grid(message):
     bot_name = 'bot_grid'
     bot_type = 'grid'
 
-    text = get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
+    text = func_chat.get_grid_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, cash_flow_df_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -95,7 +91,7 @@ def send_bot_technical(message):
     bot_name = 'bot_technical'
     bot_type = 'technical'
     
-    text = get_technical_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, position_path, profit_df_path)
+    text = func_chat.get_technical_text(home_path, bot_name, bot_type, config_system_path, config_params_path, last_loop_path, position_path, profit_df_path)
     bot.send_message(message.chat.id, text)
 
 
@@ -103,5 +99,5 @@ while True:
     try:
         bot.polling()
     except Exception:
-        config_system = get_json(config_system_path)
+        config_system = func_get.get_json(config_system_path)
         time.sleep(config_system['idle_loop'])

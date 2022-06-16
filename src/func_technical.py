@@ -1,8 +1,8 @@
 import pandas as pd
 
-from func_get import get_json, get_time, get_last_price, get_base_currency_amount, get_base_currency_value, get_quote_currency_value, get_order_fee
-from func_cal import cal_adjusted_price
-from func_update import update_json, append_csv, append_order, update_transfer
+import func_get
+import func_cal
+import func_update
 
 
 def cal_unrealised_technical(last_price, position):
@@ -32,9 +32,9 @@ def cal_technical_profit(exchange, close_order, config_system, last_loop_dict):
     '''
     Calculate profit after closing position
     '''
-    fee = get_order_fee(close_order, exchange, close_order['symbol'], config_system)
+    fee = func_get.get_order_fee(close_order, exchange, close_order['symbol'], config_system)
     open_price = last_loop_dict[close_order['symbol']]['open_price']
-    close_price = cal_adjusted_price(close_order, fee, close_order['side'])
+    close_price = func_cal.cal_adjusted_price(close_order, fee, close_order['side'])
 
     if close_order['side'] == 'sell':
         profit = (close_price - open_price) * close_order['amount']
@@ -51,15 +51,15 @@ def append_technical_profit(exchange, order, config_system, last_loop_dict, prof
     '''
     profit_df = pd.read_csv(profit_df_path)
 
-    timestamp = get_time()
+    timestamp = func_get.get_time()
     order_id = order['id']    
     symbol = order['symbol']
     side = order['side']
     amount = order['amount']
     
-    fee = get_order_fee(order, exchange, symbol, config_system)
+    fee = func_get.get_order_fee(order, exchange, symbol, config_system)
     open_price = last_loop_dict[symbol]['open_price']
-    close_price = cal_adjusted_price(order, fee, side)
+    close_price = func_cal.cal_adjusted_price(order, fee, side)
     profit = cal_technical_profit(exchange, order, config_system, last_loop_dict)    
 
     profit_df.loc[len(profit_df)] = [timestamp, order_id, symbol, side, amount, open_price, close_price, fee, profit]
@@ -72,17 +72,17 @@ def update_technical_budget(net_change, config_params_path):
         Net transfer
         Net profit
     '''
-    config_params = get_json(config_params_path)
+    config_params = func_get.get_json(config_params_path)
     config_params['budget'] += net_change
 
-    update_json(config_params, config_params_path)
+    func_update.update_json(config_params, config_params_path)
     
 
 def get_stop_orders(exchange, symbol, last_loop_path):
     '''
     Get take profit or stop loss order.
     '''
-    last_loop = get_json(last_loop_path)
+    last_loop = func_get.get_json(last_loop_path)
     open_amount = last_loop['amount']
 
     stop_orders = list()
@@ -122,21 +122,21 @@ def update_end_date_technical(prev_date, exchange, config_params_path, last_loop
     Update transfer funding
     Update budget on for trading in the next day
     '''
-    config_params = get_json(config_params_path)
-    last_loop = get_json(last_loop_path)
-    transfer = get_json(transfer_path)
+    config_params = func_get.get_json(config_params_path)
+    last_loop = func_get.get_json(last_loop_path)
+    transfer = func_get.get_json(transfer_path)
     cash_flow_df = pd.read_csv(cash_flow_df_path)
     
     unrealised = 0
     symbol_list = list(config_params['symbols'])
 
     for symbol in symbol_list:
-        last_price = get_last_price(exchange, symbol)
+        last_price = func_get.get_last_price(exchange, symbol)
         position = last_loop['symbol']['position'] 
          
         unrealised += cal_unrealised_technical(last_price, position)
 
-    end_balance = get_quote_currency_value(exchange, symbol_list[0])
+    end_balance = func_get.get_quote_currency_value(exchange, symbol_list[0])
 
     profit_df = pd.read_csv(profit_df_path)
     last_profit_df = profit_df[pd.to_datetime(profit_df['timestamp']).dt.date == prev_date]
@@ -153,9 +153,9 @@ def update_end_date_technical(prev_date, exchange, config_params_path, last_loop
         transfer['withdraw']
     ]
 
-    append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
+    func_update.append_csv(cash_flow_list, cash_flow_df, cash_flow_df_path)
     update_technical_budget(net_transfer, config_params_path)
-    update_transfer(config_params['taker_fee'], transfer_path)
+    func_update.update_transfer(config_params['taker_fee'], transfer_path)
 
 
 def print_position(last_price, position, position_api, quote_currency):

@@ -3,35 +3,34 @@ import time
 import os
 import sys
 
-home_path = '../'
-src_path = home_path + 'src/'
-sys.path.append(os.path.abspath(src_path))
+sys.path.insert(1, '../src')
+import func_get
+import func_update
+import func_grid
 
-from func_get import get_json, get_exchange, check_end_date
-from func_update import append_error_log, update_timestamp
-from func_grid import clear_orders_grid, clear_free_base_currency, open_buy_orders_grid, check_circuit_breaker, update_end_date_grid, print_report_grid
+home_path = '../'
 
 
 def run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
-    exchange = get_exchange(config_system)
-    config_params = get_json(config_params_path)
+    exchange = func_get.get_exchange(config_system)
+    config_params = func_get.get_json(config_params_path)
     
-    clear_orders_grid('buy', exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-    clear_orders_grid('sell', exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
-    print_report_grid(exchange, config_params, open_orders_df_path)
+    func_grid.clear_orders_grid('buy', exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+    func_grid.clear_orders_grid('sell', exchange, bot_name, config_params, open_orders_df_path, transactions_df_path, error_log_df_path)
+    func_grid.print_report_grid(exchange, config_params, open_orders_df_path)
     
-    cont_flag = check_circuit_breaker(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
+    cont_flag = func_grid.check_circuit_breaker(exchange, bot_name, config_system, config_params, last_loop_path, open_orders_df_path, transactions_df_path, error_log_df_path)
 
     if cont_flag:
-        open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
+        func_grid.open_buy_orders_grid(exchange, config_params, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
 
-    end_date_flag, prev_date = check_end_date(cash_flow_df_path, transactions_df_path)
+    end_date_flag, prev_date = func_get.check_end_date(cash_flow_df_path, transactions_df_path)
 
     if end_date_flag:
-        update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
+        func_grid.update_end_date_grid(prev_date, exchange, bot_name, config_system, config_params, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
 
-    update_timestamp(last_loop_path)
+    func_update.update_timestamp(last_loop_path)
 
 
 if __name__ == '__main__':
@@ -45,14 +44,14 @@ if __name__ == '__main__':
     cash_flow_df_path = 'cash_flow.csv'
 
     while True:
-        config_system = get_json(config_system_path)
+        config_system = func_get.get_json(config_system_path)
         
         if config_system['run_flag'] == 1:
             print("Start loop")
             try:
                 run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError, ccxt.ExchangeError):
-                append_error_log('ConnectionError', error_log_df_path)
+                func_update.append_error_log('ConnectionError', error_log_df_path)
                 print("No connection: Skip the loop")
         
             print("End loop")

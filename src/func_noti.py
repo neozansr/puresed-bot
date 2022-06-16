@@ -1,12 +1,12 @@
 import requests
 
-from func_get import get_json, get_currency
+import func_get
 
 
 def get_line_message(payload, noti_type, home_path='../'):
     url = 'https://notify-api.line.me/api/notify'
     token_path = home_path + '../_keys/bot_token.json'
-    token_dict = get_json(token_path)
+    token_dict = func_get.get_json(token_path)
     token = token_dict['line'][noti_type]
     
     headers = {'Authorization':'Bearer ' + token}
@@ -22,7 +22,7 @@ def line_send(message, noti_type):
 
 
 def noti_success_order(order, bot_name, symbol):
-    base_currency, quote_currency = get_currency(symbol)
+    base_currency, quote_currency = func_get.get_currency(symbol)
     
     message = f"{bot_name}: {order['side']} {order['filled']} {base_currency} at {order['price']} {quote_currency}"
     line_send(message, noti_type='order')
@@ -30,7 +30,7 @@ def noti_success_order(order, bot_name, symbol):
 
 
 def noti_clear_order(order, bot_name, symbol):
-    base_currency, quote_currency = get_currency(symbol)
+    base_currency, quote_currency = func_get.get_currency(symbol)
     
     message = f"{bot_name}: Clear {order['filled']} {base_currency} at {order['price']} {quote_currency}"
     line_send(message, noti_type='order')
