@@ -1,4 +1,4 @@
-ccxt==1.50.9
+ccxt==1.50.10
 numpy==1.19.5
 pandas==1.2.4
 python-dateutil==2.8.1

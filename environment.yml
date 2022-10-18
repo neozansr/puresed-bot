@@ -1,0 +1,13 @@
+name: puresed-bot
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8.10
+  - numpy==1.19.5
+  - pandas==1.2.4
+  - python-dateutil==2.8.1
+  - jupyter
+  - pip
+  - pip:
+    - ccxt==1.50.10
+    - pyTelegramBotAPI==3.7.9
