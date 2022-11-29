@@ -36,6 +36,12 @@ def run_bot(config_system, config_params_path, last_loop_path, transfer_path, op
 
     func_update.update_timestamp(last_loop_path)
 
+    timestamp = func_get.get_time()
+    print(f"Time: {timestamp}")
+
+    last_loop = func_get.get_json(last_loop_path)
+    print(f"Next rebalance: {last_loop['next_rebalance_timestamp']}")
+
 
 if __name__ == '__main__':
     config_system_path = 'config_system.json'
@@ -55,18 +61,14 @@ if __name__ == '__main__':
 
         if config_system['run_flag'] == 1:
             print("Start loop")
+            
             try:
                 run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, queue_df_path, profit_df_path, cash_flow_df_path)
             except (ccxt.RequestTimeout, ccxt.NetworkError, ccxt.ExchangeError):
                 func_update.append_error_log('ConnectionError', error_log_df_path)
                 print('No connection: Skip the loop')
-        
+            
             print("End loop")
-
-            last_loop = func_get.get_json(last_loop_path)
-            timestamp = func_get.get_time()
-            print(f"Time: {timestamp}")
-            print(f"Next rebalance: {last_loop['next_rebalance_timestamp']}")
             print(f"Wait {idle_loop} seconds")
         else:
             print("Stop process")

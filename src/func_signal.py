@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import math
-import datetime as dt
 
 
 def get_signal_dict(signal, objective, timeframe, config_params):
@@ -74,9 +73,8 @@ def check_dependent_signal(func):
     return inner
 
 
-def check_signal_side(objective, symbol_type, time, signal, action_list, ohlcv_df, timeframe, config_params):
-    check_df = ohlcv_df[ohlcv_df['time'] <= time].reset_index(drop=True)
-    check_series = check_df.loc[len(check_df) - 1, :]
+def check_signal_side(objective, symbol_type, signal, action_list, ohlcv_df, timeframe, config_params):
+    check_series = ohlcv_df.loc[len(ohlcv_df) - 1, :]
     
     action_side = check_series[f'{signal}_side']
 
@@ -87,20 +85,16 @@ def check_signal_side(objective, symbol_type, time, signal, action_list, ohlcv_d
     return action_side
 
 
-def check_signal_side_change(objective, symbol_type, time, signal, action_list, ohlcv_df, timeframe, config_params):
+def check_signal_side_change(objective, symbol_type, signal, action_list, ohlcv_df, timeframe, config_params):
     look_back = config_params[symbol_type][objective][timeframe][signal]['look_back']
-    check_df = ohlcv_df[ohlcv_df['time'] <= time]
-    check_df = check_df.loc[len(check_df) - look_back - 1:].reset_index(drop=True)
+    ohlcv_df = ohlcv_df.loc[len(ohlcv_df) - look_back - 1:].reset_index(drop=True)
     
-    if len(check_df) < look_back + 1:
-        action_side = 'no_action'
+    action_side_first = ohlcv_df.loc[0, f'{signal}_side']
+    action_side_unique = ohlcv_df.loc[1:len(ohlcv_df) - 1, f'{signal}_side'].unique()
+    if (len(action_side_unique) == 1) & (action_side_first != action_side_unique[0]):
+        action_side = action_side_unique[0]
     else:
-        action_side_first = check_df.loc[0, f'{signal}_side']
-        action_side_unique = check_df.loc[1:len(check_df) - 1, f'{signal}_side'].unique()
-        if (len(action_side_unique) == 1) & (action_side_first != action_side_unique[0]):
-            action_side = action_side_unique[0]
-        else:
-            action_side = 'no_action' if objective == 'open' else check_df.loc[len(check_df) - 1, f'{signal}_side']
+        action_side = 'no_action' if objective == 'open' else ohlcv_df.loc[len(ohlcv_df) - 1, f'{signal}_side']
         
     if config_params[symbol_type][objective][timeframe][signal]['revert']:
         action_side = revert_signal(action_side)
@@ -109,7 +103,7 @@ def check_signal_side_change(objective, symbol_type, time, signal, action_list, 
     return action_side
 
 
-def check_signal_band(objective, symbol_type, time, signal, action_list, ohlcv_df, timeframe, config_params):
+def check_signal_band(objective, symbol_type, signal, action_list, ohlcv_df, timeframe, config_params):
     def cal_outer_band(indicator, upperband, lowerband):
         if indicator <= lowerband:
             action_side = 'buy'
@@ -137,8 +131,7 @@ def check_signal_band(objective, symbol_type, time, signal, action_list, ohlcv_d
         return action_side
 
 
-    check_df = ohlcv_df[ohlcv_df['time'] <= time].reset_index(drop=True)
-    check_series = check_df.loc[len(check_df) - 1, :]
+    check_series = ohlcv_df.loc[len(ohlcv_df) - 1, :]
 
     band_type_dict = {
         'signal': ['rsi', 'wt'],
@@ -536,20 +529,7 @@ def get_stop_signal(ohlcv_df_dict, func_add_dict, config_params):
     return ohlcv_df_dict
 
 
-def filter_start_time(start_date, ohlcv_df_dict, interval_dict):
-    for symbol_type in ['base', 'lead']:
-        for timeframe in ohlcv_df_dict[symbol_type]:
-            for symbol in ohlcv_df_dict[symbol_type][timeframe]:
-                ohlcv_df = ohlcv_df_dict[symbol_type][timeframe][symbol]
-                
-                first_signal_time = start_date - dt.timedelta(minutes=interval_dict[timeframe])
-                ohlcv_df = ohlcv_df[ohlcv_df['time'] >= first_signal_time].dropna().reset_index(drop=True)
-                ohlcv_df_dict[symbol_type][timeframe][symbol] = ohlcv_df
-
-    return ohlcv_df_dict
-
-
-def add_signal(start_date, ohlcv_df_dict, interval_dict, config_params):
+def add_signal(ohlcv_df_dict, config_params):
     func_add_dict = {
         'sma': add_sma,
         'ema': add_ema,
@@ -567,6 +547,15 @@ def add_signal(start_date, ohlcv_df_dict, interval_dict, config_params):
 
     ohlcv_df_dict = get_action_signal(ohlcv_df_dict, func_add_dict, config_params)
     ohlcv_df_dict = get_stop_signal(ohlcv_df_dict, func_add_dict, config_params)
-    ohlcv_df_dict = filter_start_time(start_date, ohlcv_df_dict, interval_dict)
 
     return ohlcv_df_dict
+
+
+def call_check_signal_func(func_name):
+    check_func_dict = {
+        'check_signal_side': check_signal_side,
+        'check_signal_side_change': check_signal_side_change,
+        'check_signal_band': check_signal_band
+    }
+
+    return check_func_dict[func_name]

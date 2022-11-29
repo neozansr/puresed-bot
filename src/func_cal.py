@@ -1,4 +1,3 @@
-from re import S
 import numpy as np
 
 import func_get
@@ -36,9 +35,9 @@ def cal_adjusted_price(order, fee, side):
 
 def cal_available_cash(exchange, cash_flow, funding_payment, reserve, config_params, transfer):
     quote_currency_free = func_get.get_quote_currency_free(exchange, config_params['symbol'])
+    
     # Exclude withdraw_reserve as it is moved instantly.
     # Include funding_payment as it will be included in cash_flow at the end of the day.
-
     total_withdraw = transfer['withdraw'] + transfer['pending_withdraw']
     available_cash = quote_currency_free - cash_flow - funding_payment - reserve - total_withdraw
 

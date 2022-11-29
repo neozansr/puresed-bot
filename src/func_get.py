@@ -44,7 +44,7 @@ def convert_tz(utc):
     return utc
 
 
-def get_unix_date(dt_date):
+def get_unix_datetime(dt_date):
     if isinstance(dt_date, dt.datetime):
         dt_datetime = dt.datetime(dt_date.year, dt_date.month, dt_date.day, dt_date.hour, dt_date.minute)
     elif isinstance(dt_date, dt.date):
@@ -278,12 +278,12 @@ def get_reserve(transfer, cash_flow_df):
 def get_funding_payment(exchange, range):
     if range == 'end_date':
         request = {
-            'start_time': int(get_unix_date(dt.date.today() - relativedelta(days=1)) / 1000),
-            'end_time': int(get_unix_date(dt.date.today() - relativedelta(seconds=1)) / 1000)
+            'start_time': int(get_unix_datetime(dt.date.today() - relativedelta(days=1)) / 1000),
+            'end_time': int(get_unix_datetime(dt.date.today() - relativedelta(seconds=1)) / 1000)
             }
     elif range == 'today':
         request = {
-            'start_time': int(get_unix_date(dt.date.today()) / 1000)
+            'start_time': int(get_unix_datetime(dt.date.today()) / 1000)
             }
 
     funding_df = pd.DataFrame(exchange.private_get_funding_payments(request)['result'])

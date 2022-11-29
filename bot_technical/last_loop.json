@@ -2,21 +2,7 @@
     "timestamp": 0,
     "last_action_timeframe": 0,
     "next_action_timeframe": 0,
-    "symbols": {
-        "LUNA-PREP": {
-            "side": "buy", 
-            "amount": 50, 
-            "open_price": 100
-        }, 
-        "ETH-PREP": {
-            "side": "sell", 
-            "amount": 30, 
-            "open_price": 3000
-        }, 
-        "SOL-PREP": {
-            "side": "buy", 
-            "amount": 40, 
-            "open_price": 80
-        }
+    "position": {
+        
     }
 }

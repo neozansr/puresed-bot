@@ -8,8 +8,6 @@ import func_get
 import func_update
 import func_grid
 
-home_path = '../'
-
 
 def run_bot(config_system, config_params_path, last_loop_path, transfer_path, open_orders_df_path, transactions_df_path, error_log_df_path, cash_flow_df_path):
     bot_name = os.path.basename(os.getcwd())
@@ -45,6 +43,7 @@ if __name__ == '__main__':
 
     while True:
         config_system = func_get.get_json(config_system_path)
+        idle_loop = config_system['idle_loop']
         
         if config_system['run_flag'] == 1:
             print("Start loop")
@@ -55,7 +54,8 @@ if __name__ == '__main__':
                 print("No connection: Skip the loop")
         
             print("End loop")
+            print(f"Wait {idle_loop} seconds")
         else:
             print("Stop process")
         
-        time.sleep(config_system['idle_loop'])
+        time.sleep(idle_loop)

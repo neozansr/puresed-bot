@@ -1,4 +1,5 @@
 {
+    "budget": 100,
     "safety_ohlcv_range": 1000,
     "action_timeframe": "15m",
     "target_side": [
@@ -8,8 +9,7 @@
     "base": {
         "symbol": [
             "ETH-PERP",
-            "SOL-PERP",
-            "LUNA-PERP"
+            "SOL-PERP"
         ],
         "open": {
             "15m": {
